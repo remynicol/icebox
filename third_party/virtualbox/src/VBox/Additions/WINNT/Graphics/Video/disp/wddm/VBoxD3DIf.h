@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxDispD3DRcIf_h__
-#define ___VBoxDispD3DRcIf_h__
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxD3DIf_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxD3DIf_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include "VBoxDispD3DCmn.h"
 
@@ -54,7 +57,8 @@ DECLINLINE(IUnknown*) vboxD3DIfGet(PVBOXWDDMDISP_ALLOCATION pAlloc)
         return NULL;
     }
 
-    return vboxD3DIfCreateSharedPrimary(pAlloc);
+    Assert(pAlloc->pRc->pDevice->pfnCreateSharedPrimary);
+    return pAlloc->pRc->pDevice->pfnCreateSharedPrimary(pAlloc);
 }
 
 /* on success increments the surface ref counter,
@@ -128,17 +132,18 @@ DECLINLINE(IDirect3DDevice9*) VBoxD3DIfDeviceGet(PVBOXWDDMDISP_DEVICE pDevice)
     g_VBoxVDbgInternalDevice = pDevice;
 #endif
 
-    HRESULT hr = VBoxD3DIfDeviceCreateDummy(pDevice);
+    Assert(pDevice->pfnCreateDirect3DDevice);
+    HRESULT hr = pDevice->pfnCreateDirect3DDevice(pDevice);
     Assert(hr == S_OK); NOREF(hr);
     Assert(pDevice->pDevice9If);
     return pDevice->pDevice9If;
 }
 
-#define VBOXDISPMODE_IS_3D(_p) (!!((_p)->D3D.pD3D9If))
+#define VBOXDISPMODE_IS_3D(_p) ((_p)->f3D)
 #ifdef VBOXDISP_EARLYCREATEDEVICE
 #define VBOXDISP_D3DEV(_p) (_p)->pDevice9If
 #else
 #define VBOXDISP_D3DEV(_p) VBoxD3DIfDeviceGet(_p)
 #endif
 
-#endif /* ___VBoxDispD3DRcIf_h__ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxD3DIf_h */

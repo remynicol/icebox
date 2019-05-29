@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -194,7 +194,23 @@ RTR3DECL(int) RTPathSetTimesEx(const char *pszPath, PCRTTIMESPEC pAccessTime, PC
                 else
                 {
                     if (lutimes(pszNativePath, aTimevals))
-                        rc = RTErrConvertFromErrno(errno);
+                    {
+                        /* If lutimes is not supported (e.g. linux < 2.6.22), try fall back on utimes: */
+                        if (errno != ENOSYS)
+                            rc = RTErrConvertFromErrno(errno);
+                        else
+                        {
+                            if (pAccessTime && pModificationTime)
+                                rc = RTPathQueryInfoEx(pszPath, &ObjInfo, RTFSOBJATTRADD_UNIX, fFlags);
+                            if (RT_SUCCESS(rc) && !RTFS_IS_SYMLINK(ObjInfo.Attr.fMode))
+                            {
+                                if (utimes(pszNativePath, aTimevals))
+                                    rc = RTErrConvertFromErrno(errno);
+                            }
+                            else
+                                rc = VERR_NOT_SUPPORTED;
+                        }
+                    }
                 }
 #else
                 else

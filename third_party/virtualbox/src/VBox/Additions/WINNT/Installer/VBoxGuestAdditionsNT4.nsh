@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2006-2017 Oracle Corporation
+; Copyright (C) 2006-2019 Oracle Corporation
 ;
 ; This file is part of VirtualBox Open Source Edition (OSE), as
 ; available from http://www.virtualbox.org. This file is free software;
@@ -129,8 +129,8 @@ Function NT4_CopyFiles
   AccessControl::SetOnFile "$SYSDIR\VBoxControl.exe" "(BU)" "GenericRead"
 
   ; VBoxService
-  FILE "$%PATH_OUT%\bin\additions\VBoxServiceNT.exe"
-  AccessControl::SetOnFile "$SYSDIR\VBoxServiceNT.exe" "(BU)" "GenericRead"
+  FILE "$%PATH_OUT%\bin\additions\VBoxService.exe"
+  AccessControl::SetOnFile "$SYSDIR\VBoxService.exe" "(BU)" "GenericRead"
 
   ; The drivers into the "drivers" directory
   SetOutPath "$SYSDIR\drivers"
@@ -138,8 +138,8 @@ Function NT4_CopyFiles
   AccessControl::SetOnFile "$SYSDIR\drivers\VBoxVideo.sys" "(BU)" "GenericRead"
   FILE "$%PATH_OUT%\bin\additions\VBoxMouseNT.sys"
   AccessControl::SetOnFile "$SYSDIR\drivers\VBoxMouseNT.sys" "(BU)" "GenericRead"
-  FILE "$%PATH_OUT%\bin\additions\VBoxGuestNT.sys"
-  AccessControl::SetOnFile "$SYSDIR\drivers\VBoxGuestNT.sys" "(BU)" "GenericRead"
+  FILE "$%PATH_OUT%\bin\additions\VBoxGuest.sys"
+  AccessControl::SetOnFile "$SYSDIR\drivers\VBoxGuest.sys" "(BU)" "GenericRead"
   ;FILE "$%PATH_OUT%\bin\additions\VBoxSFNT.sys" ; Shared Folders not available on NT4!
   ;AccessControl::SetOnFile "$SYSDIR\drivers\VBoxSFNT.sys" "(BU)" "GenericRead"
 
@@ -150,12 +150,12 @@ Function NT4_InstallFiles
   ${LogVerbose} "Installing drivers for NT4 ..."
 
   ; Install guest driver
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service create $\"VBoxGuest$\" $\"VBoxGuest Support Driver$\" 1 1 $\"$SYSDIR\drivers\VBoxGuestNT.sys$\" $\"Base$\"" "false"
+  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service create $\"VBoxGuest$\" $\"VBoxGuest Support Driver$\" 1 1 $\"$SYSDIR\drivers\VBoxGuest.sys$\" $\"Base$\"" "false"
 
   ; Bugfix: Set "Start" to 1, otherwise, VBoxGuest won't start on boot-up!
   ; Bugfix: Correct invalid "ImagePath" (\??\C:\WINNT\...)
   WriteRegDWORD HKLM "SYSTEM\CurrentControlSet\Services\VBoxGuest" "Start" 1
-  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxGuest" "ImagePath" "\SystemRoot\System32\DRIVERS\VBoxGuestNT.sys"
+  WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxGuest" "ImagePath" "\SystemRoot\System32\DRIVERS\VBoxGuest.sys"
 
   ; Run VBoxTray when Windows NT starts
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray" '"$SYSDIR\VBoxTray.exe"'
@@ -167,7 +167,7 @@ Function NT4_InstallFiles
 
   ; Create the VBoxService service
   ; No need to stop/remove the service here! Do this only on uninstallation!
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service create $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\system32\VBoxServiceNT.exe$\" $\"Base$\"" "false"
+  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service create $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\system32\VBoxService.exe$\" $\"Base$\"" "false"
 
    ; Create the Shared Folders service ...
   ;nsSCM::Install /NOUNLOAD "VBoxSF" "VirtualBox Shared Folders" 1 1 "$SYSDIR\drivers\VBoxSFNT.sys" "Network" "" "" ""
@@ -234,13 +234,13 @@ Function ${un}NT4_Uninstall
 
   ; Remove the guest driver service
   ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service delete VBoxGuest" "true"
-  Delete /REBOOTOK "$SYSDIR\drivers\VBoxGuestNT.sys"
+  Delete /REBOOTOK "$SYSDIR\drivers\VBoxGuest.sys"
 
   ; Delete the VBoxService service
   Call ${un}StopVBoxService
   ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" service delete VBoxService" "true"
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxService"
-  Delete /REBOOTOK "$SYSDIR\VBoxServiceNT.exe"
+  Delete /REBOOTOK "$SYSDIR\VBoxService.exe"
 
   ; Delete the VBoxTray app
   Call ${un}StopVBoxTray

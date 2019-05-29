@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -1500,12 +1500,15 @@ static DECLCALLBACK(void) drvNATDestruct(PPDMDRVINS pDrvIns)
 
 #ifdef RT_OS_DARWIN
     /* Cleanup the DNS watcher. */
-    CFRunLoopRef hRunLoopMain = CFRunLoopGetMain();
-    CFRetain(hRunLoopMain);
-    CFRunLoopRemoveSource(hRunLoopMain, pThis->hRunLoopSrcDnsWatcher, kCFRunLoopCommonModes);
-    CFRelease(hRunLoopMain);
-    CFRelease(pThis->hRunLoopSrcDnsWatcher);
-    pThis->hRunLoopSrcDnsWatcher = NULL;
+    if (pThis->hRunLoopSrcDnsWatcher != NULL)
+    {
+        CFRunLoopRef hRunLoopMain = CFRunLoopGetMain();
+        CFRetain(hRunLoopMain);
+        CFRunLoopRemoveSource(hRunLoopMain, pThis->hRunLoopSrcDnsWatcher, kCFRunLoopCommonModes);
+        CFRelease(hRunLoopMain);
+        CFRelease(pThis->hRunLoopSrcDnsWatcher);
+        pThis->hRunLoopSrcDnsWatcher = NULL;
+    }
 #endif
 }
 

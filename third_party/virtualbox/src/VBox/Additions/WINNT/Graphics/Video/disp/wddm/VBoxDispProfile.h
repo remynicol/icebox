@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxDispProfile_h__
-#define ___VBoxDispProfile_h__
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispProfile_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispProfile_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 #include "VBoxDispD3DCmn.h"
 
 #include <iprt/ctype.h>
@@ -417,4 +420,4 @@ private:
 //#define VBOXDISPPROFILE_FUNCTION_PROLOGUE(_p) \
 //        VBOXDISPPROFILE_FUNCTION_LOGGER_DEFINE(_p)
 
-#endif /* #ifndef ___VBoxDispProfile_h__ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispProfile_h */

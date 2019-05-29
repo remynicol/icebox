@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef VBOXMPDEVEXT_H
-#define VBOXMPDEVEXT_H
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_common_VBoxMPDevExt_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_common_VBoxMPDevExt_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include "VBoxMPUtils.h"
 #include <VBoxVideoGuest.h>
@@ -30,11 +33,29 @@
 #endif
 
 #ifdef VBOX_WDDM_MINIPORT
-# ifdef VBOX_WDDM_WIN8
 extern DWORD g_VBoxDisplayOnly;
-# endif
 # include "wddm/VBoxMPTypes.h"
 #endif
+
+#ifdef VBOX_WDDM_MINIPORT
+typedef struct VBOXWDDM_HWRESOURCES
+{
+    PHYSICAL_ADDRESS phVRAM;
+    ULONG cbVRAM;
+    ULONG ulApertureSize;
+#ifdef VBOX_WITH_MESA3D
+    PHYSICAL_ADDRESS phFIFO;
+    ULONG cbFIFO;
+    PHYSICAL_ADDRESS phIO;
+    ULONG cbIO;
+#endif
+} VBOXWDDM_HWRESOURCES, *PVBOXWDDM_HWRESOURCES;
+
+#ifdef VBOX_WITH_MESA3D
+typedef struct VBOXWDDM_EXT_GA *PVBOXWDDM_EXT_GA;
+#endif
+
+#endif /* VBOX_WDDM_MINIPORT */
 
 #define VBOXMP_MAX_VIDEO_MODES 128
 typedef struct VBOXMP_COMMON
@@ -203,6 +224,16 @@ typedef struct _VBOXMP_DEVEXT
    } u;
 
    HGSMIAREA areaDisplay;                      /* Entire VRAM chunk for this display device. */
+
+#ifdef VBOX_WDDM_MINIPORT
+   VBOXVIDEO_HWTYPE enmHwType;
+   VBOXWDDM_HWRESOURCES HwResources;
+#endif
+
+#ifdef VBOX_WITH_MESA3D
+   PVBOXWDDM_EXT_GA pGa;                       /* Pointer to Gallium backend data. */
+#endif
+
 } VBOXMP_DEVEXT, *PVBOXMP_DEVEXT;
 
 DECLINLINE(PVBOXMP_DEVEXT) VBoxCommonToPrimaryExt(PVBOXMP_COMMON pCommon)
@@ -273,4 +304,4 @@ DECLINLINE(bool) vboxWddmCmpSurfDescsBase(VBOXWDDM_SURFACE_DESC *pDesc1, VBOXWDD
 #endif
 #endif /*VBOX_WDDM_MINIPORT*/
 
-#endif /*VBOXMPDEVEXT_H*/
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_common_VBoxMPDevExt_h */

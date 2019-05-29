@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -136,6 +136,9 @@ typedef struct SparseExtentHeader
     uint8_t     pad[433];
 } SparseExtentHeader;
 #pragma pack()
+
+/** The maximum allowed descriptor size in the extent header in sectors. */
+#define VMDK_SPARSE_DESCRIPTOR_SIZE_MAX UINT64_C(20480) /* 10MB */
 
 /** VMDK capacity for a single chunk when 2G splitting is turned on. Should be
  * divisible by the default grain size (64K) */
@@ -538,7 +541,7 @@ static int vmdkFreeExtentData(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
 static int vmdkCreateExtents(PVMDKIMAGE pImage, unsigned cExtents);
 static int vmdkFlushImage(PVMDKIMAGE pImage, PVDIOCTX pIoCtx);
 static int vmdkSetImageComment(PVMDKIMAGE pImage, const char *pszComment);
-static int vmdkFreeImage(PVMDKIMAGE pImage, bool fDelete);
+static int vmdkFreeImage(PVMDKIMAGE pImage, bool fDelete, bool fFlush);
 
 static DECLCALLBACK(int) vmdkAllocGrainComplete(void *pBackendData, PVDIOCTX pIoCtx,
                                                 void *pvUser, int rcReq);
@@ -2585,6 +2588,12 @@ static int vmdkValidateHeader(PVMDKIMAGE pImage, PVMDKEXTENT pExtent, const Spar
         rc = vdIfError(pImage->pIfError, VERR_VD_VMDK_INVALID_HEADER, RT_SRC_POS, N_("VMDK: corrupted by CR/LF translation in '%s'"), pExtent->pszFullname);
         return rc;
     }
+    if (RT_LE2H_U64(pHeader->descriptorSize) > VMDK_SPARSE_DESCRIPTOR_SIZE_MAX)
+    {
+        rc = vdIfError(pImage->pIfError, VERR_VD_VMDK_INVALID_HEADER, RT_SRC_POS, N_("VMDK: descriptor size out of bounds (%llu vs %llu) '%s'"),
+                       pExtent->pszFullname, RT_LE2H_U64(pHeader->descriptorSize), VMDK_SPARSE_DESCRIPTOR_SIZE_MAX);
+        return rc;
+    }
     return rc;
 }
 
@@ -3364,7 +3373,7 @@ static int vmdkOpenImage(PVMDKIMAGE pImage, unsigned uOpenFlags)
         pRegion->cRegionBlocksOrBytes = pImage->cbSize;
     }
     else
-        vmdkFreeImage(pImage, false);
+        vmdkFreeImage(pImage, false, false /*fFlush*/); /* Don't try to flush anything if opening failed. */
     return rc;
 }
 
@@ -4092,7 +4101,7 @@ static int vmdkCreateImage(PVMDKIMAGE pImage, uint64_t cbSize,
         vdIfProgress(pIfProgress, uPercentStart + uPercentSpan);
     }
     else
-        vmdkFreeImage(pImage, rc != VERR_ALREADY_EXISTS);
+        vmdkFreeImage(pImage, rc != VERR_ALREADY_EXISTS, false /*fFlush*/);
     return rc;
 }
 
@@ -4206,7 +4215,7 @@ static int vmdkStreamFlushGT(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
  * Internal. Free all allocated space for representing an image, and optionally
  * delete the image from disk.
  */
-static int vmdkFreeImage(PVMDKIMAGE pImage, bool fDelete)
+static int vmdkFreeImage(PVMDKIMAGE pImage, bool fDelete, bool fFlush)
 {
     int rc = VINF_SUCCESS;
 
@@ -4316,7 +4325,7 @@ static int vmdkFreeImage(PVMDKIMAGE pImage, bool fDelete)
                 AssertRC(rc);
             }
         }
-        else if (!fDelete)
+        else if (!fDelete && fFlush)
             vmdkFlushImage(pImage, NULL);
 
         if (pImage->pExtents != NULL)
@@ -5158,6 +5167,41 @@ static int vmdkStreamReadSequential(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
  * @param   pszWhere        UTF-8 string to search in.
  * @param   pszWhat         UTF-8 string to search for.
  * @param   pszByWhat       UTF-8 string to replace the found string with.
+ *
+ * @note    r=bird: This is only used by vmdkRenameWorker().  The first use is
+ *          for updating the base name in the descriptor, the second is for
+ *          generating new filenames for extents.  This code borked when
+ *          RTPathAbs started correcting the driver letter case on windows,
+ *          when strstr failed because the pExtent->pszFullname was not
+ *          subjected to RTPathAbs but while pExtent->pszFullname was.  I fixed
+ *          this by apply RTPathAbs to the places it wasn't applied.
+ *
+ *          However, this highlights some undocumented ASSUMPTIONS as well as
+ *          terrible short commings of the approach.
+ *
+ *          Given the right filename, it may also screw up the descriptor.  Take
+ *          the descriptor text 'RW 2048 SPARSE "Test0.vmdk"' for instance,
+ *          we'll be asked to replace "Test0" with something, no problem.  No,
+ *          imagine 'RW 2048 SPARSE "SPARSE.vmdk"', 'RW 2048 SPARSE "RW.vmdk"'
+ *          or 'RW 2048 SPARSE "2048.vmdk"', and the strstr approach falls on
+ *          its bum.  The descriptor string must be parsed and reconstructed,
+ *          the lazy strstr approach doesn't cut it.
+ *
+ *          I'm also curious as to what would be the correct escaping of '"' in
+ *          the file name and how that is supposed to be handled, because it
+ *          needs to be or such names must be rejected in several places (maybe
+ *          they are, I didn't check).
+ *
+ *          When this function is used to replace the start of a path, I think
+ *          the assumption from the prep/setup code is that we kind of knows
+ *          what we're working on (I could be wrong).  However, using strstr
+ *          instead of strncmp/RTStrNICmp makes no sense and isn't future proof.
+ *          Especially on unix systems, weird stuff could happen if someone
+ *          unwittingly tinkers with the prep/setup code.  What should really be
+ *          done here is using a new RTPathStartEx function that (via flags)
+ *          allows matching partial final component and returns the length of
+ *          what it matched up (in case it skipped slashes and '.' components).
+ *
  */
 static char *vmdkStrReplace(const char *pszWhere, const char *pszWhat,
                             const char *pszByWhat)
@@ -5167,9 +5211,12 @@ static char *vmdkStrReplace(const char *pszWhere, const char *pszWhat,
     AssertPtr(pszByWhat);
     const char *pszFoundStr = strstr(pszWhere, pszWhat);
     if (!pszFoundStr)
+    {
+        LogFlowFunc(("Failed to find '%s' in '%s'!\n", pszWhat, pszWhere));
         return NULL;
-    size_t cFinal = strlen(pszWhere) + 1 + strlen(pszByWhat) - strlen(pszWhat);
-    char *pszNewStr = (char *)RTMemAlloc(cFinal);
+    }
+    size_t cbFinal = strlen(pszWhere) + 1 + strlen(pszByWhat) - strlen(pszWhat);
+    char *pszNewStr = (char *)RTMemAlloc(cbFinal);
     if (pszNewStr)
     {
         char *pszTmp = pszNewStr;
@@ -5207,7 +5254,7 @@ static DECLCALLBACK(int) vmdkProbe(const char *pszFilename, PVDINTERFACE pVDIfsD
         /** @todo speed up this test open (VD_OPEN_FLAGS_INFO) by skipping as
          * much as possible in vmdkOpenImage. */
         rc = vmdkOpenImage(pImage, VD_OPEN_FLAGS_INFO | VD_OPEN_FLAGS_READONLY);
-        vmdkFreeImage(pImage, false);
+        vmdkFreeImage(pImage, false, false /*fFlush*/);
         RTMemFree(pImage);
 
         if (RT_SUCCESS(rc))
@@ -5331,7 +5378,7 @@ static DECLCALLBACK(int) vmdkCreate(const char *pszFilename, uint64_t cbSize,
                  * image is opened in read-only mode if the caller requested that. */
                 if (uOpenFlags & VD_OPEN_FLAGS_READONLY)
                 {
-                    vmdkFreeImage(pImage, false);
+                    vmdkFreeImage(pImage, false, true /*fFlush*/);
                     rc = vmdkOpenImage(pImage, uOpenFlags);
                 }
 
@@ -5366,6 +5413,8 @@ static DECLCALLBACK(int) vmdkCreate(const char *pszFilename, uint64_t cbSize,
  */
 static int vmdkRenameStatePrepare(PVMDKIMAGE pImage, PVMDKRENAMESTATE pRenameState, const char *pszFilename)
 {
+    AssertReturn(RTPathFilename(pszFilename) != NULL, VERR_INVALID_PARAMETER);
+
     int rc = VINF_SUCCESS;
 
     memset(&pRenameState->DescriptorCopy, 0, sizeof(pRenameState->DescriptorCopy));
@@ -5376,9 +5425,9 @@ static int vmdkRenameStatePrepare(PVMDKIMAGE pImage, PVMDKRENAMESTATE pRenameSta
      * with zeros. We actually save stuff when and if we change it.
      */
     pRenameState->cExtents     = pImage->cExtents;
-    pRenameState->apszOldName  = (char **)RTMemTmpAllocZ((pRenameState->cExtents + 1) * sizeof(char*));
-    pRenameState->apszNewName  = (char **)RTMemTmpAllocZ((pRenameState->cExtents + 1) * sizeof(char*));
-    pRenameState->apszNewLines = (char **)RTMemTmpAllocZ(pRenameState->cExtents * sizeof(char*));
+    pRenameState->apszOldName  = (char **)RTMemTmpAllocZ((pRenameState->cExtents + 1) * sizeof(char *));
+    pRenameState->apszNewName  = (char **)RTMemTmpAllocZ((pRenameState->cExtents + 1) * sizeof(char *));
+    pRenameState->apszNewLines = (char **)RTMemTmpAllocZ(pRenameState->cExtents * sizeof(char *));
     if (   pRenameState->apszOldName
         && pRenameState->apszNewName
         && pRenameState->apszNewLines)
@@ -5412,23 +5461,35 @@ static int vmdkRenameStatePrepare(PVMDKIMAGE pImage, PVMDKRENAMESTATE pRenameSta
         {
             /* Prepare both old and new base names used for string replacement. */
             pRenameState->pszNewBaseName = RTStrDup(RTPathFilename(pszFilename));
+            AssertReturn(pRenameState->pszNewBaseName, VERR_NO_STR_MEMORY);
             RTPathStripSuffix(pRenameState->pszNewBaseName);
+
             pRenameState->pszOldBaseName = RTStrDup(RTPathFilename(pImage->pszFilename));
+            AssertReturn(pRenameState->pszOldBaseName, VERR_NO_STR_MEMORY);
             RTPathStripSuffix(pRenameState->pszOldBaseName);
-            /* Prepare both old and new full names used for string replacement. */
-            pRenameState->pszNewFullName = RTStrDup(pszFilename);
+
+            /* Prepare both old and new full names used for string replacement.
+               Note! Must abspath the stuff here, so the strstr weirdness later in
+                     the renaming process get a match against abspath'ed extent paths.
+                     See RTPathAbsDup call in vmdkDescriptorReadSparse(). */
+            pRenameState->pszNewFullName = RTPathAbsDup(pszFilename);
+            AssertReturn(pRenameState->pszNewFullName, VERR_NO_STR_MEMORY);
             RTPathStripSuffix(pRenameState->pszNewFullName);
-            pRenameState->pszOldFullName = RTStrDup(pImage->pszFilename);
+
+            pRenameState->pszOldFullName = RTPathAbsDup(pImage->pszFilename);
+            AssertReturn(pRenameState->pszOldFullName, VERR_NO_STR_MEMORY);
             RTPathStripSuffix(pRenameState->pszOldFullName);
 
             /* Save the old name for easy access to the old descriptor file. */
             pRenameState->pszOldDescName = RTStrDup(pImage->pszFilename);
+            AssertReturn(pRenameState->pszOldDescName, VERR_NO_STR_MEMORY);
+
             /* Save old image name. */
             pRenameState->pszOldImageName = pImage->pszFilename;
         }
     }
     else
-        rc = VERR_NO_MEMORY;
+        rc = VERR_NO_TMP_MEMORY;
 
     return rc;
 }
@@ -5494,7 +5555,7 @@ static int vmdkRenameRollback(PVMDKIMAGE pImage, PVMDKRENAMESTATE pRenameState)
          * Some extents may have been closed, close the rest. We will
          * re-open the whole thing later.
          */
-        vmdkFreeImage(pImage, false);
+        vmdkFreeImage(pImage, false, true /*fFlush*/);
     }
 
     /* Rename files back. */
@@ -5605,7 +5666,7 @@ static int vmdkRenameWorker(PVMDKIMAGE pImage, PVMDKRENAMESTATE pRenameState, co
         if (RT_SUCCESS(rc))
         {
             /* Release all old stuff. */
-            rc = vmdkFreeImage(pImage, false);
+            rc = vmdkFreeImage(pImage, false, true /*fFlush*/);
             if (RT_SUCCESS(rc))
             {
                 pRenameState->fImageFreed = true;
@@ -5678,7 +5739,7 @@ static DECLCALLBACK(int) vmdkClose(void *pBackendData, bool fDelete)
     LogFlowFunc(("pBackendData=%#p fDelete=%d\n", pBackendData, fDelete));
     PVMDKIMAGE pImage = (PVMDKIMAGE)pBackendData;
 
-    int rc = vmdkFreeImage(pImage, fDelete);
+    int rc = vmdkFreeImage(pImage, fDelete, true /*fFlush*/);
     RTMemFree(pImage);
 
     LogFlowFunc(("returns %Rrc\n", rc));
@@ -6149,7 +6210,7 @@ static DECLCALLBACK(int) vmdkSetOpenFlags(void *pBackendData, unsigned uOpenFlag
         else
         {
             /* Implement this operation via reopening the image. */
-            vmdkFreeImage(pImage, false);
+            vmdkFreeImage(pImage, false, true /*fFlush*/);
             rc = vmdkOpenImage(pImage, uOpenFlags);
         }
     }

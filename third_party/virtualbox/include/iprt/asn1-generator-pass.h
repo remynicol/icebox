@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,11 +23,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-
-#ifndef ___iprt_asn1_generator_pass_h
+#ifndef ___iprt_asn1_generator_pass_h /* (special, only part of the file) */
 #define ___iprt_asn1_generator_pass_h
 
 #include <iprt/formats/asn1.h>
+#include <iprt/err.h>
 
 
 /** @def RTASN1TMPL_MEMBER_OPT_ANY
@@ -489,14 +489,19 @@ RTASN1TMPL_DECL(int) RT_CONCAT(RTASN1TMPL_EXT_NAME,_DecodeAsn1)(PRTASN1CURSOR pC
         RTASN1TMPL_MEMBER_EX(a_Name, a_Type, a_Api, RT_NOTHING)
 
 # define RTASN1TMPL_END_SEQCORE() \
-   if (RT_SUCCESS(rc)) \
-       rc = RTAsn1CursorCheckEnd(&ThisCursor); \
-   if (RT_SUCCESS(rc)) \
-       return VINF_SUCCESS; \
-   RT_CONCAT(RTASN1TMPL_EXT_NAME,_Delete)(pThis); \
-   RTASN1TMPL_END_COMMON()
-# define RTASN1TMPL_END_SETCORE() RTASN1TMPL_END_SEQCORE()
-
+    if (RT_SUCCESS(rc)) \
+        rc = RTAsn1CursorCheckSeqEnd(&ThisCursor, &pThis->SeqCore); \
+    if (RT_SUCCESS(rc)) \
+        return VINF_SUCCESS; \
+    RT_CONCAT(RTASN1TMPL_EXT_NAME,_Delete)(pThis); \
+    RTASN1TMPL_END_COMMON()
+# define RTASN1TMPL_END_SETCORE() \
+    if (RT_SUCCESS(rc)) \
+        rc = RTAsn1CursorCheckSetEnd(&ThisCursor, &pThis->SetCore); \
+    if (RT_SUCCESS(rc)) \
+        return VINF_SUCCESS; \
+    RT_CONCAT(RTASN1TMPL_EXT_NAME,_Delete)(pThis); \
+    RTASN1TMPL_END_COMMON()
 
 # define RTASN1TMPL_BEGIN_PCHOICE() \
     RTASN1TMPL_BEGIN_COMMON(); \

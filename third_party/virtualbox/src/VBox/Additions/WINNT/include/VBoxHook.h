@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___winnt_include_VBoxHook_h
-#define ___winnt_include_VBoxHook_h
+#ifndef GA_INCLUDED_WINNT_VBoxHook_h
+#define GA_INCLUDED_WINNT_VBoxHook_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 /* custom messages as we must install the hook from the main thread */
 /** @todo r=andy Use WM_APP + n offsets here! */
@@ -37,5 +40,5 @@ BOOL VBoxHookRemoveActiveDesktopTracker();
 BOOL VBoxHookInstallWindowTracker(HMODULE hDll);
 BOOL VBoxHookRemoveWindowTracker();
 
-#endif
+#endif /* !GA_INCLUDED_WINNT_VBoxHook_h */
 

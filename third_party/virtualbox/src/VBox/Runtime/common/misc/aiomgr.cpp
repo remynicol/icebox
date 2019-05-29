@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Oracle Corporation
+ * Copyright (C) 2013-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -764,8 +764,8 @@ static int rtAioMgrCheckFiles(PRTAIOMGRINT pThis)
 {
     int rc = VINF_SUCCESS;
 
-    PRTAIOMGRFILEINT pIt;
-    RTListForEach(&pThis->ListFiles, pIt, RTAIOMGRFILEINT, AioMgr.NodeAioMgrFiles)
+    PRTAIOMGRFILEINT pIt, pNext;
+    RTListForEachSafe(&pThis->ListFiles, pIt, pNext, RTAIOMGRFILEINT, AioMgr.NodeAioMgrFiles)
     {
         rc = rtAioMgrQueueReqs(pThis, pIt);
         if (RT_FAILURE(rc))

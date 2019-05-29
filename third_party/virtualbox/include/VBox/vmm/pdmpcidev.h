@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,8 +23,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___VBox_vmm_pdmpcidev_h
-#define ___VBox_vmm_pdmpcidev_h
+#ifndef VBOX_INCLUDED_vmm_pdmpcidev_h
+#define VBOX_INCLUDED_vmm_pdmpcidev_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBox/pci.h>
 #include <iprt/assert.h>
@@ -57,6 +60,8 @@ typedef PFNPCICONFIGREAD *PPFNPCICONFIGREAD;
 /**
  * Callback function for writing to the PCI configuration space.
  *
+ * @returns VINF_SUCCESS or PDMDevHlpDBGFStop status.
+ *
  * @param   pDevIns         Pointer to the device instance the PCI device
  *                          belongs to.
  * @param   pPciDev         Pointer to PCI device. Use pPciDev->pDevIns to get the device instance.
@@ -68,7 +73,8 @@ typedef PFNPCICONFIGREAD *PPFNPCICONFIGREAD;
  * @remarks Called with the PDM lock held.  The device lock is NOT take because
  *          that is very likely be a lock order violation.
  */
-typedef DECLCALLBACK(void) FNPCICONFIGWRITE(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev, uint32_t uAddress, uint32_t u32Value, unsigned cb);
+typedef DECLCALLBACK(VBOXSTRICTRC) FNPCICONFIGWRITE(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev,
+                                                    uint32_t uAddress, uint32_t u32Value, unsigned cb);
 /** Pointer to a FNPCICONFIGWRITE() function. */
 typedef FNPCICONFIGWRITE *PFNPCICONFIGWRITE;
 /** Pointer to a PFNPCICONFIGWRITE. */
@@ -115,6 +121,19 @@ typedef DECLCALLBACK(int) FNPCIIOREGIONOLDSETTER(PPDMPCIDEV pPciDev, uint32_t iR
 /** Pointer to a FNPCIIOREGIONOLDSETTER() function. */
 typedef FNPCIIOREGIONOLDSETTER *PFNPCIIOREGIONOLDSETTER;
 
+/**
+ * Swaps two PCI I/O regions from within a PDMPCIDEV::pfnRegionLoadChangeHookR3
+ * callback.
+ *
+ * @returns VBox status code.
+ * @param   pPciDev         Pointer to the PCI device.
+ * @param   iRegion         The region number.
+ * @param   iOtherRegion    The number of the region swap with.
+ * @sa      @bugref{9359}
+ */
+typedef DECLCALLBACK(int) FNPCIIOREGIONSWAP(PPDMPCIDEV pPciDev, uint32_t iRegion, uint32_t iOtherRegion);
+/** Pointer to a FNPCIIOREGIONSWAP() function. */
+typedef FNPCIIOREGIONSWAP *PFNPCIIOREGIONSWAP;
 
 
 /*
@@ -181,10 +200,14 @@ typedef struct PDMPCIDEV
      *                          0xff if dummy 64-bit top half region.
      * @param   pfnOldSetter    Callback for setting size and type for call
      *                          regarding old saved states.  NULL otherwise.
+     * @param   pfnSwapRegions  Used to swaps two regions. The second one must be a
+     *                          higher number than @a iRegion.  NULL if old saved
+     *                          state.
      */
     DECLR3CALLBACKMEMBER(int, pfnRegionLoadChangeHookR3,(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev, uint32_t iRegion,
                                                          uint64_t cbRegion, PCIADDRESSSPACE enmType,
-                                                         PFNPCIIOREGIONOLDSETTER pfnOldSetter));
+                                                         PFNPCIIOREGIONOLDSETTER pfnOldSetter,
+                                                         PFNPCIIOREGIONSWAP pfnSwapRegion));
 } PDMPCIDEV;
 #ifdef PDMPCIDEVINT_DECLARED
 AssertCompile(RT_SIZEOFMEMB(PDMPCIDEV, Int.s) <= RT_SIZEOFMEMB(PDMPCIDEV, Int.padding));
@@ -670,4 +693,4 @@ typedef PDMPCIDEV PDMIICH9BRIDGEPDMPCIDEV;
 
 /** @} */
 
-#endif
+#endif /* !VBOX_INCLUDED_vmm_pdmpcidev_h */

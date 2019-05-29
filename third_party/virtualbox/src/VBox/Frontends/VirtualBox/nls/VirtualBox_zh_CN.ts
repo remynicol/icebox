@@ -93,11 +93,19 @@
     </message>
     <message>
         <source>The VirtualBox Linux kernel driver (vboxdrv) is either not loaded or there is a permission problem with /dev/vboxdrv. Please reinstall the kernel module by executing&lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;as root.</source>
-        <translation>VirtualBox Linux 内核驱动程序 (vboxdrv) 没有加载，或 /dev/vboxdrv 有权限问题。请以 root 权限执行&lt;br/&gt;&lt;br/&gt;&lt;font color=blue&gt;“/sbin/rcvboxdrv setup”&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;，以便重新安装内核模块。</translation>
+        <translation type="vanished">VirtualBox Linux 内核驱动程序 (vboxdrv) 没有加载，或 /dev/vboxdrv 有权限问题。请以 root 权限执行&lt;br/&gt;&lt;br/&gt;&lt;font color=blue&gt;“/sbin/rcvboxdrv setup”&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;，以便重新安装内核模块。</translation>
     </message>
     <message>
         <source>The VirtualBox kernel modules do not match this version of VirtualBox. The installation of VirtualBox was apparently not successful. Executing&lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;may correct this. Make sure that you do not mix the OSE version and the PUEL version of VirtualBox.</source>
-        <translation>现有的内核模块与当前版本的VirtualBox不匹配。因此导致安装失败。可尝试执行 &lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;以修复该问题。并确认你没有混合OSE和PUEL版本的VirtualBox.</translation>
+        <translation type="vanished">现有的内核模块与当前版本的VirtualBox不匹配。因此导致安装失败。可尝试执行 &lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;以修复该问题。并确认你没有混合OSE和PUEL版本的VirtualBox.</translation>
+    </message>
+    <message>
+        <source>The VirtualBox Linux kernel driver is either not loaded or not set up correctly. Please try setting it up again by executing&lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;as root.&lt;br/&gt;&lt;br/&gt;If your system has EFI Secure Boot enabled you may also need to sign the kernel modules (vboxdrv, vboxnetflt, vboxnetadp, vboxpci) before you can load them. Please see your Linux system&apos;s documentation for more information.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The VirtualBox kernel modules do not match this version of VirtualBox. The installation of VirtualBox was apparently not successful. Executing&lt;br/&gt;&lt;br/&gt;  &lt;font color=blue&gt;&apos;/sbin/vboxconfig&apos;&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;may correct this. Make sure that you are not mixing builds of VirtualBox from different sources.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -151,6 +159,13 @@
     <message>
         <source>Could not locate the file on the server (response: %1)</source>
         <translation type="obsolete">无法在服务器上找到该文件 (回应: %1)</translation>
+    </message>
+</context>
+<context>
+    <name>QIInputDialog</name>
+    <message>
+        <source>Name:</source>
+        <translation>名称:</translation>
     </message>
 </context>
 <context>
@@ -260,7 +275,24 @@
     <message>
         <source>%1, %2: %3, %4: %5, %6: %7</source>
         <comment>col.1 text, col.2 name: col.2 text, col.3 name: col.3 text, col.4 name: col.4 text</comment>
-        <translation>%1, %2: %3, %4: %5, %6: %7</translation>
+        <translation type="vanished">%1, %2: %3, %4: %5, %6: %7</translation>
+    </message>
+    <message>
+        <source>%1, %2: %3, %4: %5, %6: %7, %8: %9</source>
+        <comment>col.1 text, col.2 name: col.2 text, col.3 name: col.3 text, col.4 name: col.4 text, col.5 name: col.5 text</comment>
+        <translation>%1, %2: %3, %4: %5, %6: %7, %8: %9</translation>
+    </message>
+    <message>
+        <source>Full</source>
+        <translation>完全</translation>
+    </message>
+    <message>
+        <source>Read-only</source>
+        <translation>只读</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>是</translation>
     </message>
 </context>
 <context>
@@ -617,7 +649,7 @@
     </message>
     <message>
         <source>Re&amp;fresh...</source>
-        <translation type="obsolete">刷新(&amp;F)...</translation>
+        <translation>刷新(&amp;F)...</translation>
     </message>
     <message>
         <source>Refresh the accessibility state of the selected virtual machine</source>
@@ -855,7 +887,7 @@
     </message>
     <message>
         <source>&amp;Video Capture</source>
-        <translation>录像(&amp;V)</translation>
+        <translation type="vanished">录像(&amp;V)</translation>
     </message>
     <message>
         <source>Toggle video capture</source>
@@ -863,7 +895,7 @@
     </message>
     <message>
         <source>&amp;Video Capture Settings...</source>
-        <translation>录像设置(&amp;V)...</translation>
+        <translation type="vanished">录像设置(&amp;V)...</translation>
     </message>
     <message>
         <source>Configure video capture settings</source>
@@ -1030,7 +1062,7 @@
     </message>
     <message>
         <source>S&amp;cale Factor</source>
-        <translation>缩放率(&amp;c)</translation>
+        <translation type="vanished">缩放率(&amp;c)</translation>
     </message>
     <message>
         <source>&amp;Insert %1</source>
@@ -1144,11 +1176,11 @@
     </message>
     <message>
         <source>Display virtual machine settings window to configure video capture</source>
-        <translation>打开虚拟电脑设定窗口配置录像功能</translation>
+        <translation type="vanished">打开虚拟电脑设定窗口配置录像功能</translation>
     </message>
     <message>
         <source>Enable guest display video capture</source>
-        <translation>启用录像</translation>
+        <translation type="vanished">启用录像</translation>
     </message>
     <message>
         <source>Allow remote desktop (RDP) connections to this machine</source>
@@ -1218,7 +1250,7 @@
     <message>
         <source>%1%</source>
         <comment>scale-factor</comment>
-        <translation>%1%</translation>
+        <translation type="vanished">%1%</translation>
     </message>
     <message>
         <source>Enable</source>
@@ -1448,15 +1480,15 @@
     </message>
     <message>
         <source>&amp;Machine Tools</source>
-        <translation>虚拟电脑工具(&amp;M)</translation>
+        <translation type="vanished">虚拟电脑工具(&amp;M)</translation>
     </message>
     <message>
         <source>Switch to machine tools</source>
-        <translation>切换到虚拟电脑工具</translation>
+        <translation type="vanished">切换到虚拟电脑工具</translation>
     </message>
     <message>
         <source>&amp;Machine Tools Menu</source>
-        <translation>虚拟电脑工具菜单(&amp;M)</translation>
+        <translation type="vanished">虚拟电脑工具菜单(&amp;M)</translation>
     </message>
     <message>
         <source>Open the machine tools menu</source>
@@ -1480,11 +1512,11 @@
     </message>
     <message>
         <source>&amp;Global Tools</source>
-        <translation>全局工具(&amp;G)</translation>
+        <translation type="vanished">全局工具(&amp;G)</translation>
     </message>
     <message>
         <source>Switch to global tools</source>
-        <translation>切换到全局工具</translation>
+        <translation type="vanished">切换到全局工具</translation>
     </message>
     <message>
         <source>&amp;Global Tools Menu</source>
@@ -1529,6 +1561,703 @@
     <message>
         <source>Enable audio input</source>
         <translation>启用声音输入</translation>
+    </message>
+    <message>
+        <source>&amp;Log</source>
+        <translation>日志(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Open the log menu</source>
+        <translation>打开日志菜单</translation>
+    </message>
+    <message>
+        <source>&amp;Find</source>
+        <translation>查找(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Log Viewer</source>
+        <translation>日志查看器</translation>
+    </message>
+    <message>
+        <source>Open pane with searching options</source>
+        <translation>打开搜索面板</translation>
+    </message>
+    <message>
+        <source>Open Find Pane (%1)</source>
+        <translation>打开搜索面板(%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Filter</source>
+        <translation>筛选(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Open pane with filtering options</source>
+        <translation>打开筛选面板</translation>
+    </message>
+    <message>
+        <source>Open Filter Pane (%1)</source>
+        <translation>打开筛选面板(%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Bookmark</source>
+        <translation>书签(&amp;B)</translation>
+    </message>
+    <message>
+        <source>Open pane with bookmarking options</source>
+        <translation>打开书签面板</translation>
+    </message>
+    <message>
+        <source>Open Bookmark Pane (%1)</source>
+        <translation>打开书签面板(%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Options</source>
+        <translation>选项(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Open pane with log viewer options</source>
+        <translation>打开选项面板</translation>
+    </message>
+    <message>
+        <source>Open Options Pane (%1)</source>
+        <translation>打开选项面板(%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Refresh</source>
+        <translation>刷新(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Refresh selected virtual machine log</source>
+        <translation>刷新所选虚拟电脑的日志</translation>
+    </message>
+    <message>
+        <source>Refresh Virtual Machine Log (%1)</source>
+        <translation>刷新虚拟电脑日志 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Save...</source>
+        <translation>保存(&amp;S)...</translation>
+    </message>
+    <message>
+        <source>Save selected virtual machine log</source>
+        <translation>保存所选虚拟电脑的日志</translation>
+    </message>
+    <message>
+        <source>Save Virtual Machine Log (%1)</source>
+        <translation>保存虚拟电脑的日志 (%1)</translation>
+    </message>
+    <message>
+        <source>File Manager</source>
+        <translation>文件管理器</translation>
+    </message>
+    <message>
+        <source>Host</source>
+        <translation>主机</translation>
+    </message>
+    <message>
+        <source>Guest</source>
+        <translation>虚拟机</translation>
+    </message>
+    <message>
+        <source>Copy to guest</source>
+        <translation>复制到虚拟机</translation>
+    </message>
+    <message>
+        <source>Copy the Selected Object(s) from Host to Guest</source>
+        <translation>从主机复制到虚拟机</translation>
+    </message>
+    <message>
+        <source>Copy the selected object(s) from host to guest</source>
+        <translation>从主机复制到虚拟机</translation>
+    </message>
+    <message>
+        <source>Copy to host</source>
+        <translation>复制到主机</translation>
+    </message>
+    <message>
+        <source>Copy the Selected Object(s) from Guest to Host</source>
+        <translation>从虚拟机复制到主机</translation>
+    </message>
+    <message>
+        <source>Copy the selected object(s) from guest to host</source>
+        <translation>从虚拟机复制到主机</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="obsolete">设置</translation>
+    </message>
+    <message>
+        <source>Log</source>
+        <translation>日志</translation>
+    </message>
+    <message>
+        <source>Session</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>会话</translation>
+    </message>
+    <message>
+        <source>Open File Manager Session</source>
+        <translation>打开文件管理器会话</translation>
+    </message>
+    <message>
+        <source>Go one level up to parent folder</source>
+        <translation>到上一级文件夹</translation>
+    </message>
+    <message>
+        <source>Go One Level Up to Parent Folder</source>
+        <translation>到上一级文件夹</translation>
+    </message>
+    <message>
+        <source>Go Home</source>
+        <translation>到主文件夹</translation>
+    </message>
+    <message>
+        <source>Go to home folder</source>
+        <translation>到主文件夹</translation>
+    </message>
+    <message>
+        <source>Go to Home Folder</source>
+        <translation>到主文件夹</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>删除</translation>
+    </message>
+    <message>
+        <source>Delete selected file object(s)</source>
+        <translation>删除选中文件</translation>
+    </message>
+    <message>
+        <source>Delete Selected File Object(s)</source>
+        <translation>删除选中文件</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>刷新</translation>
+    </message>
+    <message>
+        <source>Rename</source>
+        <translation>重命名</translation>
+    </message>
+    <message>
+        <source>Create New Directory</source>
+        <translation>创建新文件夹</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <source>Copy selected file object(s)</source>
+        <translation>复制选中文件</translation>
+    </message>
+    <message>
+        <source>Copy Selected File Object(s)</source>
+        <translation>复制选中文件</translation>
+    </message>
+    <message>
+        <source>Cut</source>
+        <translation>剪切</translation>
+    </message>
+    <message>
+        <source>Cut selected file object(s)</source>
+        <translation>剪切所选文件</translation>
+    </message>
+    <message>
+        <source>Cut Selected File Object(s)</source>
+        <translation>剪切所选文件</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>粘贴</translation>
+    </message>
+    <message>
+        <source>Paste copied/cut file object(s)</source>
+        <translation>粘贴复制或剪切的文件</translation>
+    </message>
+    <message>
+        <source>Paste Copied/Cut File Object(s)</source>
+        <translation>粘贴复制或剪切的文件</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation>全选</translation>
+    </message>
+    <message>
+        <source>Select all files objects</source>
+        <translation>选择所有文件</translation>
+    </message>
+    <message>
+        <source>Select All Files Objects</source>
+        <translation>选择所有文件</translation>
+    </message>
+    <message>
+        <source>Invert Selection</source>
+        <translation>反选</translation>
+    </message>
+    <message>
+        <source>Invert the current selection</source>
+        <translation>反选当前选择</translation>
+    </message>
+    <message>
+        <source>Invert the Current Selection</source>
+        <translation>反选当前选择</translation>
+    </message>
+    <message>
+        <source>Show Properties</source>
+        <translation>显示属性</translation>
+    </message>
+    <message>
+        <source>Show the properties of currently selected file object(s)</source>
+        <translation>显示选中文件的属性</translation>
+    </message>
+    <message>
+        <source>Show the Properties of Currently Selected File Object(s)</source>
+        <translation>显示选中文件的属性</translation>
+    </message>
+    <message>
+        <source>&amp;Cloud Profile Manager...</source>
+        <translation>云配置管理器(&amp;C)...</translation>
+    </message>
+    <message>
+        <source>Display the Cloud Profile Manager window</source>
+        <translation>显示云配置管理器</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>导入</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>导出</translation>
+    </message>
+    <message>
+        <source>&amp;Move...</source>
+        <translation>移动(&amp;M)...</translation>
+    </message>
+    <message>
+        <source>Move selected virtual machine</source>
+        <translation>移动所选的虚拟电脑</translation>
+    </message>
+    <message>
+        <source>&amp;Logs</source>
+        <translation>日志(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Open the machine logs pane</source>
+        <translation>打开日志管理面板</translation>
+    </message>
+    <message>
+        <source>&amp;Cloud Profile Manager</source>
+        <translation>云配置管理器(&amp;C)</translation>
+    </message>
+    <message>
+        <source>Open the Cloud Profile Manager</source>
+        <translation>显示云配置管理器</translation>
+    </message>
+    <message>
+        <source>&amp;Snapshot</source>
+        <translation>备份[系统快照](&amp;S)</translation>
+    </message>
+    <message>
+        <source>Open the snapshot menu</source>
+        <translation>打开虚拟电脑快照菜单</translation>
+    </message>
+    <message>
+        <source>&amp;Take...</source>
+        <translation>生成(&amp;T)...</translation>
+    </message>
+    <message>
+        <source>Snapshot Pane</source>
+        <translation>快照面板</translation>
+    </message>
+    <message>
+        <source>Take a snapshot of the current virtual machine state</source>
+        <translation>创建当前虚拟机状态的备份[系统快照]</translation>
+    </message>
+    <message>
+        <source>Take Snapshot (%1)</source>
+        <translation>生成备份[系统快照](%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Delete...</source>
+        <translation>删除备份(&amp;D)...</translation>
+    </message>
+    <message>
+        <source>Delete selected snapshot of the virtual machine</source>
+        <translation>删除所选备份</translation>
+    </message>
+    <message>
+        <source>Delete Snapshot (%1)</source>
+        <translation>删除备份 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Restore...</source>
+        <translation>恢复备份(&amp;R)...</translation>
+    </message>
+    <message>
+        <source>Restore selected snapshot of the virtual machine</source>
+        <translation>恢复虚拟电脑到所选备份时的状态</translation>
+    </message>
+    <message>
+        <source>Restore Snapshot (%1)</source>
+        <translation>恢复备份 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Properties</source>
+        <translation>属性(&amp;P)</translation>
+    </message>
+    <message>
+        <source>Open pane with the selected snapshot properties</source>
+        <translation>查看选定备份的属性</translation>
+    </message>
+    <message>
+        <source>Open Snapshot Properties (%1)</source>
+        <translation>查看备份的属性 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Clone...</source>
+        <translation>复制(&amp;C)...</translation>
+    </message>
+    <message>
+        <source>Clone Virtual Machine (%1)</source>
+        <translation>复制虚拟电脑 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Medium</source>
+        <translation>介质(&amp;M)</translation>
+    </message>
+    <message>
+        <source>Open the medium menu</source>
+        <translation>打开虚拟介质菜单</translation>
+    </message>
+    <message>
+        <source>Media Manager</source>
+        <translation>虚拟介质管理器</translation>
+    </message>
+    <message>
+        <source>Add a disk image file</source>
+        <translation>添加虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Add a Disk Image File (%1)</source>
+        <translation>添加虚拟磁盘文件 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Copy...</source>
+        <translation>复制(&amp;C)...</translation>
+    </message>
+    <message>
+        <source>Copy selected disk image file</source>
+        <translation>复制选中的虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Copy Disk Image File (%1)</source>
+        <translation>复制虚拟磁盘文件 (%1)</translation>
+    </message>
+    <message>
+        <source>Move selected disk image file</source>
+        <translation>移动选中的虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Move Disk Image File (%1)</source>
+        <translation>移动虚拟磁盘文件 (%1)</translation>
+    </message>
+    <message>
+        <source>Remove selected disk image file</source>
+        <translation>移除选中的虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Remove Disk Image File (%1)</source>
+        <translation>移除虚拟磁盘文件 (%1)</translation>
+    </message>
+    <message>
+        <source>Re&amp;lease...</source>
+        <translation>释放(&amp;l)...</translation>
+    </message>
+    <message>
+        <source>Release selected disk image file</source>
+        <translation>释放选中的虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Release Disk Image File (%1)</source>
+        <translation>释放虚拟磁盘文件 (%1)</translation>
+    </message>
+    <message>
+        <source>Open pane with selected disk image file properties</source>
+        <translation>查看选定虚拟磁盘的属性</translation>
+    </message>
+    <message>
+        <source>Open Disk Image File Properties (%1)</source>
+        <translation>查看虚拟磁盘文件属性 (%1)</translation>
+    </message>
+    <message>
+        <source>Refresh the list of disk image files</source>
+        <translation>刷新虚拟存储介质列表</translation>
+    </message>
+    <message>
+        <source>Refresh Disk Image Files (%1)</source>
+        <translation>刷新虚拟磁盘文件列表 (%1)</translation>
+    </message>
+    <message>
+        <source>Open the network menu</source>
+        <translation>打开网络菜单</translation>
+    </message>
+    <message>
+        <source>&amp;Create...</source>
+        <translation>创建(&amp;C)...</translation>
+    </message>
+    <message>
+        <source>Network Manager</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>主机网络管理器</translation>
+    </message>
+    <message>
+        <source>Create new host-only network</source>
+        <translation>新建仅主机(Host-only)网络</translation>
+    </message>
+    <message>
+        <source>Create Host-only Network (%1)</source>
+        <translation>创建仅主机(Host-only)网络 (%1)</translation>
+    </message>
+    <message>
+        <source>Remove selected host-only network</source>
+        <translation>删除选中的仅主机(Host-Only)网络</translation>
+    </message>
+    <message>
+        <source>Remove Host-only Network (%1)</source>
+        <translation>删除仅主机(Host-only)网络 (%1)</translation>
+    </message>
+    <message>
+        <source>Open pane with selected host-only network properties</source>
+        <translation>显示仅主机(Host-only)网络属性</translation>
+    </message>
+    <message>
+        <source>Open Host-only Network Properties (%1)</source>
+        <translation>显示仅主机(Host-only)网络属性 (%1)</translation>
+    </message>
+    <message>
+        <source>Refresh the list of host-only networks</source>
+        <translation>刷新仅主机(Host-only)网络列表</translation>
+    </message>
+    <message>
+        <source>Refresh Host-only Networks (%1)</source>
+        <translation>刷新仅主机(Host-only)网络 (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Cloud</source>
+        <translation>云服务(&amp;C)</translation>
+    </message>
+    <message>
+        <source>Open the cloud menu</source>
+        <translation>打开云服务菜单</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>添加</translation>
+    </message>
+    <message>
+        <source>&amp;Add Profile...</source>
+        <translation>添加配置(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation>云服务配置管理器</translation>
+    </message>
+    <message>
+        <source>Add new cloud profile</source>
+        <translation>添加云服务配置</translation>
+    </message>
+    <message>
+        <source>Add Cloud Profile (%1)</source>
+        <translation>添加云服务配置(%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Import Profiles...</source>
+        <translation>导入云服务配置(&amp;I)...</translation>
+    </message>
+    <message>
+        <source>Import the list of cloud profiles from external files</source>
+        <translation>导入云服务配置</translation>
+    </message>
+    <message>
+        <source>Import Cloud Profiles (%1)</source>
+        <translation>导入云服务配置(%1)</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Profile...</source>
+        <translation>删除配置(&amp;R)...</translation>
+    </message>
+    <message>
+        <source>Remove selected cloud profile</source>
+        <translation>删除选中的云服务配置</translation>
+    </message>
+    <message>
+        <source>Remove Cloud Profile (%1)</source>
+        <translation>删除云服务配置(%1)</translation>
+    </message>
+    <message>
+        <source>Properties</source>
+        <translation>属性</translation>
+    </message>
+    <message>
+        <source>Profile &amp;Properties</source>
+        <translation>配置属性(&amp;P)</translation>
+    </message>
+    <message>
+        <source>Open pane with selected cloud profile properties</source>
+        <translation>查看选中云服务配置属性</translation>
+    </message>
+    <message>
+        <source>Open Cloud Profile Properties (%1)</source>
+        <translation>查看云服务配置属性 (%1)</translation>
+    </message>
+    <message>
+        <source>Help</source>
+        <translation>帮助</translation>
+    </message>
+    <message>
+        <source>&amp;Show Help...</source>
+        <translation>显示帮助内容(&amp;S)...</translation>
+    </message>
+    <message>
+        <source>Show cloud profile help</source>
+        <translation>显示云服务配置帮助</translation>
+    </message>
+    <message>
+        <source>Show Cloud Profile Help (%1)</source>
+        <translation>显示云服务配置帮助 (%1)</translation>
+    </message>
+    <message>
+        <source>File Manager...</source>
+        <translation>文件管理器...</translation>
+    </message>
+    <message>
+        <source>Guest Process Control...</source>
+        <translation>虚拟机进程管理...</translation>
+    </message>
+    <message>
+        <source>Display the virtual machine guest process control window</source>
+        <translation>显示虚拟机进程管理窗口</translation>
+    </message>
+    <message>
+        <source>&amp;Recording</source>
+        <translation>录制(&amp;R)</translation>
+    </message>
+    <message>
+        <source>&amp;Recording Settings...</source>
+        <translation>录制设置(&amp;R)...</translation>
+    </message>
+    <message>
+        <source>Display virtual machine settings window to configure video/audio recording</source>
+        <translation>打开虚拟电脑设定窗口配置录像和录音功能</translation>
+    </message>
+    <message>
+        <source>Enable guest video/audio recording</source>
+        <translation>启用录像或录音</translation>
+    </message>
+    <message>
+        <source>Scale to %1%</source>
+        <comment>scale-factor</comment>
+        <translation>缩放到 %1%</translation>
+    </message>
+    <message>
+        <source>Scale to %1% (unscaled output)</source>
+        <comment>scale-factor</comment>
+        <translation>缩放至 %1% (输出未缩放)</translation>
+    </message>
+    <message>
+        <source>Scale to %1% (autoscaled output)</source>
+        <comment>scale-factor</comment>
+        <translation>缩放至 %1% (输出自动缩放)</translation>
+    </message>
+    <message>
+        <source>Options</source>
+        <translation>选项</translation>
+    </message>
+    <message>
+        <source>Open panel with file manager options</source>
+        <translation>打开文件管理器设置</translation>
+    </message>
+    <message>
+        <source>Open the file manager</source>
+        <translation>打开文件管理器</translation>
+    </message>
+    <message>
+        <source>Open the file manager host submenu</source>
+        <translation>打开文件管理器主机子菜单</translation>
+    </message>
+    <message>
+        <source>Open the file manager guest submenu</source>
+        <translation>打开文件管理器虚拟机子菜单</translation>
+    </message>
+    <message>
+        <source>Open File Manager Options</source>
+        <translation>打开文件管理器设置</translation>
+    </message>
+    <message>
+        <source>Open panel with file manager log</source>
+        <translation>打开文件管理器日志</translation>
+    </message>
+    <message>
+        <source>Open File Manager Log</source>
+        <translation>打开文件管理器日志</translation>
+    </message>
+    <message>
+        <source>Operations</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <source>Open panel with file manager operations</source>
+        <translation>打开文件管理器操作</translation>
+    </message>
+    <message>
+        <source>Open File Manager Operations</source>
+        <translation>打开文件管理器操作</translation>
+    </message>
+    <message>
+        <source>Open panel with file manager session</source>
+        <translation>打开文件管理器会话</translation>
+    </message>
+    <message>
+        <source>Go Up</source>
+        <translation>向上一级</translation>
+    </message>
+    <message>
+        <source>Display the virtual machine file manager window</source>
+        <translation>显示虚拟电脑文件管理器</translation>
+    </message>
+    <message>
+        <source>Tools</source>
+        <translation type="unfinished">工具</translation>
+    </message>
+    <message>
+        <source>E&amp;xport to OCI...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export selected virtual machine to OCI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Try</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Try Oracle Cloud for Free...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Try Oracle cloud for free</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Try Oracle Cloud for Free</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1693,11 +2422,11 @@
     </message>
     <message>
         <source>When checked a new unique MAC address will assigned to all configured network cards.</source>
-        <translation>选中时，新的唯一的 MAC 地址将分配给所有已配置的网卡。</translation>
+        <translation type="vanished">选中时，新的唯一的 MAC 地址将分配给所有已配置的网卡。</translation>
     </message>
     <message>
         <source>&amp;Reinitialize the MAC address of all network cards</source>
-        <translation>重新初始化所有网卡的 MAC 地址(&amp;R)</translation>
+        <translation type="vanished">重新初始化所有网卡的 MAC 地址(&amp;R)</translation>
     </message>
     <message>
         <source>Storage Controller (IDE)</source>
@@ -1719,6 +2448,19 @@
         <source>Detailed list of all components of all virtual machines of the current appliance</source>
         <translation>虚拟电脑组件详单</translation>
     </message>
+    <message>
+        <source>Settings File</source>
+        <translation>设置文件</translation>
+    </message>
+    <message>
+        <source>Base Folder</source>
+        <translation>初始文件夹</translation>
+    </message>
+    <message>
+        <source>Primary Group</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>主要编组</translation>
+    </message>
 </context>
 <context>
     <name>UIApplianceImportEditorWidget</name>
@@ -1729,6 +2471,47 @@
     <message>
         <source>Reading Appliance ...</source>
         <translation>正在读取虚拟电脑 ...</translation>
+    </message>
+    <message>
+        <source>&amp;Import hard drives as VDI</source>
+        <translation>导入虚拟硬盘为VDI(&amp;I)</translation>
+    </message>
+    <message>
+        <source>MAC Address &amp;Policy:</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>MAC 地址设定(&amp;P):</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses</source>
+        <translation>包含所有网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses</source>
+        <translation>仅包含 NAT 网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Generate new MAC addresses for all network adapters</source>
+        <translation>为所有网卡重新生成 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses during cloning.</source>
+        <translation>复制虚拟机时仅包含 NAT 网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Generate new MAC addresses for all network adapters during cloning.</source>
+        <translation>复制虚拟机时为所有网卡重新生成 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Additional Options:</source>
+        <translation>其它选项:</translation>
+    </message>
+    <message>
+        <source>When checked, all the hard drives that belong to this appliance will be imported in VDI format.</source>
+        <translation>选中时，此虚拟机链接的所有虚拟硬盘都以 VDI 格式导入。</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses during cloning.</source>
+        <translation>复制虚拟机时包含所有网卡的 MAC 地址。</translation>
     </message>
 </context>
 <context>
@@ -1860,6 +2643,98 @@
     </message>
 </context>
 <context>
+    <name>UIChooserItemGlobal</name>
+    <message>
+        <source>Tools</source>
+        <translation>工具</translation>
+    </message>
+</context>
+<context>
+    <name>UIChooserItemGroup</name>
+    <message>
+        <source>Virtual Machine group</source>
+        <translation>虚拟电脑编组</translation>
+    </message>
+    <message>
+        <source>Enter group</source>
+        <translation>进入编组</translation>
+    </message>
+    <message>
+        <source>Exit group</source>
+        <translation>退出编组</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;%1&lt;/b&gt;</source>
+        <comment>Group item tool-tip / Group name</comment>
+        <translation>&lt;b&gt;%1&lt;/b&gt;</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n group(s)</source>
+        <comment>Group item tool-tip / Group info</comment>
+        <translation>
+            <numerusform>%n 编组</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;%1&lt;/nobr&gt;</source>
+        <comment>Group item tool-tip / Group info wrapper</comment>
+        <translation>&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n machine(s)</source>
+        <comment>Group item tool-tip / Machine info</comment>
+        <translation>
+            <numerusform>%n 虚拟电脑</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n running)</source>
+        <comment>Group item tool-tip / Running machine info</comment>
+        <translation>
+            <numerusform>(%n 正在运行)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;%1&lt;/nobr&gt;</source>
+        <comment>Group item tool-tip / Machine info wrapper</comment>
+        <translation>&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;%1 %2&lt;/nobr&gt;</source>
+        <comment>Group item tool-tip / Machine info wrapper, including running</comment>
+        <translation>&lt;nobr&gt;%1 %2&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>Collapse group</source>
+        <translation>折叠编组</translation>
+    </message>
+    <message>
+        <source>Expand group</source>
+        <translation>展开编组</translation>
+    </message>
+</context>
+<context>
+    <name>UIChooserItemMachine</name>
+    <message>
+        <source>Virtual Machine</source>
+        <translation>虚拟电脑</translation>
+    </message>
+</context>
+<context>
+    <name>UIChooserModel</name>
+    <message>
+        <source>New group</source>
+        <translation>新编组</translation>
+    </message>
+</context>
+<context>
+    <name>UIChooserView</name>
+    <message>
+        <source>Contains a tree of Virtual Machines and their groups</source>
+        <translation>虚拟电脑及其编组的树状列表</translation>
+    </message>
+</context>
+<context>
     <name>UICloneVMWizard</name>
     <message>
         <source>Clone a virtual machine</source>
@@ -1963,6 +2838,143 @@
     </message>
 </context>
 <context>
+    <name>UICloudProfileDetailsWidget</name>
+    <message>
+        <source>Name:</source>
+        <translation>名称:</translation>
+    </message>
+    <message>
+        <source>Properties:</source>
+        <translation>属性:</translation>
+    </message>
+    <message>
+        <source>Contains cloud profile settings</source>
+        <translation>云服务配置属性</translation>
+    </message>
+    <message>
+        <source>Enter a name for the new profile...</source>
+        <translation>为新配置设置名称...</translation>
+    </message>
+    <message>
+        <source>Enter a name for this profile...</source>
+        <translation>为此配置设置名称...</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>默认</translation>
+    </message>
+    <message>
+        <source>Reset changes in current profile details</source>
+        <translation>重置更改</translation>
+    </message>
+    <message>
+        <source>Reset Changes (%1)</source>
+        <translation>重置更改 (%1)</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>添加</translation>
+    </message>
+    <message>
+        <source>Add a new profile with following name</source>
+        <translation>用如下名称新增配置</translation>
+    </message>
+    <message>
+        <source>Add Profile (%1)</source>
+        <translation>添加配置(%1)</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>应用</translation>
+    </message>
+    <message>
+        <source>Apply changes in current profile details</source>
+        <translation>应用更改</translation>
+    </message>
+    <message>
+        <source>Apply Changes (%1)</source>
+        <translation>应用更改 (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>UICloudProfileManager</name>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation>云服务配置管理器</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>默认</translation>
+    </message>
+    <message>
+        <source>Apply</source>
+        <translation>应用</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <source>Reset changes in current cloud profile details</source>
+        <translation>重置更改</translation>
+    </message>
+    <message>
+        <source>Apply changes in current cloud profile details</source>
+        <translation>应用更改</translation>
+    </message>
+    <message>
+        <source>Close dialog without saving</source>
+        <translation>关闭对话框而不保存</translation>
+    </message>
+    <message>
+        <source>Reset Changes (%1)</source>
+        <translation>重置更改 (%1)</translation>
+    </message>
+    <message>
+        <source>Apply Changes (%1)</source>
+        <translation>应用更改 (%1)</translation>
+    </message>
+    <message>
+        <source>Close Window (%1)</source>
+        <translation>关闭窗口 (%1)</translation>
+    </message>
+    <message>
+        <source>Add Profile</source>
+        <translation>添加配置</translation>
+    </message>
+</context>
+<context>
+    <name>UICustomFileSystemModel</name>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation type="unfinished">大小</translation>
+    </message>
+    <message>
+        <source>Change Time</source>
+        <translation type="unfinished">修改时间</translation>
+    </message>
+    <message>
+        <source>Owner</source>
+        <translation type="unfinished">所有者</translation>
+    </message>
+    <message>
+        <source>Permissions</source>
+        <translation type="unfinished">权限</translation>
+    </message>
+    <message>
+        <source>LocalPath</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Path</source>
+        <translation type="unfinished">路径</translation>
+    </message>
+</context>
+<context>
     <name>UIDescriptionPagePrivate</name>
     <message>
         <source>No description. Press the Edit button below to add it.</source>
@@ -1975,6 +2987,408 @@
     <message>
         <source>Edit (Ctrl+E)</source>
         <translation type="obsolete">编辑 (Ctrl+E)</translation>
+    </message>
+</context>
+<context>
+    <name>UIDetails</name>
+    <message>
+        <source>Name</source>
+        <comment>details (general)</comment>
+        <translation>名称</translation>
+    </message>
+    <message>
+        <source>Operating System</source>
+        <comment>details (general)</comment>
+        <translation>操作系统</translation>
+    </message>
+    <message>
+        <source>Settings File Location</source>
+        <comment>details (general)</comment>
+        <translation>设置文件位置</translation>
+    </message>
+    <message>
+        <source>Groups</source>
+        <comment>details (general)</comment>
+        <translation>编组</translation>
+    </message>
+    <message>
+        <source>Information Inaccessible</source>
+        <comment>details</comment>
+        <translation>无可用信息</translation>
+    </message>
+    <message>
+        <source>Base Memory</source>
+        <comment>details (system)</comment>
+        <translation>内存大小</translation>
+    </message>
+    <message>
+        <source>%1 MB</source>
+        <comment>details</comment>
+        <translation>%1 MB</translation>
+    </message>
+    <message>
+        <source>Processors</source>
+        <comment>details (system)</comment>
+        <translation>处理器</translation>
+    </message>
+    <message>
+        <source>Execution Cap</source>
+        <comment>details (system)</comment>
+        <translation>运行峰值</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <comment>details</comment>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Boot Order</source>
+        <comment>details (system)</comment>
+        <translation>启动顺序</translation>
+    </message>
+    <message>
+        <source>Chipset Type</source>
+        <comment>details (system)</comment>
+        <translation>芯片组</translation>
+    </message>
+    <message>
+        <source>EFI</source>
+        <comment>details (system)</comment>
+        <translation>EFI</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (system/EFI)</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (system/EFI)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation>VT-x/AMD-V</translation>
+    </message>
+    <message>
+        <source>Nested Paging</source>
+        <comment>details (system)</comment>
+        <translation>嵌套分页</translation>
+    </message>
+    <message>
+        <source>PAE/NX</source>
+        <comment>details (system)</comment>
+        <translation>PAE/NX</translation>
+    </message>
+    <message>
+        <source>Minimal Paravirtualization</source>
+        <comment>details (system)</comment>
+        <translation>最少半虚拟化</translation>
+    </message>
+    <message>
+        <source>Hyper-V Paravirtualization</source>
+        <comment>details (system)</comment>
+        <translation>Hyper-V 半虚拟化</translation>
+    </message>
+    <message>
+        <source>KVM Paravirtualization</source>
+        <comment>details (system)</comment>
+        <translation>KVM 半虚拟化</translation>
+    </message>
+    <message>
+        <source>Acceleration</source>
+        <comment>details (system)</comment>
+        <translation>硬件加速</translation>
+    </message>
+    <message>
+        <source>Video Memory</source>
+        <comment>details (display)</comment>
+        <translation>显存大小</translation>
+    </message>
+    <message>
+        <source>Screens</source>
+        <comment>details (display)</comment>
+        <translation>屏幕</translation>
+    </message>
+    <message>
+        <source>Scale-factor</source>
+        <comment>details (display)</comment>
+        <translation>缩放率</translation>
+    </message>
+    <message>
+        <source>2D Video</source>
+        <comment>details (display)</comment>
+        <translation>2D 视频</translation>
+    </message>
+    <message>
+        <source>3D</source>
+        <comment>details (display)</comment>
+        <translation>3D</translation>
+    </message>
+    <message>
+        <source>Acceleration</source>
+        <comment>details (display)</comment>
+        <translation>硬件加速</translation>
+    </message>
+    <message>
+        <source>Remote Desktop Server Port</source>
+        <comment>details (display/vrde)</comment>
+        <translation>远程桌面服务器端口</translation>
+    </message>
+    <message>
+        <source>Remote Desktop Server</source>
+        <comment>details (display/vrde)</comment>
+        <translation>远程桌面服务器</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (display/vrde/VRDE server)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Video Capture File</source>
+        <comment>details (display/video capture)</comment>
+        <translation type="obsolete">录像文件</translation>
+    </message>
+    <message>
+        <source>Video Capture Attributes</source>
+        <comment>details (display/video capture)</comment>
+        <translation type="obsolete">录像属性</translation>
+    </message>
+    <message>
+        <source>Frame Size: %1x%2, Frame Rate: %3fps, Bit Rate: %4kbps</source>
+        <translation>帧尺寸: %1x%2, 帧率: %3fps, 比特率: %4kbps</translation>
+    </message>
+    <message>
+        <source>Video Capture</source>
+        <comment>details (display/video capture)</comment>
+        <translation type="obsolete">录像</translation>
+    </message>
+    <message>
+        <source>[Optical Drive]</source>
+        <comment>details (storage)</comment>
+        <translation>[光驱]</translation>
+    </message>
+    <message>
+        <source>Not Attached</source>
+        <comment>details (storage)</comment>
+        <translation>未分配</translation>
+    </message>
+    <message>
+        <source>Host Driver</source>
+        <comment>details (audio)</comment>
+        <translation>主机音频驱动</translation>
+    </message>
+    <message>
+        <source>Controller</source>
+        <comment>details (audio)</comment>
+        <translation>控制芯片</translation>
+    </message>
+    <message>
+        <source>Audio Output</source>
+        <comment>details (audio)</comment>
+        <translation>声音输出</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (audio/output)</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (audio/output)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Audio Input</source>
+        <comment>details (audio)</comment>
+        <translation>声音输入</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (audio/input)</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (audio/input)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (audio)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Bridged Adapter, %1</source>
+        <comment>details (network)</comment>
+        <translation>桥接网络, %1</translation>
+    </message>
+    <message>
+        <source>Internal Network, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation>内部网络, &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>Host-only Adapter, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation>仅主机(Host-Only)网络, &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>Generic Driver, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation>通用驱动，“%1”</translation>
+    </message>
+    <message>
+        <source>Generic Driver, &apos;%1&apos; { %2 }</source>
+        <comment>details (network)</comment>
+        <translation>通用驱动，“%1”{ %2 }</translation>
+    </message>
+    <message>
+        <source>NAT Network, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation>NAT 网络, &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>Adapter %1</source>
+        <comment>details (network)</comment>
+        <translation>网卡 %1</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (network/adapter)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Port %1</source>
+        <comment>details (serial)</comment>
+        <translation>端口 %1</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (serial)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>USB Controller</source>
+        <comment>details (usb)</comment>
+        <translation>USB 控制器</translation>
+    </message>
+    <message>
+        <source>Device Filters</source>
+        <comment>details (usb)</comment>
+        <translation>设备筛选</translation>
+    </message>
+    <message>
+        <source>%1 (%2 active)</source>
+        <comment>details (usb)</comment>
+        <translation>%1 (%2 活动)</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (usb)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>USB Controller Inaccessible</source>
+        <comment>details (usb)</comment>
+        <translation>无可用USB控制器</translation>
+    </message>
+    <message>
+        <source>Shared Folders</source>
+        <comment>details (shared folders)</comment>
+        <translation>共享文件夹</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <comment>details (shared folders)</comment>
+        <translation>空</translation>
+    </message>
+    <message>
+        <source>Menu-bar</source>
+        <comment>details (user interface)</comment>
+        <translation>菜单栏</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (user interface/menu-bar)</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (user interface/menu-bar)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Status-bar</source>
+        <comment>details (user interface)</comment>
+        <translation>状态栏</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (user interface/status-bar)</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (user interface/status-bar)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Mini-toolbar Position</source>
+        <comment>details (user interface)</comment>
+        <translation>小工具栏位置</translation>
+    </message>
+    <message>
+        <source>Top</source>
+        <comment>details (user interface/mini-toolbar position)</comment>
+        <translation>顶部</translation>
+    </message>
+    <message>
+        <source>Bottom</source>
+        <comment>details (user interface/mini-toolbar position)</comment>
+        <translation>底部</translation>
+    </message>
+    <message>
+        <source>Mini-toolbar</source>
+        <comment>details (user interface)</comment>
+        <translation>小工具栏</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (user interface/mini-toolbar)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <comment>details (description)</comment>
+        <translation>空</translation>
+    </message>
+    <message>
+        <source>Recording File</source>
+        <comment>details (display/recording)</comment>
+        <translation>录像文件</translation>
+    </message>
+    <message>
+        <source>Recording Attributes</source>
+        <comment>details (display/recording)</comment>
+        <translation>录像属性</translation>
+    </message>
+    <message>
+        <source>Recording</source>
+        <comment>details (display/recording)</comment>
+        <translation>录像</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>details (display/recording)</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Graphics Controller</source>
+        <comment>details (display)</comment>
+        <translation>显卡控制器</translation>
     </message>
 </context>
 <context>
@@ -2210,6 +3624,14 @@
     </message>
 </context>
 <context>
+    <name>UIDetailsElement</name>
+    <message>
+        <source>%1 details</source>
+        <comment>like &apos;General details&apos; or &apos;Storage details&apos;</comment>
+        <translation>%1 明细</translation>
+    </message>
+</context>
+<context>
     <name>UIDetailsPagePrivate</name>
     <message>
         <source>Name</source>
@@ -2418,7 +3840,7 @@
     </message>
     <message>
         <source>The selected virtual machine is &lt;i&gt;inaccessible&lt;/i&gt;. Please inspect the error message shown below and press the &lt;b&gt;Refresh&lt;/b&gt; button if you want to repeat the accessibility check:</source>
-        <translation>所选的虚拟电脑&lt;i&gt;不能正常访问&lt;/i&gt;. 请检查下面的错误信息或者按一下&lt;b&gt;刷新&lt;/b&gt;按钮，如果你想重复可访问性检查:</translation>
+        <translation type="vanished">所选的虚拟电脑&lt;i&gt;不能正常访问&lt;/i&gt;. 请检查下面的错误信息或者按一下&lt;b&gt;刷新&lt;/b&gt;按钮，如果你想重复可访问性检查:</translation>
     </message>
     <message>
         <source>General</source>
@@ -2499,6 +3921,20 @@
         <source>Generic driver, &apos;%1&apos; {&amp;nbsp;%2&amp;nbsp;}</source>
         <comment>details report (network)</comment>
         <translation type="obsolete">通用驱动，“%1”{&amp;nbsp;%2&amp;nbsp;}</translation>
+    </message>
+</context>
+<context>
+    <name>UIDetailsSet</name>
+    <message>
+        <source>Contains the details of virtual machine &apos;%1&apos;</source>
+        <translation>虚拟电脑 &apos;%1&apos; 明细</translation>
+    </message>
+</context>
+<context>
+    <name>UIDetailsView</name>
+    <message>
+        <source>Contains a list of Virtual Machine details</source>
+        <translation>各虚拟电脑的明细</translation>
     </message>
 </context>
 <context>
@@ -2604,6 +4040,13 @@
         <translation type="obsolete">
             <numerusform>&lt;nobr&gt;用于如下 %n 个硬盘:&lt;/nobr&gt;&lt;br&gt;%1</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>UIErrorPane</name>
+    <message>
+        <source>The selected virtual machine is &lt;i&gt;inaccessible&lt;/i&gt;. Please inspect the error message shown below and press the &lt;b&gt;Refresh&lt;/b&gt; button if you want to repeat the accessibility check:</source>
+        <translation>所选的虚拟电脑&lt;i&gt;不能正常访问&lt;/i&gt;. 请检查下面的错误信息或者按一下&lt;b&gt;刷新&lt;/b&gt;按钮，如果你想重复可访问性检查:</translation>
     </message>
 </context>
 <context>
@@ -2792,6 +4235,369 @@
     </message>
 </context>
 <context>
+    <name>UIFDCreationDialog</name>
+    <message>
+        <source>Create a Floppy Disk</source>
+        <translation>创建一个新的虚拟软盘</translation>
+    </message>
+    <message>
+        <source>File Path:</source>
+        <translation>文件路径：</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <translation>容量大小:</translation>
+    </message>
+    <message>
+        <source>Format disk as FAT12</source>
+        <translation>格式化磁盘为 FAT12 格式</translation>
+    </message>
+    <message>
+        <source>1.44M</source>
+        <translation>200% {1.44M?}</translation>
+    </message>
+    <message>
+        <source>1.2M</source>
+        <translation>200% {1.2M?}</translation>
+    </message>
+    <message>
+        <source>720K</source>
+        <translation>200% {720K?}</translation>
+    </message>
+    <message>
+        <source>360K</source>
+        <translation>200% {360K?}</translation>
+    </message>
+</context>
+<context>
+    <name>UIFileManager</name>
+    <message>
+        <source>%1 - File Manager</source>
+        <translation>%1 - 文件管理器</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>清除</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Not yet started</source>
+        <translation>尚未开始</translation>
+    </message>
+    <message>
+        <source>Working</source>
+        <translation>正在处理</translation>
+    </message>
+    <message>
+        <source>Paused</source>
+        <translation>已暂停</translation>
+    </message>
+    <message>
+        <source>Canceled</source>
+        <translation>已取消</translation>
+    </message>
+    <message>
+        <source>Succeded</source>
+        <translation>完成了</translation>
+    </message>
+    <message>
+        <source>Failed</source>
+        <translation>失败</translation>
+    </message>
+    <message>
+        <source>Invalid</source>
+        <translation>无效</translation>
+    </message>
+    <message>
+        <source>Remove Selected</source>
+        <translation>删除选定的</translation>
+    </message>
+    <message>
+        <source>Remove Finished</source>
+        <translation>删除完成的</translation>
+    </message>
+    <message>
+        <source>Remove All</source>
+        <translation>删除全部</translation>
+    </message>
+    <message>
+        <source>List directories on top</source>
+        <translation>文件夹显示靠上</translation>
+    </message>
+    <message>
+        <source>List directories before files</source>
+        <translation>文件夹显示在文件之前</translation>
+    </message>
+    <message>
+        <source>Ask before delete</source>
+        <translation>删除之前确认</translation>
+    </message>
+    <message>
+        <source>Show a confirmation dialog before deleting files and directories</source>
+        <translation>删除文件或文件夹之前显示一个确认对话框</translation>
+    </message>
+    <message>
+        <source>Human readable sizes</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>按易读单位显示</translation>
+    </message>
+    <message>
+        <source>Show file/directory sizes in human readable format rather than in bytes</source>
+        <translation>显示文件及文件夹大小时按易读单位显示而不用字节单位</translation>
+    </message>
+    <message>
+        <source>Close the pane</source>
+        <translation type="vanished">关闭面板</translation>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation>密码</translation>
+    </message>
+    <message>
+        <source>Show Password</source>
+        <translation>显示密码</translation>
+    </message>
+    <message>
+        <source>User name to authenticate session creation</source>
+        <translation>验证会话创建时的用户名</translation>
+    </message>
+    <message>
+        <source>User Name</source>
+        <translation>用户名</translation>
+    </message>
+    <message>
+        <source>Password to authenticate session creation</source>
+        <translation>验证会话创建时的密码</translation>
+    </message>
+    <message>
+        <source>Create Session</source>
+        <translation>创建会话</translation>
+    </message>
+    <message>
+        <source>Close Session</source>
+        <translation>关闭会话</translation>
+    </message>
+    <message>
+        <source>Total Size</source>
+        <translation>全部空间</translation>
+    </message>
+    <message>
+        <source> bytes</source>
+        <translation> 字节</translation>
+    </message>
+    <message>
+        <source>File Count</source>
+        <translation>文件数量</translation>
+    </message>
+    <message>
+        <source>Delete the selected file(s) and/or folder(s)</source>
+        <translation>删除选中的文件或文件夹</translation>
+    </message>
+    <message>
+        <source>Ask for this confirmation next time</source>
+        <translation>下次需要确认</translation>
+    </message>
+    <message>
+        <source>Delete confirmation can be disabled/enabled also from the Options panel.</source>
+        <translation>可在配置面板设置是否需要删除确认。</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="vanished">名称</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation type="vanished">大小</translation>
+    </message>
+    <message>
+        <source>Change Time</source>
+        <translation type="vanished">修改时间</translation>
+    </message>
+    <message>
+        <source>Owner</source>
+        <translation type="vanished">所有者</translation>
+    </message>
+    <message>
+        <source>Permissions</source>
+        <translation type="vanished">权限</translation>
+    </message>
+    <message>
+        <source>No Guest Session</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>无虚拟机会话</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>文件</translation>
+    </message>
+    <message>
+        <source>Directory</source>
+        <translation>文件夹</translation>
+    </message>
+    <message>
+        <source>Symbolic Link</source>
+        <translation>符号链接</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation type="vanished">其它</translation>
+    </message>
+    <message>
+        <source>Guest System</source>
+        <translation>虚拟机系统</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Size:&lt;/b&gt; %1 bytes</source>
+        <translation>&lt;b&gt;大小:&lt;/b&gt; %1 字节</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Allocated:&lt;/b&gt; %1 bytes</source>
+        <translation>&lt;b&gt;已分配:&lt;/b&gt; %1 字节</translation>
+    </message>
+    <message>
+        <source>directory</source>
+        <translation>文件夹</translation>
+    </message>
+    <message>
+        <source>file</source>
+        <translation>文件</translation>
+    </message>
+    <message>
+        <source>symbolic link</source>
+        <translation>符号链接</translation>
+    </message>
+    <message>
+        <source>character device</source>
+        <translation>字符设备</translation>
+    </message>
+    <message>
+        <source>block device</source>
+        <translation>块设备</translation>
+    </message>
+    <message>
+        <source>fifo</source>
+        <translation>先进先出 FIFO</translation>
+    </message>
+    <message>
+        <source>socket</source>
+        <translation>套接字</translation>
+    </message>
+    <message>
+        <source>whiteout</source>
+        <translation>白标记文件</translation>
+    </message>
+    <message>
+        <source>unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>illegal-value</source>
+        <translation>非法值</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Type:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;类型:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;INode:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translatorcomment>UNIX</translatorcomment>
+        <translation>&lt;b&gt;索引节点:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Device:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;设备:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Hardlinks:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;硬链接:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Mode:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>&lt;b&gt;权限模式:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Attributes:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;属性:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Device ID:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;设备 ID:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Owner:&lt;/b&gt; %1 (%2)&lt;br/&gt;</source>
+        <translation>&lt;b&gt;所有者:&lt;/b&gt; %1 (%2)&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Group:&lt;/b&gt; %1 (%2)&lt;br/&gt;</source>
+        <translation>&lt;b&gt;用户组:&lt;/b&gt; %1 (%2)&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Birth:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>&lt;b&gt;创建于:&lt;/b&gt; %1 字节</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Change:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;更改记录:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Modified:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;修改于:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Access:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;访问记录:&lt;/b&gt; %1&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Selected:&lt;/b&gt; %1 files and %2 directories&lt;br/&gt;</source>
+        <translation>&lt;b&gt;已选择:&lt;/b&gt; %1 文件和 %2 文件夹&lt;br/&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Size (non-recursive):&lt;/b&gt; %1 bytes</source>
+        <translation>&lt;b&gt;大小 (不递归计算):&lt;/b&gt; %1 bytes</translation>
+    </message>
+    <message>
+        <source>Properties</source>
+        <translation>属性</translation>
+    </message>
+    <message>
+        <source>Host System</source>
+        <translation>主机系统</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Name:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;名称:&lt;/b&gt; %1 字节</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Created:&lt;/b&gt; %1&lt;br/&gt;</source>
+        <translation>&lt;b&gt;创建于:&lt;/b&gt; %1 字节</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Owner:&lt;/b&gt; %1</source>
+        <translation>&lt;b&gt;所有者:&lt;/b&gt; %1</translation>
+    </message>
+    <message>
+        <source>Show hidden objects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show hidden files/directories</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIFilePathSelector</name>
     <message>
         <source>&amp;Copy</source>
@@ -2933,84 +4739,84 @@
     <message>
         <source>&lt;b&gt;%1&lt;/b&gt;</source>
         <comment>Group item tool-tip / Group name</comment>
-        <translation>&lt;b&gt;%1&lt;/b&gt;</translation>
+        <translation type="vanished">&lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
     <message numerus="yes">
         <source>%n group(s)</source>
         <comment>Group item tool-tip / Group info</comment>
-        <translation>
+        <translation type="vanished">
             <numerusform>%n 编组</numerusform>
         </translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1&lt;/nobr&gt;</source>
         <comment>Group item tool-tip / Group info wrapper</comment>
-        <translation>&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
     </message>
     <message numerus="yes">
         <source>%n machine(s)</source>
         <comment>Group item tool-tip / Machine info</comment>
-        <translation>
+        <translation type="vanished">
             <numerusform>%n 虚拟电脑</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <source>(%n running)</source>
         <comment>Group item tool-tip / Running machine info</comment>
-        <translation>
+        <translation type="vanished">
             <numerusform>(%n 正在运行)</numerusform>
         </translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1&lt;/nobr&gt;</source>
         <comment>Group item tool-tip / Machine info wrapper</comment>
-        <translation>&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;%1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1 %2&lt;/nobr&gt;</source>
         <comment>Group item tool-tip / Machine info wrapper, including running</comment>
-        <translation>&lt;nobr&gt;%1 %2&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;%1 %2&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>Collapse group</source>
-        <translation>折叠编组</translation>
+        <translation type="vanished">折叠编组</translation>
     </message>
     <message>
         <source>Expand group</source>
-        <translation>展开编组</translation>
+        <translation type="vanished">展开编组</translation>
     </message>
     <message>
         <source>Enter group</source>
-        <translation>进入编组</translation>
+        <translation type="vanished">进入编组</translation>
     </message>
     <message>
         <source>Exit group</source>
-        <translation>退出编组</translation>
+        <translation type="vanished">退出编组</translation>
     </message>
     <message>
         <source>Virtual Machine group</source>
-        <translation>虚拟电脑编组</translation>
+        <translation type="vanished">虚拟电脑编组</translation>
     </message>
 </context>
 <context>
     <name>UIGChooserItemMachine</name>
     <message>
         <source>Virtual Machine</source>
-        <translation>虚拟电脑</translation>
+        <translation type="vanished">虚拟电脑</translation>
     </message>
 </context>
 <context>
     <name>UIGChooserModel</name>
     <message>
         <source>New group</source>
-        <translation>新编组</translation>
+        <translation type="vanished">新编组</translation>
     </message>
 </context>
 <context>
     <name>UIGChooserView</name>
     <message>
         <source>Contains a tree of Virtual Machines and their groups</source>
-        <translation>虚拟电脑及其编组的树状列表</translation>
+        <translation type="vanished">虚拟电脑及其编组的树状列表</translation>
     </message>
 </context>
 <context>
@@ -3018,62 +4824,62 @@
     <message>
         <source>Name</source>
         <comment>details (general)</comment>
-        <translation>名称</translation>
+        <translation type="vanished">名称</translation>
     </message>
     <message>
         <source>Groups</source>
         <comment>details (general)</comment>
-        <translation>编组</translation>
+        <translation type="vanished">编组</translation>
     </message>
     <message>
         <source>%1 MB</source>
         <comment>details</comment>
-        <translation>%1 MB</translation>
+        <translation type="vanished">%1 MB</translation>
     </message>
     <message>
         <source>Processors</source>
         <comment>details (system)</comment>
-        <translation>处理器</translation>
+        <translation type="vanished">处理器</translation>
     </message>
     <message>
         <source>%1%</source>
         <comment>details</comment>
-        <translation>%1%</translation>
+        <translation type="vanished">%1%</translation>
     </message>
     <message>
         <source>VT-x/AMD-V</source>
         <comment>details (system)</comment>
-        <translation>VT-x/AMD-V</translation>
+        <translation type="vanished">VT-x/AMD-V</translation>
     </message>
     <message>
         <source>PAE/NX</source>
         <comment>details (system)</comment>
-        <translation>PAE/NX</translation>
+        <translation type="vanished">PAE/NX</translation>
     </message>
     <message>
         <source>Acceleration</source>
         <comment>details (system)</comment>
-        <translation>硬件加速</translation>
+        <translation type="vanished">硬件加速</translation>
     </message>
     <message>
         <source>Screens</source>
         <comment>details (display)</comment>
-        <translation>屏幕</translation>
+        <translation type="vanished">屏幕</translation>
     </message>
     <message>
         <source>3D</source>
         <comment>details (display)</comment>
-        <translation>3D</translation>
+        <translation type="vanished">3D</translation>
     </message>
     <message>
         <source>Acceleration</source>
         <comment>details (display)</comment>
-        <translation>硬件加速</translation>
+        <translation type="vanished">硬件加速</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (display/vrde/VRDE server)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>[CD/DVD]</source>
@@ -3088,12 +4894,12 @@
     <message>
         <source>Controller</source>
         <comment>details (audio)</comment>
-        <translation>控制芯片</translation>
+        <translation type="vanished">控制芯片</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (audio)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Bridged adapter, %1</source>
@@ -3113,22 +4919,22 @@
     <message>
         <source>Adapter %1</source>
         <comment>details (network)</comment>
-        <translation>网卡 %1</translation>
+        <translation type="vanished">网卡 %1</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (network/adapter)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Port %1</source>
         <comment>details (serial)</comment>
-        <translation>端口 %1</translation>
+        <translation type="vanished">端口 %1</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (serial)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Port %1</source>
@@ -3143,176 +4949,176 @@
     <message>
         <source>%1 (%2 active)</source>
         <comment>details (usb)</comment>
-        <translation>%1 (%2 活动)</translation>
+        <translation type="vanished">%1 (%2 活动)</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (usb)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>None</source>
         <comment>details (shared folders)</comment>
-        <translation>空</translation>
+        <translation type="vanished">空</translation>
     </message>
     <message>
         <source>None</source>
         <comment>details (description)</comment>
-        <translation>空</translation>
+        <translation type="vanished">空</translation>
     </message>
     <message>
         <source>Operating System</source>
         <comment>details (general)</comment>
-        <translation>操作系统</translation>
+        <translation type="vanished">操作系统</translation>
     </message>
     <message>
         <source>Information Inaccessible</source>
         <comment>details</comment>
-        <translation>无可用信息</translation>
+        <translation type="vanished">无可用信息</translation>
     </message>
     <message>
         <source>Base Memory</source>
         <comment>details (system)</comment>
-        <translation>内存大小</translation>
+        <translation type="vanished">内存大小</translation>
     </message>
     <message>
         <source>Execution Cap</source>
         <comment>details (system)</comment>
-        <translation>运行峰值</translation>
+        <translation type="vanished">运行峰值</translation>
     </message>
     <message>
         <source>Boot Order</source>
         <comment>details (system)</comment>
-        <translation>启动顺序</translation>
+        <translation type="vanished">启动顺序</translation>
     </message>
     <message>
         <source>Nested Paging</source>
         <comment>details (system)</comment>
-        <translation>嵌套分页</translation>
+        <translation type="vanished">嵌套分页</translation>
     </message>
     <message>
         <source>Video Memory</source>
         <comment>details (display)</comment>
-        <translation>显存大小</translation>
+        <translation type="vanished">显存大小</translation>
     </message>
     <message>
         <source>2D Video</source>
         <comment>details (display)</comment>
-        <translation>2D 视频</translation>
+        <translation type="vanished">2D 视频</translation>
     </message>
     <message>
         <source>Remote Desktop Server Port</source>
         <comment>details (display/vrde)</comment>
-        <translation>远程桌面服务器端口</translation>
+        <translation type="vanished">远程桌面服务器端口</translation>
     </message>
     <message>
         <source>Remote Desktop Server</source>
         <comment>details (display/vrde)</comment>
-        <translation>远程桌面服务器</translation>
+        <translation type="vanished">远程桌面服务器</translation>
     </message>
     <message>
         <source>Not Attached</source>
         <comment>details (storage)</comment>
-        <translation>未分配</translation>
+        <translation type="vanished">未分配</translation>
     </message>
     <message>
         <source>Host Driver</source>
         <comment>details (audio)</comment>
-        <translation>主机音频驱动</translation>
+        <translation type="vanished">主机音频驱动</translation>
     </message>
     <message>
         <source>Bridged Adapter, %1</source>
         <comment>details (network)</comment>
-        <translation>桥接网络, %1</translation>
+        <translation type="vanished">桥接网络, %1</translation>
     </message>
     <message>
         <source>Internal Network, &apos;%1&apos;</source>
         <comment>details (network)</comment>
-        <translation>内部网络, &apos;%1&apos;</translation>
+        <translation type="vanished">内部网络, &apos;%1&apos;</translation>
     </message>
     <message>
         <source>Host-only Adapter, &apos;%1&apos;</source>
         <comment>details (network)</comment>
-        <translation>仅主机(Host-Only)网络, &apos;%1&apos;</translation>
+        <translation type="vanished">仅主机(Host-Only)网络, &apos;%1&apos;</translation>
     </message>
     <message>
         <source>Generic Driver, &apos;%1&apos;</source>
         <comment>details (network)</comment>
-        <translation>通用驱动，“%1”</translation>
+        <translation type="vanished">通用驱动，“%1”</translation>
     </message>
     <message>
         <source>Generic Driver, &apos;%1&apos; { %2 }</source>
         <comment>details (network)</comment>
-        <translation>通用驱动，“%1”{ %2 }</translation>
+        <translation type="vanished">通用驱动，“%1”{ %2 }</translation>
     </message>
     <message>
         <source>Device Filters</source>
         <comment>details (usb)</comment>
-        <translation>设备筛选</translation>
+        <translation type="vanished">设备筛选</translation>
     </message>
     <message>
         <source>USB Controller Inaccessible</source>
         <comment>details (usb)</comment>
-        <translation>无可用USB控制器</translation>
+        <translation type="vanished">无可用USB控制器</translation>
     </message>
     <message>
         <source>Shared Folders</source>
         <comment>details (shared folders)</comment>
-        <translation>共享文件夹</translation>
+        <translation type="vanished">共享文件夹</translation>
     </message>
     <message>
         <source>Video Capture File</source>
         <comment>details (display/video capture)</comment>
-        <translation>录像文件</translation>
+        <translation type="vanished">录像文件</translation>
     </message>
     <message>
         <source>Video Capture Attributes</source>
         <comment>details (display/video capture)</comment>
-        <translation>录像属性</translation>
+        <translation type="vanished">录像属性</translation>
     </message>
     <message>
         <source>Video Capture</source>
         <comment>details (display/video capture)</comment>
-        <translation>录像</translation>
+        <translation type="vanished">录像</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (display/video capture)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>NAT Network, &apos;%1&apos;</source>
         <comment>details (network)</comment>
-        <translation>NAT 网络, &apos;%1&apos;</translation>
+        <translation type="vanished">NAT 网络, &apos;%1&apos;</translation>
     </message>
     <message>
         <source>Frame Size: %1x%2, Frame Rate: %3fps, Bit Rate: %4kbps</source>
-        <translation>帧尺寸: %1x%2, 帧率: %3fps, 比特率: %4kbps</translation>
+        <translation type="vanished">帧尺寸: %1x%2, 帧率: %3fps, 比特率: %4kbps</translation>
     </message>
     <message>
         <source>Minimal Paravirtualization</source>
         <comment>details (system)</comment>
-        <translation>最少半虚拟化</translation>
+        <translation type="vanished">最少半虚拟化</translation>
     </message>
     <message>
         <source>Hyper-V Paravirtualization</source>
         <comment>details (system)</comment>
-        <translation>Hyper-V 半虚拟化</translation>
+        <translation type="vanished">Hyper-V 半虚拟化</translation>
     </message>
     <message>
         <source>KVM Paravirtualization</source>
         <comment>details (system)</comment>
-        <translation>KVM 半虚拟化</translation>
+        <translation type="vanished">KVM 半虚拟化</translation>
     </message>
     <message>
         <source>[Optical Drive]</source>
         <comment>details (storage)</comment>
-        <translation>[光驱]</translation>
+        <translation type="vanished">[光驱]</translation>
     </message>
     <message>
         <source>USB Controller</source>
         <comment>details (usb)</comment>
-        <translation>USB 控制器</translation>
+        <translation type="vanished">USB 控制器</translation>
     </message>
     <message>
         <source>Scale-factor</source>
@@ -3334,127 +5140,127 @@
     <message>
         <source>Mini-toolbar Position</source>
         <comment>details (user interface)</comment>
-        <translation>小工具栏位置</translation>
+        <translation type="vanished">小工具栏位置</translation>
     </message>
     <message>
         <source>Top</source>
         <comment>details (user interface/mini-toolbar position)</comment>
-        <translation>顶部</translation>
+        <translation type="vanished">顶部</translation>
     </message>
     <message>
         <source>Bottom</source>
         <comment>details (user interface/mini-toolbar position)</comment>
-        <translation>底部</translation>
+        <translation type="vanished">底部</translation>
     </message>
     <message>
         <source>Mini-toolbar</source>
         <comment>details (user interface)</comment>
-        <translation>小工具栏</translation>
+        <translation type="vanished">小工具栏</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (user interface/mini-toolbar)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Scale-factor</source>
         <comment>details (display)</comment>
-        <translation>缩放率</translation>
+        <translation type="vanished">缩放率</translation>
     </message>
     <message>
         <source>Unscaled HiDPI Video Output</source>
         <comment>details (display)</comment>
-        <translation>原始 HiDPI 视频输出</translation>
+        <translation type="vanished">原始 HiDPI 视频输出</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (display/Unscaled HiDPI Video Output)</comment>
-        <translation>启用</translation>
+        <translation type="vanished">启用</translation>
     </message>
     <message>
         <source>Menu-bar</source>
         <comment>details (user interface)</comment>
-        <translation>菜单栏</translation>
+        <translation type="vanished">菜单栏</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (user interface/menu-bar)</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (user interface/menu-bar)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Status-bar</source>
         <comment>details (user interface)</comment>
-        <translation>状态栏</translation>
+        <translation type="vanished">状态栏</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (user interface/status-bar)</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (user interface/status-bar)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Chipset Type</source>
         <comment>details (system)</comment>
-        <translation>芯片组</translation>
+        <translation type="vanished">芯片组</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (system/EFI)</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>EFI</source>
         <comment>details (system)</comment>
-        <translation>EFI</translation>
+        <translation type="vanished">EFI</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (system/EFI)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (display/Unscaled HiDPI Video Output)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Audio Output</source>
         <comment>details (audio)</comment>
-        <translation>声音输出</translation>
+        <translation type="vanished">声音输出</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (audio/output)</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (audio/output)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Audio Input</source>
         <comment>details (audio)</comment>
-        <translation>声音输入</translation>
+        <translation type="vanished">声音输入</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details (audio/input)</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details (audio/input)</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
 </context>
 <context>
@@ -3462,14 +5268,14 @@
     <message>
         <source>%1 details</source>
         <comment>like &apos;General details&apos; or &apos;Storage details&apos;</comment>
-        <translation>%1 明细</translation>
+        <translation type="vanished">%1 明细</translation>
     </message>
 </context>
 <context>
     <name>UIGDetailsSet</name>
     <message>
         <source>Contains the details of virtual machine &apos;%1&apos;</source>
-        <translation>虚拟电脑 &apos;%1&apos; 明细</translation>
+        <translation type="vanished">虚拟电脑 &apos;%1&apos; 明细</translation>
     </message>
 </context>
 <context>
@@ -3636,7 +5442,7 @@
     <name>UIGDetailsView</name>
     <message>
         <source>Contains a list of Virtual Machine details</source>
-        <translation>各虚拟电脑的明细</translation>
+        <translation type="vanished">各虚拟电脑的明细</translation>
     </message>
 </context>
 <context>
@@ -3647,23 +5453,23 @@
     </message>
     <message>
         <source>Every 0.5 s</source>
-        <translation>每 0.5 秒</translation>
+        <translation type="vanished">每 0.5 秒</translation>
     </message>
     <message>
         <source>Every 1 s</source>
-        <translation>每 1 秒</translation>
+        <translation type="vanished">每 1 秒</translation>
     </message>
     <message>
         <source>Every 2 s</source>
-        <translation>每 2 秒</translation>
+        <translation type="vanished">每 2 秒</translation>
     </message>
     <message>
         <source>Every 5 s</source>
-        <translation>每 5 秒</translation>
+        <translation type="vanished">每 5 秒</translation>
     </message>
     <message>
         <source>Every 10 s</source>
-        <translation>每 10 秒</translation>
+        <translation type="vanished">每 10 秒</translation>
     </message>
     <message>
         <source>No Preview</source>
@@ -3671,11 +5477,11 @@
     </message>
     <message>
         <source>Update disabled</source>
-        <translation>更新已禁用</translation>
+        <translation type="vanished">更新已禁用</translation>
     </message>
     <message>
         <source>No preview</source>
-        <translation>无预览</translation>
+        <translation type="vanished">无预览</translation>
     </message>
 </context>
 <context>
@@ -3750,6 +5556,14 @@
     <message>
         <source>When checked, machine windows will be raised when the mouse pointer moves over them.</source>
         <translation>选中时, 鼠标移到虚拟机窗口上则该窗口变为前置窗口。</translation>
+    </message>
+    <message>
+        <source>Scale Factor:</source>
+        <translation>缩放率:</translation>
+    </message>
+    <message>
+        <source>Controls the guest screen scale factor.</source>
+        <translation>设置虚拟电脑屏幕缩放率。</translation>
     </message>
 </context>
 <context>
@@ -3938,22 +5752,22 @@
     <message>
         <source> (built-in)</source>
         <comment>Language</comment>
-        <translation> (内嵌)</translation>
+        <translation type="vanished"> (内嵌)</translation>
     </message>
     <message>
         <source>&lt;unavailable&gt;</source>
         <comment>Language</comment>
-        <translation>&lt;无效&gt;</translation>
+        <translation type="vanished">&lt;无效&gt;</translation>
     </message>
     <message>
         <source>&lt;unknown&gt;</source>
         <comment>Author(s)</comment>
-        <translation>&lt;未知&gt;</translation>
+        <translation type="vanished">&lt;未知&gt;</translation>
     </message>
     <message>
         <source>Default</source>
         <comment>Language</comment>
-        <translation>默认</translation>
+        <translation type="vanished">默认</translation>
     </message>
     <message>
         <source>Language:</source>
@@ -4144,67 +5958,67 @@
     </message>
     <message>
         <source>No new name specified for the NAT network previously called &lt;b&gt;%1&lt;/b&gt;.</source>
-        <translation>没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定新名称。</translation>
+        <translation type="vanished">没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定新名称。</translation>
     </message>
     <message>
         <source>No CIDR specified for the NAT network &lt;b&gt;%1&lt;/b&gt;.</source>
-        <translation>没有为 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
+        <translation type="vanished">没有为 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
     </message>
     <message>
         <source>No CIDR specified for the NAT network previously called &lt;b&gt;%1&lt;/b&gt;.</source>
-        <translation>没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
+        <translation type="vanished">没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
     </message>
     <message>
         <source>Invalid CIDR specified (&lt;i&gt;%1&lt;/i&gt;) for the NAT network &lt;b&gt;%2&lt;/b&gt;.</source>
-        <translation>为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
+        <translation type="vanished">为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
     </message>
     <message>
         <source>Invalid CIDR specified (&lt;i&gt;%1&lt;/i&gt;) for the NAT network previously called &lt;b&gt;%2&lt;/b&gt;.</source>
-        <translation>为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
+        <translation type="vanished">为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
     </message>
     <message>
         <source>Network Name</source>
-        <translation>网络名称</translation>
+        <translation type="vanished">网络名称</translation>
     </message>
     <message>
         <source>[empty]</source>
-        <translation>[空]</translation>
+        <translation type="vanished">[空]</translation>
     </message>
     <message>
         <source>%1 (renamed from %2)</source>
-        <translation>%1 (从 %2 重命名)</translation>
+        <translation type="vanished">%1 (从 %2 重命名)</translation>
     </message>
     <message>
         <source>Old Network Name</source>
-        <translation>旧网络名称</translation>
+        <translation type="vanished">旧网络名称</translation>
     </message>
     <message>
         <source>New Network Name</source>
-        <translation>新网络名称</translation>
+        <translation type="vanished">新网络名称</translation>
     </message>
     <message>
         <source>Network CIDR</source>
-        <translation>网络 CIDR</translation>
+        <translation type="vanished">网络 CIDR</translation>
     </message>
     <message>
         <source>Supports DHCP</source>
-        <translation>支持 DHCP</translation>
+        <translation type="vanished">支持 DHCP</translation>
     </message>
     <message>
         <source>yes</source>
-        <translation>是</translation>
+        <translation type="vanished">是</translation>
     </message>
     <message>
         <source>no</source>
-        <translation>否</translation>
+        <translation type="vanished">否</translation>
     </message>
     <message>
         <source>Supports IPv6</source>
-        <translation>支持 IPv6</translation>
+        <translation type="vanished">支持 IPv6</translation>
     </message>
     <message>
         <source>Default IPv6 route</source>
-        <translation>默认 IPv6 路径</translation>
+        <translation type="vanished">默认 IPv6 路径</translation>
     </message>
     <message>
         <source>Host interface &lt;b&gt;%1&lt;/b&gt; does not currently have a valid IPv4 address.</source>
@@ -4622,7 +6436,7 @@
     </message>
     <message>
         <source>Ho&amp;st:</source>
-        <translation>主机(&amp;S):</translation>
+        <translation type="vanished">主机(&amp;S):</translation>
     </message>
     <message>
         <source>Changes the proxy host.</source>
@@ -4630,7 +6444,7 @@
     </message>
     <message>
         <source>&amp;Port:</source>
-        <translation>端口(&amp;P):</translation>
+        <translation type="vanished">端口(&amp;P):</translation>
     </message>
     <message>
         <source>Changes the proxy port.</source>
@@ -4662,19 +6476,19 @@
     </message>
     <message>
         <source>No proxy host is currently specified.</source>
-        <translation>未指定代理服务器。</translation>
+        <translation type="vanished">未指定代理服务器。</translation>
     </message>
     <message>
         <source>No proxy port is currently specified.</source>
-        <translation>未指定代理端口。</translation>
+        <translation type="vanished">未指定代理端口。</translation>
     </message>
     <message>
         <source>Holds the proxy host.</source>
-        <translation>更改代理主机。</translation>
+        <translation type="vanished">更改代理主机。</translation>
     </message>
     <message>
         <source>Holds the proxy port.</source>
-        <translation>更改代理端口。</translation>
+        <translation type="vanished">更改代理端口。</translation>
     </message>
     <message>
         <source>When chosen, VirtualBox will try to auto-detect host proxy settings for tasks like downloading Guest Additions from the network or checking for updates.</source>
@@ -4699,6 +6513,27 @@
     <message>
         <source>&amp;Manual Proxy Configuration</source>
         <translation>手动配置代理(&amp;M)</translation>
+    </message>
+    <message>
+        <source>&amp;URL:</source>
+        <translation>&amp;URL:</translation>
+    </message>
+    <message>
+        <source>No proxy URL is currently specified.</source>
+        <translation>未指定代理服务器URL。</translation>
+    </message>
+    <message>
+        <source>Invalid proxy URL is currently specified.</source>
+        <translation>所指定代理服务器URL无效。</translation>
+    </message>
+    <message>
+        <source>You have provided a proxy password. Please be aware that the password will be saved in plain text. You may wish to configure a system-wide proxy instead and not store application-specific settings.</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>发现代理服务器密码。 请注意这些密码按明文保存。 你可以设置一个系统级的代理配置，避免为每个虚拟机单独设置。.</translation>
+    </message>
+    <message>
+        <source>Holds the proxy URL. The format is: &lt;table cellspacing=0 style=&apos;white-space:pre&apos;&gt;&lt;tr&gt;&lt;td&gt;[{type}://][{userid}[:{password}]@]{server}[:{port}]&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;http://username:password@proxy.host.com:port&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</source>
+        <translation>代理服务器URL. 格式为: &lt;table cellspacing=0 style=&apos;white-space:pre&apos;&gt;&lt;tr&gt;&lt;td&gt;[{type}://][{userid}[:{password}]@]{server}[:{port}]&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;http://username:password@proxy.host.com:port&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</translation>
     </message>
 </context>
 <context>
@@ -4762,6 +6597,62 @@
         <source>%1: %2</source>
         <comment>&apos;key: value&apos;, like &apos;Name: MyVM&apos;</comment>
         <translation>%1: %2</translation>
+    </message>
+</context>
+<context>
+    <name>UIGuestControlFileManager</name>
+    <message>
+        <source>Close</source>
+        <translation type="obsolete">关闭</translation>
+    </message>
+    <message>
+        <source>Password</source>
+        <translation type="obsolete">密码</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation type="obsolete">大小</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="obsolete">取消</translation>
+    </message>
+    <message>
+        <source>Paused</source>
+        <translation type="obsolete">已暂停</translation>
+    </message>
+</context>
+<context>
+    <name>UIGuestControlTreeWidget</name>
+    <message>
+        <source>Close Session</source>
+        <translation>关闭会话</translation>
+    </message>
+    <message>
+        <source>Terminate Process</source>
+        <translation>结束进程</translation>
+    </message>
+    <message>
+        <source>Expand All</source>
+        <translation>全部展开</translation>
+    </message>
+    <message>
+        <source>Collapse All</source>
+        <translation>全部折叠</translation>
+    </message>
+</context>
+<context>
+    <name>UIGuestProcessControlDialog</name>
+    <message>
+        <source>%1 - Guest Control</source>
+        <translation>%1 - 虚拟机控制</translation>
+    </message>
+</context>
+<context>
+    <name>UIGuestProcessControlWidget</name>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
     </message>
 </context>
 <context>
@@ -5016,52 +6907,52 @@
     <message>
         <source>Enable</source>
         <comment>DHCP Server</comment>
-        <translation>启用</translation>
+        <translation type="vanished">启用</translation>
     </message>
     <message>
         <source>Adapter</source>
-        <translation>主机虚拟网络界面</translation>
+        <translation type="vanished">主机虚拟网络界面</translation>
     </message>
     <message>
         <source>Automatically configured</source>
         <comment>interface</comment>
-        <translation>自动配置</translation>
+        <translation type="vanished">自动配置</translation>
     </message>
     <message>
         <source>Manually configured</source>
         <comment>interface</comment>
-        <translation>手动配置</translation>
+        <translation type="vanished">手动配置</translation>
     </message>
     <message>
         <source>IPv4 Address</source>
-        <translation>IPv4 地址</translation>
+        <translation type="vanished">IPv4 地址</translation>
     </message>
     <message>
         <source>Not set</source>
         <comment>address</comment>
-        <translation>未设置</translation>
+        <translation type="vanished">未设置</translation>
     </message>
     <message>
         <source>IPv4 Network Mask</source>
-        <translation>IPv4 网络掩码</translation>
+        <translation type="vanished">IPv4 网络掩码</translation>
     </message>
     <message>
         <source>Not set</source>
         <comment>mask</comment>
-        <translation>未设置</translation>
+        <translation type="vanished">未设置</translation>
     </message>
     <message>
         <source>IPv6 Address</source>
-        <translation>IPv6 地址</translation>
+        <translation type="vanished">IPv6 地址</translation>
     </message>
     <message>
         <source>IPv6 Prefix Length</source>
-        <translation>IPv6 网络掩码长度</translation>
+        <translation type="vanished">IPv6 网络掩码长度</translation>
     </message>
     <message>
         <source>Not set</source>
         <comment>length</comment>
-        <translation>未设置</translation>
+        <translation type="vanished">未设置</translation>
     </message>
     <message>
         <source>DHCP Server</source>
@@ -5070,86 +6961,86 @@
     <message>
         <source>Enabled</source>
         <comment>server</comment>
-        <translation>已启用</translation>
+        <translation type="vanished">已启用</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>server</comment>
-        <translation>已禁用</translation>
+        <translation type="vanished">已禁用</translation>
     </message>
     <message>
         <source>Address</source>
-        <translation>地址</translation>
+        <translation type="vanished">地址</translation>
     </message>
     <message>
         <source>Network Mask</source>
-        <translation>网络掩码</translation>
+        <translation type="vanished">网络掩码</translation>
     </message>
     <message>
         <source>Lower Bound</source>
-        <translation>最小地址</translation>
+        <translation type="vanished">最小地址</translation>
     </message>
     <message>
         <source>Not set</source>
         <comment>bound</comment>
-        <translation>未设置</translation>
+        <translation type="vanished">未设置</translation>
     </message>
     <message>
         <source>Upper Bound</source>
-        <translation>最大地址</translation>
+        <translation type="vanished">最大地址</translation>
     </message>
     <message>
         <source>&amp;Network</source>
-        <translation>网络(&amp;N)</translation>
+        <translation type="vanished">网络(&amp;N)</translation>
     </message>
     <message>
         <source>&amp;Create</source>
-        <translation>创建(&amp;C)</translation>
+        <translation type="vanished">创建(&amp;C)</translation>
     </message>
     <message>
         <source>Create Host-only Network (%1)</source>
-        <translation>创建仅主机(Host-only)网络 (%1)</translation>
+        <translation type="vanished">创建仅主机(Host-only)网络 (%1)</translation>
     </message>
     <message>
         <source>Create new host-only network</source>
-        <translation>新建仅主机(Host-only)网络</translation>
+        <translation type="vanished">新建仅主机(Host-only)网络</translation>
     </message>
     <message>
         <source>&amp;Remove...</source>
-        <translation>删除(&amp;R)...</translation>
+        <translation type="vanished">删除(&amp;R)...</translation>
     </message>
     <message>
         <source>Remove Host-only Network (%1)</source>
-        <translation>删除仅主机(Host-only)网络 (%1)</translation>
+        <translation type="vanished">删除仅主机(Host-only)网络 (%1)</translation>
     </message>
     <message>
         <source>Remove selected host-only network</source>
-        <translation>删除选中的仅主机(Host-Only)网络</translation>
+        <translation type="vanished">删除选中的仅主机(Host-Only)网络</translation>
     </message>
     <message>
         <source>&amp;Properties...</source>
-        <translation>属性(&amp;P)...</translation>
+        <translation type="vanished">属性(&amp;P)...</translation>
     </message>
     <message>
         <source>Open Host-only Network Properties (%1)</source>
         <translatorcomment>todo</translatorcomment>
-        <translation>显示仅主机(Host-only)网络属性 (%1)</translation>
+        <translation type="vanished">显示仅主机(Host-only)网络属性 (%1)</translation>
     </message>
     <message>
         <source>Open pane with selected host-only network properties</source>
-        <translation>显示仅主机(Host-only)网络属性</translation>
+        <translation type="vanished">显示仅主机(Host-only)网络属性</translation>
     </message>
     <message>
         <source>&amp;Refresh...</source>
-        <translation>刷新(&amp;R)...</translation>
+        <translation type="vanished">刷新(&amp;R)...</translation>
     </message>
     <message>
         <source>Refresh Host-only Networks (%1)</source>
-        <translation>刷新仅主机(Host-only)网络 (%1)</translation>
+        <translation type="vanished">刷新仅主机(Host-only)网络 (%1)</translation>
     </message>
     <message>
         <source>Refresh the list of host-only networks</source>
-        <translation>刷新仅主机(Host-only)网络列表</translation>
+        <translation type="vanished">刷新仅主机(Host-only)网络列表</translation>
     </message>
     <message>
         <source>Name</source>
@@ -5203,6 +7094,14 @@
         <source>Close Window (%1)</source>
         <translation>关闭窗口 (%1)</translation>
     </message>
+    <message>
+        <source>Adding network...</source>
+        <translation>正在添加网络...</translation>
+    </message>
+    <message>
+        <source>Removing network...</source>
+        <translation>正在移除网络...</translation>
+    </message>
 </context>
 <context>
     <name>UIHostNetworkManagerWidget</name>
@@ -5212,11 +7111,11 @@
     </message>
     <message>
         <source>Adding network...</source>
-        <translation>正在添加网络...</translation>
+        <translation type="vanished">正在添加网络...</translation>
     </message>
     <message>
         <source>Removing network...</source>
-        <translation>正在移除网络...</translation>
+        <translation type="vanished">正在移除网络...</translation>
     </message>
 </context>
 <context>
@@ -5303,6 +7202,11 @@
     <message>
         <source>Shortcut</source>
         <translation>快捷键</translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <comment>scope: description</comment>
+        <translation>%1: %2</translation>
     </message>
 </context>
 <context>
@@ -5611,12 +7515,12 @@
     <message>
         <source>Video capture disabled</source>
         <comment>Video capture tooltip</comment>
-        <translation>禁用录像</translation>
+        <translation type="vanished">禁用录像</translation>
     </message>
     <message>
         <source>Video capture file</source>
         <comment>Video capture tooltip</comment>
-        <translation>录像文件</translation>
+        <translation type="vanished">录像文件</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Indicates the activity of the additional features:&lt;/nobr&gt;%1</source>
@@ -5677,6 +7581,26 @@
         <source>&lt;nobr&gt;Indicates the activity of the audio device:&lt;/nobr&gt;%1</source>
         <comment>Audio tooltip</comment>
         <translation type="vanished">&lt;nobr&gt;指示音频设备活动:&lt;/nobr&gt;%1</translation>
+    </message>
+    <message>
+        <source>Recording disabled</source>
+        <comment>Recording tooltip</comment>
+        <translation>录制已禁用</translation>
+    </message>
+    <message>
+        <source>Video/audio recording file</source>
+        <comment>Recording tooltip</comment>
+        <translation>录像或录音文件</translation>
+    </message>
+    <message>
+        <source>Audio recording file</source>
+        <comment>Recording tooltip</comment>
+        <translation>录音文件</translation>
+    </message>
+    <message>
+        <source>Video recording file</source>
+        <comment>Recording tooltip</comment>
+        <translation>录像文件</translation>
     </message>
 </context>
 <context>
@@ -5889,7 +7813,7 @@
     <message>
         <source>VT-x/AMD-V</source>
         <comment>details report</comment>
-        <translation>VT-x/AMD-V</translation>
+        <translation type="vanished">VT-x/AMD-V</translation>
     </message>
     <message>
         <source>Nested Paging</source>
@@ -5919,6 +7843,11 @@
         <source>Remote Desktop Server Port</source>
         <comment>details report (VRDE Server)</comment>
         <translation>远程桌面服务器端口</translation>
+    </message>
+    <message>
+        <source>VM Execution Engine</source>
+        <comment>details report</comment>
+        <translation>虚拟机运行引擎</translation>
     </message>
 </context>
 <context>
@@ -6117,6 +8046,95 @@
     </message>
 </context>
 <context>
+    <name>UIItemHostNetwork</name>
+    <message>
+        <source>Enable</source>
+        <comment>DHCP Server</comment>
+        <translation>启用</translation>
+    </message>
+    <message>
+        <source>Adapter</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>主机虚拟网络界面</translation>
+    </message>
+    <message>
+        <source>Automatically configured</source>
+        <comment>interface</comment>
+        <translation>自动配置</translation>
+    </message>
+    <message>
+        <source>Manually configured</source>
+        <comment>interface</comment>
+        <translation>手动配置</translation>
+    </message>
+    <message>
+        <source>IPv4 Address</source>
+        <translation>IPv4 地址</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <comment>address</comment>
+        <translation>未设置</translation>
+    </message>
+    <message>
+        <source>IPv4 Network Mask</source>
+        <translation>IPv4 网络掩码</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <comment>mask</comment>
+        <translation>未设置</translation>
+    </message>
+    <message>
+        <source>IPv6 Address</source>
+        <translation>IPv6 地址</translation>
+    </message>
+    <message>
+        <source>IPv6 Prefix Length</source>
+        <translation>IPv6 网络掩码长度</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <comment>length</comment>
+        <translation>未设置</translation>
+    </message>
+    <message>
+        <source>DHCP Server</source>
+        <translation>DHCP 服务器</translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>server</comment>
+        <translation>已启用</translation>
+    </message>
+    <message>
+        <source>Disabled</source>
+        <comment>server</comment>
+        <translation>已禁用</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>地址</translation>
+    </message>
+    <message>
+        <source>Network Mask</source>
+        <translation>网络掩码</translation>
+    </message>
+    <message>
+        <source>Lower Bound</source>
+        <translation>最小地址</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <comment>bound</comment>
+        <translation>未设置</translation>
+    </message>
+    <message>
+        <source>Upper Bound</source>
+        <translation>最大地址</translation>
+    </message>
+</context>
+<context>
     <name>UIItemNetworkNAT</name>
     <message>
         <source>%1, %2</source>
@@ -6127,6 +8145,93 @@
         <source>%1</source>
         <comment>col.2 text</comment>
         <translation>%1</translation>
+    </message>
+    <message>
+        <source>Network Name</source>
+        <translation>网络名称</translation>
+    </message>
+    <message>
+        <source>[empty]</source>
+        <translation>[空]</translation>
+    </message>
+    <message>
+        <source>%1 (renamed from %2)</source>
+        <translation>%1 (从 %2 重命名)</translation>
+    </message>
+    <message>
+        <source>Old Network Name</source>
+        <translation>旧网络名称</translation>
+    </message>
+    <message>
+        <source>New Network Name</source>
+        <translation>新网络名称</translation>
+    </message>
+    <message>
+        <source>Network CIDR</source>
+        <translation>网络 CIDR</translation>
+    </message>
+    <message>
+        <source>Supports DHCP</source>
+        <translation>支持 DHCP</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <translation>是</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <translation>否</translation>
+    </message>
+    <message>
+        <source>Supports IPv6</source>
+        <translation>支持 IPv6</translation>
+    </message>
+    <message>
+        <source>Default IPv6 route</source>
+        <translation>默认 IPv6 路径</translation>
+    </message>
+    <message>
+        <source>No new name specified for the NAT network previously called &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定新名称。</translation>
+    </message>
+    <message>
+        <source>No CIDR specified for the NAT network &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>没有为 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
+    </message>
+    <message>
+        <source>No CIDR specified for the NAT network previously called &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>没有为原先的 &lt;b&gt;%1&lt;/b&gt; NAT网络指定CIDR。</translation>
+    </message>
+    <message>
+        <source>Invalid CIDR specified (&lt;i&gt;%1&lt;/i&gt;) for the NAT network &lt;b&gt;%2&lt;/b&gt;.</source>
+        <translation>为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
+    </message>
+    <message>
+        <source>Invalid CIDR specified (&lt;i&gt;%1&lt;/i&gt;) for the NAT network previously called &lt;b&gt;%2&lt;/b&gt;.</source>
+        <translation>为 NAT 网络 &lt;b&gt;%2&lt;/b&gt;.指定的CIDR (&lt;i&gt;%1&lt;/i&gt;)无效。</translation>
+    </message>
+</context>
+<context>
+    <name>UILanguageItem</name>
+    <message>
+        <source> (built-in)</source>
+        <comment>Language</comment>
+        <translation> (内嵌)</translation>
+    </message>
+    <message>
+        <source>&lt;unavailable&gt;</source>
+        <comment>Language</comment>
+        <translation>&lt;无效&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;unknown&gt;</source>
+        <comment>Author(s)</comment>
+        <translation>&lt;未知&gt;</translation>
+    </message>
+    <message>
+        <source>Default</source>
+        <comment>Language</comment>
+        <translation>默认</translation>
     </message>
 </context>
 <context>
@@ -6193,6 +8298,37 @@
     <message>
         <source>Connect Network Adapter %1</source>
         <translation type="obsolete">启用网络连接 %1</translation>
+    </message>
+</context>
+<context>
+    <name>UIMachinePreview</name>
+    <message>
+        <source>No preview</source>
+        <translation>无预览</translation>
+    </message>
+    <message>
+        <source>Update disabled</source>
+        <translation>更新已禁用</translation>
+    </message>
+    <message>
+        <source>Every 0.5 s</source>
+        <translation>每 0.5 秒</translation>
+    </message>
+    <message>
+        <source>Every 1 s</source>
+        <translation>每 1 秒</translation>
+    </message>
+    <message>
+        <source>Every 2 s</source>
+        <translation>每 2 秒</translation>
+    </message>
+    <message>
+        <source>Every 5 s</source>
+        <translation>每 5 秒</translation>
+    </message>
+    <message>
+        <source>Every 10 s</source>
+        <translation>每 10 秒</translation>
     </message>
 </context>
 <context>
@@ -6368,7 +8504,7 @@
     </message>
     <message>
         <source>Video &amp;Capture</source>
-        <translation>录像(&amp;C)</translation>
+        <translation type="vanished">录像(&amp;C)</translation>
     </message>
     <message>
         <source>When checked, VirtualBox will record the virtual machine session as a video file.</source>
@@ -6376,7 +8512,7 @@
     </message>
     <message>
         <source>&amp;Enable Video Capture</source>
-        <translation>启用录像(&amp;E)</translation>
+        <translation type="vanished">启用录像(&amp;E)</translation>
     </message>
     <message>
         <source>File &amp;Path:</source>
@@ -6408,7 +8544,7 @@
     </message>
     <message>
         <source>&amp;Quality:</source>
-        <translation>品质(&amp;Q):</translation>
+        <translation type="vanished">品质(&amp;Q):</translation>
     </message>
     <message>
         <source>This setting determines the &lt;b&gt;quality&lt;/b&gt;. Increasing this value will make the video look better at the cost of an increased file size.</source>
@@ -6543,7 +8679,7 @@
     </message>
     <message>
         <source>%</source>
-        <translation>%</translation>
+        <translation type="vanished">%</translation>
     </message>
     <message>
         <source>HiDPI:</source>
@@ -6551,11 +8687,11 @@
     </message>
     <message>
         <source>When checked, guest screen contents will not be scaled up to compensate for high host screen resolutions.</source>
-        <translation>选中时，虚拟电脑显示内容将不缩放匹配主机高分辨率屏幕。</translation>
+        <translation type="vanished">选中时，虚拟电脑显示内容将不缩放匹配主机高分辨率屏幕。</translation>
     </message>
     <message>
         <source>Use &amp;Unscaled HiDPI Output</source>
-        <translation>用原始高清 HiDPI 输出(&amp;U)</translation>
+        <translation type="vanished">用原始高清 HiDPI 输出(&amp;U)</translation>
     </message>
     <message>
         <source>Acceleration:</source>
@@ -6564,7 +8700,7 @@
     <message>
         <source>HiDPI Support:</source>
         <translatorcomment>TODO</translatorcomment>
-        <translation>高清(HiDPI)支持:</translation>
+        <translation type="vanished">高清(HiDPI)支持:</translation>
     </message>
     <message>
         <source>Holds the VRDP Server port number. You may specify &lt;tt&gt;0&lt;/tt&gt; (zero), to select port 3389, the standard port for RDP.</source>
@@ -6620,7 +8756,7 @@
     </message>
     <message>
         <source>%1%</source>
-        <translation>%1%</translation>
+        <translation type="vanished">%1%</translation>
     </message>
     <message>
         <source>When checked, enables video recording for screen %1.</source>
@@ -6628,11 +8764,47 @@
     </message>
     <message>
         <source>When checked, VirtualBox will record the audio stream to video file as well.</source>
-        <translation>选中时，将虚拟机音频录制到视频文件中。</translation>
+        <translation type="vanished">选中时，将虚拟机音频录制到视频文件中。</translation>
     </message>
     <message>
         <source>&amp;Record Audio</source>
-        <translation>录音(&amp;R)</translation>
+        <translation type="vanished">录音(&amp;R)</translation>
+    </message>
+    <message>
+        <source>&amp;Audio Quality:</source>
+        <translation>音质(&amp;Q):</translation>
+    </message>
+    <message>
+        <source>&amp;Graphics Controller:</source>
+        <translation>显卡控制器(&amp;G):</translation>
+    </message>
+    <message>
+        <source>Selects the graphics adapter type the virtual machine will use.</source>
+        <translation>选择用于虚拟机的显卡。</translation>
+    </message>
+    <message>
+        <source>Re&amp;cording</source>
+        <translation>录制(&amp;C)</translation>
+    </message>
+    <message>
+        <source>&amp;Enable Recording</source>
+        <translation>启用录制(&amp;E)</translation>
+    </message>
+    <message>
+        <source>Recording &amp;Mode:</source>
+        <translation>录制模式(&amp;M):</translation>
+    </message>
+    <message>
+        <source>Selects the recording mode.</source>
+        <translation>选择录制模式.</translation>
+    </message>
+    <message>
+        <source>&amp;Video Quality:</source>
+        <translation>录像品质(&amp;V):</translation>
+    </message>
+    <message>
+        <source>Controls the &lt;b&gt;quality&lt;/b&gt;. Increasing this value will make the audio sound better at the cost of an increased file size.</source>
+        <translation>录像的 &lt;b&gt;品质&lt;/b&gt;。增加此值可使录像看起来好些，但文件会大些。</translation>
     </message>
 </context>
 <context>
@@ -6796,43 +8968,43 @@
     </message>
     <message>
         <source>Disk Enc&amp;ryption</source>
-        <translation type="unfinished"></translation>
+        <translation>虚拟盘加密(&amp;R)</translation>
     </message>
     <message>
         <source>When checked, disks attached to this virtual machine will be encrypted.</source>
-        <translation type="unfinished"></translation>
+        <translation>选中，此虚拟电脑关联的虚拟硬盘将加密。</translation>
     </message>
     <message>
         <source>En&amp;able Disk Encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>启用加密(&amp;A)</translation>
     </message>
     <message>
         <source>Disk Encryption C&amp;ipher:</source>
-        <translation type="unfinished"></translation>
+        <translation>加密算法(&amp;I):</translation>
     </message>
     <message>
         <source>Holds the encryption password for disks attached to this virtual machine.</source>
-        <translation type="unfinished"></translation>
+        <translation>显示加密虚拟硬盘所用密码。</translation>
     </message>
     <message>
         <source>Confirms the disk encryption password.</source>
-        <translation type="unfinished"></translation>
+        <translation>确认密码。</translation>
     </message>
     <message>
         <source>You are trying to enable disk encryption for this virtual machine. However, this requires the &lt;i&gt;%1&lt;/i&gt; to be installed. Please install the Extension Pack from the VirtualBox download site.</source>
-        <translation type="unfinished"></translation>
+        <translation>你准备加密此虚拟电脑。不过，这需要安装&lt;i&gt;%1&lt;/i&gt;。请从 VirtualBox 网站下载安装增强包。</translation>
     </message>
     <message>
         <source>Disk encryption cipher type not specified.</source>
-        <translation type="unfinished"></translation>
+        <translation>未设置加密算法。</translation>
     </message>
     <message>
         <source>Disk encryption password empty.</source>
-        <translation type="unfinished"></translation>
+        <translation>密码为空。</translation>
     </message>
     <message>
         <source>Disk encryption passwords do not match.</source>
-        <translation type="unfinished"></translation>
+        <translation>密码不匹配。</translation>
     </message>
 </context>
 <context>
@@ -7257,11 +9429,11 @@
     </message>
     <message>
         <source>Full</source>
-        <translation>完全</translation>
+        <translation type="vanished">完全</translation>
     </message>
     <message>
         <source>Read-only</source>
-        <translation>只读</translation>
+        <translation type="vanished">只读</translation>
     </message>
     <message>
         <source>Lists all shared folders accessible to this machine. Use &apos;net use x: \\vboxsvr\share&apos; to access a shared folder named &lt;i&gt;share&lt;/i&gt; from a DOS-like OS, or &apos;mount -t vboxsf share mount_point&apos; to access it from a Linux OS. This feature requires Guest Additions.</source>
@@ -7297,11 +9469,11 @@
     </message>
     <message>
         <source>Auto-mount</source>
-        <translation>自动挂载</translation>
+        <translation type="vanished">自动挂载</translation>
     </message>
     <message>
         <source>Yes</source>
-        <translation>是</translation>
+        <translation type="vanished">是</translation>
     </message>
     <message>
         <source>Add Shared Folder</source>
@@ -7330,6 +9502,14 @@
     <message>
         <source>Shared &amp;Folders</source>
         <translation>共享文件夹(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Auto Mount</source>
+        <translation>自动挂载</translation>
+    </message>
+    <message>
+        <source>At</source>
+        <translation>于</translation>
     </message>
 </context>
 <context>
@@ -7385,6 +9565,15 @@
     <message>
         <source>When checked, this shared folder will be permanent.</source>
         <translation>选中时，该共享文件夹将是永久性的。</translation>
+    </message>
+    <message>
+        <source>Mount point:</source>
+        <translation>挂载点：</translation>
+    </message>
+    <message>
+        <source>Where to automatically mount the folder in the guest.  A drive letter (e.g. &apos;G:&apos;) for Windows and OS/2 guests, path for the others.  If left empty the guest will pick something fitting.</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>此文件夹在虚拟电脑系统中的自动挂载点。  Windows 与 OS/2 用盘符 (例如 &apos;G:&apos;)， 其他系统用文件路径。  留空则由虚拟电脑系统自动选择。</translation>
     </message>
 </context>
 <context>
@@ -8018,6 +10207,16 @@
         <source>&amp;Storage Devices</source>
         <translation>存储介质(&amp;S)</translation>
     </message>
+    <message>
+        <source>Create a new floppy disk...</source>
+        <comment>This is used to create a new floppy disk</comment>
+        <translation>创建一个新的虚拟软盘...</translation>
+    </message>
+    <message>
+        <source>Create ad hoc VISO...</source>
+        <comment>This is used for optical media</comment>
+        <translation>创建 VISO...</translation>
+    </message>
 </context>
 <context>
     <name>UIMachineSettingsSystem</name>
@@ -8315,6 +10514,39 @@
         <source>The hardware virtualization is not currently enabled in the Acceleration section of the System page. This is needed to support more than one virtual processor. It will be enabled automatically if you confirm your changes.</source>
         <translation>尚未启用硬件虚拟。支持多个虚拟处理器时需要启用。确认更改时此选项将被启用。</translation>
     </message>
+    <message>
+        <source>Please consider lowering the number of CPUs assigned to the virtual machine rather than setting the processor execution cap.</source>
+        <translation>请考虑减少虚拟机分配的 CPU 数量而不是设置处理器运行峰值。</translation>
+    </message>
+    <message>
+        <source>Lowering the processor execution cap may result in a decline in performance.</source>
+        <translation>降低处理器运行峰值可能会降低性能。</translation>
+    </message>
+    <message>
+        <source>The hardware virtualization is enabled in the Acceleration section of the System page although it is not supported by the host system. It should be disabled in order to start the virtual system.</source>
+        <translation>硬件加速配置页中已启用硬件虚拟化，但主机并不支持。 需要禁用硬件虚拟化才能启动虚拟机。</translation>
+    </message>
+    <message>
+        <source>When checked, the nested hardware virtualization CPU feature will be exposed to the virtual machine.</source>
+        <translation>选中，电脑上的虚拟化CPU特性将会传递给虚拟电脑。</translation>
+    </message>
+    <message>
+        <source>Enable Nested &amp;VT-x/AMD-V</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>启用嵌套 &amp;VT-x/AMD-V</translation>
+    </message>
+    <message>
+        <source>The hardware virtualization is not currently enabled in the Acceleration section of the System page. This is needed to support nested hardware virtualization. It will be enabled automatically if you confirm your changes.</source>
+        <translation>尚未启用硬件虚拟。支持嵌套虚拟化时需要启用。确认更改时此选项将被启用。</translation>
+    </message>
+    <message>
+        <source>The nested paging is not currently enabled in the Acceleration section of the System page. This is needed to support nested hardware virtualization. It will be enabled automatically if you confirm your changes.</source>
+        <translation>尚未启用潜逃分页。支持嵌套虚拟化时需要启用。确认更改时此选项将被启用。</translation>
+    </message>
+    <message>
+        <source>The hardware virtualization is not currently enabled in the Acceleration section of the System page. This is needed for nested paging support. It will be enabled automatically if you confirm your changes.</source>
+        <translation>尚未启用硬件虚拟。支持嵌套分页时需要启用。确认更改时此选项将被启用。</translation>
+    </message>
 </context>
 <context>
     <name>UIMachineSettingsUSB</name>
@@ -8402,42 +10634,42 @@
     <message>
         <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;厂家标识: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;厂家标识: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;产品标识: %2&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;产品标识: %2&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;修订版本: %3&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;修订版本: %3&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;产品: %4&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;产品: %4&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;制造商: %5&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;制造商: %5&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;序号.: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;序号.: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;端口: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;端口: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;状态: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;状态: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>USB 2.0 is currently enabled for this virtual machine. However, this requires the &lt;b&gt;%1&lt;/b&gt; to be installed. Please install the Extension Pack from the VirtualBox download site. After this you will be able to re-enable USB 2.0. It will be disabled in the meantime unless you cancel the current settings changes.</source>
@@ -8781,34 +11013,18 @@
     </message>
 </context>
 <context>
-    <name>UIMediumManager</name>
+    <name>UIMediumItem</name>
     <message>
-        <source>&amp;Hard drives</source>
-        <translation type="obsolete">虚拟硬盘(&amp;H)</translation>
+        <source>Current extension (*.%1)</source>
+        <translation>当前扩展名 (*.%1)</translation>
     </message>
     <message>
-        <source>&amp;Optical disks</source>
-        <translation>虚拟光盘(&amp;O)</translation>
+        <source>Choose the location of this medium</source>
+        <translation>选择介质位置</translation>
     </message>
     <message>
-        <source>&amp;Floppy disks</source>
-        <translation>虚拟软盘(&amp;F)</translation>
-    </message>
-    <message>
-        <source>&amp;Select</source>
-        <translation type="obsolete">选择(&amp;S)</translation>
-    </message>
-    <message>
-        <source>C&amp;lose</source>
-        <translation type="obsolete">退出(&amp;L)</translation>
-    </message>
-    <message>
-        <source>Removing medium...</source>
-        <translation>移除介质...</translation>
-    </message>
-    <message>
-        <source>&amp;Hard disks</source>
-        <translation>虚拟硬盘(&amp;H)</translation>
+        <source>Moving medium...</source>
+        <translation>移动介质...</translation>
     </message>
     <message>
         <source>%1, %2: %3, %4: %5</source>
@@ -8849,48 +11065,121 @@
         <translation>--</translation>
     </message>
     <message>
+        <source>Removing medium...</source>
+        <translation>移除介质...</translation>
+    </message>
+</context>
+<context>
+    <name>UIMediumManager</name>
+    <message>
+        <source>&amp;Hard drives</source>
+        <translation type="obsolete">虚拟硬盘(&amp;H)</translation>
+    </message>
+    <message>
+        <source>&amp;Optical disks</source>
+        <translation>虚拟光盘(&amp;O)</translation>
+    </message>
+    <message>
+        <source>&amp;Floppy disks</source>
+        <translation>虚拟软盘(&amp;F)</translation>
+    </message>
+    <message>
+        <source>&amp;Select</source>
+        <translation type="obsolete">选择(&amp;S)</translation>
+    </message>
+    <message>
+        <source>C&amp;lose</source>
+        <translation type="obsolete">退出(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Removing medium...</source>
+        <translation type="vanished">移除介质...</translation>
+    </message>
+    <message>
+        <source>&amp;Hard disks</source>
+        <translation>虚拟硬盘(&amp;H)</translation>
+    </message>
+    <message>
+        <source>%1, %2: %3, %4: %5</source>
+        <comment>col.1 text, col.2 name: col.2 text, col.3 name: col.3 text</comment>
+        <translation type="vanished">%1, %2: %3, %4: %5</translation>
+    </message>
+    <message>
+        <source>Format:</source>
+        <translation type="vanished">格式:</translation>
+    </message>
+    <message>
+        <source>Storage details:</source>
+        <translation type="vanished">存储器明细:</translation>
+    </message>
+    <message>
+        <source>Attached to:</source>
+        <translation type="vanished">分配到:</translation>
+    </message>
+    <message>
+        <source>Encrypted with key:</source>
+        <translation type="vanished">加密密钥:</translation>
+    </message>
+    <message>
+        <source>UUID:</source>
+        <translation type="vanished">UUID:</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Not&amp;nbsp;Attached&lt;/i&gt;</source>
+        <translation type="vanished">&lt;i&gt;未分配&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Not&amp;nbsp;Encrypted&lt;/i&gt;</source>
+        <translation type="vanished">&lt;i&gt;未加密&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>--</source>
+        <comment>no info</comment>
+        <translation type="vanished">--</translation>
+    </message>
+    <message>
         <source>&amp;Medium</source>
-        <translation>介质(&amp;M)</translation>
+        <translation type="vanished">介质(&amp;M)</translation>
     </message>
     <message>
         <source>&amp;Copy...</source>
-        <translation>复制(&amp;C)...</translation>
+        <translation type="vanished">复制(&amp;C)...</translation>
     </message>
     <message>
         <source>Copy selected disk image file</source>
-        <translation>复制选中的虚拟磁盘文件</translation>
+        <translation type="vanished">复制选中的虚拟磁盘文件</translation>
     </message>
     <message>
         <source>&amp;Remove...</source>
-        <translation>删除(&amp;R)...</translation>
+        <translation type="vanished">删除(&amp;R)...</translation>
     </message>
     <message>
         <source>Remove selected disk image file</source>
-        <translation>移除所选的虚拟存储介质</translation>
+        <translation type="vanished">移除所选的虚拟存储介质</translation>
     </message>
     <message>
         <source>Re&amp;lease...</source>
-        <translation>释放(&amp;l)...</translation>
+        <translation type="vanished">释放(&amp;l)...</translation>
     </message>
     <message>
         <source>Release selected disk image file by detaching it from machines</source>
-        <translation>从虚拟电脑中释放所选的虚拟存储介质</translation>
+        <translation type="vanished">从虚拟电脑中释放所选的虚拟存储介质</translation>
     </message>
     <message>
         <source>&amp;Properties...</source>
-        <translation>属性(&amp;P)...</translation>
+        <translation type="vanished">属性(&amp;P)...</translation>
     </message>
     <message>
         <source>Open pane with selected disk image file properties</source>
-        <translation>查看选定介质的属性</translation>
+        <translation type="vanished">查看选定介质的属性</translation>
     </message>
     <message>
         <source>Re&amp;fresh</source>
-        <translation>刷新(&amp;f)</translation>
+        <translation type="vanished">刷新(&amp;f)</translation>
     </message>
     <message>
         <source>Refresh the list of disk image files</source>
-        <translation>刷新虚拟存储介质列表</translation>
+        <translation type="vanished">刷新虚拟存储介质列表</translation>
     </message>
     <message>
         <source>Name</source>
@@ -8958,23 +11247,23 @@
     </message>
     <message>
         <source>Copy Disk Image File (%1)</source>
-        <translation>复制虚拟磁盘文件 (%1)</translation>
+        <translation type="vanished">复制虚拟磁盘文件 (%1)</translation>
     </message>
     <message>
         <source>Remove Disk Image File (%1)</source>
-        <translation>移除虚拟磁盘文件 (%1)</translation>
+        <translation type="vanished">移除虚拟磁盘文件 (%1)</translation>
     </message>
     <message>
         <source>Release Disk Image File (%1)</source>
-        <translation>释放虚拟磁盘文件 (%1)</translation>
+        <translation type="vanished">释放虚拟磁盘文件 (%1)</translation>
     </message>
     <message>
         <source>Open Disk Image File Properties (%1)</source>
-        <translation>查看虚拟磁盘文件属性 (%1)</translation>
+        <translation type="vanished">查看虚拟磁盘文件属性 (%1)</translation>
     </message>
     <message>
         <source>Refresh Disk Image Files (%1)</source>
-        <translation>刷新虚拟磁盘文件列表 (%1)</translation>
+        <translation type="vanished">刷新虚拟磁盘文件列表 (%1)</translation>
     </message>
     <message>
         <source>Current extension (*.%1)</source>
@@ -8986,15 +11275,43 @@
     </message>
     <message>
         <source>&amp;Move...</source>
-        <translation>移动(&amp;M)...</translation>
+        <translation type="vanished">移动(&amp;M)...</translation>
     </message>
     <message>
         <source>Move Disk Image File (%1)</source>
-        <translation>移动虚拟磁盘文件 (%1)</translation>
+        <translation type="vanished">移动虚拟磁盘文件 (%1)</translation>
     </message>
     <message>
         <source>Move selected disk image file</source>
-        <translation>移动选中的虚拟磁盘文件</translation>
+        <translation type="vanished">移动选中的虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>Resizing medium...</source>
+        <translation>调整介质大小...</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <translation type="obsolete">容量大小:</translation>
+    </message>
+    <message>
+        <source>1.44M</source>
+        <translation type="obsolete">200% {1.44M?}</translation>
+    </message>
+    <message>
+        <source>1.2M</source>
+        <translation type="obsolete">200% {1.2M?}</translation>
+    </message>
+    <message>
+        <source>720K</source>
+        <translation type="obsolete">200% {720K?}</translation>
+    </message>
+    <message>
+        <source>360K</source>
+        <translation type="obsolete">200% {360K?}</translation>
+    </message>
+    <message>
+        <source>&amp;Create</source>
+        <translation type="obsolete">创建(&amp;C)</translation>
     </message>
 </context>
 <context>
@@ -9018,6 +11335,88 @@
     <message>
         <source>Refresh Disk Image Files (%1)</source>
         <translation type="vanished">刷新虚拟存储介质列表 (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>UIMediumSearchWidget</name>
+    <message>
+        <source>Search By Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search By UUID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select the search type</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIMediumSelector</name>
+    <message>
+        <source>&amp;Add...</source>
+        <translation>注册(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Add Disk Image</source>
+        <translation>添加虚拟磁盘</translation>
+    </message>
+    <message>
+        <source>Add existing disk image file</source>
+        <translation>添加现有虚拟磁盘文件</translation>
+    </message>
+    <message>
+        <source>&amp;Create...</source>
+        <translation>创建(&amp;C)...</translation>
+    </message>
+    <message>
+        <source>Create Disk Image</source>
+        <translation>创建虚拟盘</translation>
+    </message>
+    <message>
+        <source>Create new disk image file</source>
+        <translation>创建新虚拟盘</translation>
+    </message>
+    <message>
+        <source>&amp;Refresh</source>
+        <translation>刷新(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Refresh Disk Image Files (%1)</source>
+        <translation>刷新虚拟磁盘文件列表 (%1)</translation>
+    </message>
+    <message>
+        <source>Refresh the list of disk image files</source>
+        <translation>刷新虚拟存储介质列表</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <translation>选择</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名称</translation>
+    </message>
+    <message>
+        <source>Virtual Size</source>
+        <translation>虚拟分配空间</translation>
+    </message>
+    <message>
+        <source>Actual Size</source>
+        <translation>实际分配空间</translation>
+    </message>
+    <message>
+        <source>Medium</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expand All</source>
+        <translation type="unfinished">全部展开</translation>
+    </message>
+    <message>
+        <source>Collapse All</source>
+        <translation type="unfinished">全部折叠</translation>
     </message>
 </context>
 <context>
@@ -9078,7 +11477,7 @@
     </message>
     <message>
         <source>Virtual Screen Mapping</source>
-        <translation>虚拟显示屏映射</translation>
+        <translation type="vanished">虚拟显示屏映射</translation>
     </message>
     <message>
         <source>Close</source>
@@ -9099,6 +11498,14 @@
     <message>
         <source>Popup menu %1</source>
         <translation>弹出菜单 %1</translation>
+    </message>
+    <message>
+        <source>Virtual Screen Remap</source>
+        <translation>虚拟显示屏映射</translation>
+    </message>
+    <message>
+        <source>Virtual Screen Rescale</source>
+        <translation>虚拟显示屏缩放</translation>
     </message>
 </context>
 <context>
@@ -10405,11 +12812,11 @@
     </message>
     <message>
         <source>Failed to enable video capturing for the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
-        <translation>为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 启用录像失败.</translation>
+        <translation type="vanished">为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 启用录像失败.</translation>
     </message>
     <message>
         <source>Failed to disable video capturing for the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
-        <translation>为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 禁用录像失败.</translation>
+        <translation type="vanished">为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 禁用录像失败.</translation>
     </message>
     <message>
         <source>&lt;p&gt;Could not find the &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file.&lt;/p&gt;&lt;p&gt;Do you wish to download this disk image file from the Internet?&lt;/p&gt;</source>
@@ -10799,6 +13206,99 @@
         <source>&lt;p&gt;The changes you requested require this disk to be released from the machines it is attached to.&lt;/p&gt;&lt;p&gt;Are you sure you want to release the disk image file &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;?&lt;/p&gt;&lt;p&gt;This will detach it from the following virtual machine(s): &lt;b&gt;%2&lt;/b&gt;.&lt;/p&gt;</source>
         <translation>&lt;p&gt;此修改需要将磁盘从关联的虚拟电脑中解除关联.&lt;/p&gt;&lt;p&gt;确定要释放磁盘文件 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;?&lt;/p&gt;&lt;p&gt;将与如下虚拟电脑解除关联: &lt;b&gt;%2&lt;/b&gt;.&lt;/p&gt;</translation>
     </message>
+    <message>
+        <source>Unknown option &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>未知选项 &lt;b&gt;%1&lt;/b&gt;.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;%1&lt;/b&gt; is an option for the VirtualBox VM runner (VirtualBoxVM) application, not the VirtualBox Manager.</source>
+        <translation>&lt;b&gt;%1&lt;/b&gt; 是虚拟电脑启动器的选项， 不是虚拟电脑控制台的选项。</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;You must specify a machine to start, using the command line.&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;</source>
+        <comment>There will be a usage text passed as argument.</comment>
+        <translation>&lt;p&gt;需要从命令行指定启动的虚拟电脑。&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;tr&gt;&lt;td&gt;Usage: VirtualBoxVM --startvm &amp;lt;name|UUID&amp;gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Starts the VirtualBox virtual machine with the given name or unique identifier (UUID).&lt;/td&gt;&lt;/tr&gt;</source>
+        <translation>&lt;tr&gt;&lt;td&gt;用法: VirtualBoxVM --startvm &amp;lt;name|UUID&amp;gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;用虚拟电脑的名称或 UUID 启动。&lt;/td&gt;&lt;/tr&gt;</translation>
+    </message>
+    <message>
+        <source>Failed to move the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>移动虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 失败.</translation>
+    </message>
+    <message>
+        <source>Failed to acquire cloud provider manager.</source>
+        <translation>未能获取云服务管理器。</translation>
+    </message>
+    <message>
+        <source>Failed to acquire cloud provider manager parameter.</source>
+        <translation>未能获取云服务管理器参数。</translation>
+    </message>
+    <message>
+        <source>Failed to find cloud provider with following uuid: &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>未能找到如下 uuid 的云服务: &lt;b&gt;%1&lt;/b&gt;.</translation>
+    </message>
+    <message>
+        <source>Failed to acquire cloud provider parameter.</source>
+        <translation>未能获取云服务参数。</translation>
+    </message>
+    <message>
+        <source>Failed to find cloud profile with following name: &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>未能找到云服务配置: &lt;b&gt;%1&lt;/b&gt;.</translation>
+    </message>
+    <message>
+        <source>Failed to create cloud profile.</source>
+        <translation>创建云服务配置失败.</translation>
+    </message>
+    <message>
+        <source>Failed to save cloud profiles.</source>
+        <translation>保存云服务配置失败.</translation>
+    </message>
+    <message>
+        <source>Failed to import cloud profiles.</source>
+        <translation>导入云服务配置失败.</translation>
+    </message>
+    <message>
+        <source>Failed to acquire cloud profile parameter.</source>
+        <translation>未能获取云服务配置参数。</translation>
+    </message>
+    <message>
+        <source>Failed to assign cloud profile parameter.</source>
+        <translation>未能设置云服务配置参数。</translation>
+    </message>
+    <message>
+        <source>Failed to create cloud client.</source>
+        <translation>未能创建云服务客户端。</translation>
+    </message>
+    <message>
+        <source>Failed to acquire cloud client parameter.</source>
+        <translation>未能获取云服务客户端参数。</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to remove the cloud profile &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;?&lt;/nobr&gt;&lt;/p&gt;</source>
+        <translation>&lt;p&gt;确认删除下列云服务配置文件 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;?&lt;/nobr&gt;&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to import cloud profiles from external files?&lt;/p&gt;&lt;p&gt;VirtualBox cloud profiles will be overwritten and their data will be lost.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;确定要导入云服务配置文件吗?&lt;/p&gt;&lt;p&gt;VirtualBox 云服务配置文件将会被覆盖。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <translation>导入</translation>
+    </message>
+    <message>
+        <source>Failed to create the hard disk storage &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt; FAT file systems have 4GB file size limit.</source>
+        <translation>未能创建虚拟硬盘文件 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt; FAT 文件系统单个文件最大 4GB 限制。</translation>
+    </message>
+    <message>
+        <source>Failed to enable recording for the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 启用录像失败.</translation>
+    </message>
+    <message>
+        <source>Failed to disable recording for the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation>为虚拟电脑 &lt;b&gt;%1&lt;/b&gt; 禁用录像失败.</translation>
+    </message>
 </context>
 <context>
     <name>UIMiniProcessWidgetUserManual</name>
@@ -10871,11 +13371,11 @@
     <name>UINameAndSystemEditor</name>
     <message>
         <source>N&amp;ame:</source>
-        <translation>名称(&amp;N):</translation>
+        <translation type="vanished">名称(&amp;N):</translation>
     </message>
     <message>
         <source>Holds the name of the virtual machine.</source>
-        <translation>显示虚拟电脑名称.</translation>
+        <translation type="vanished">显示虚拟电脑名称.</translation>
     </message>
     <message>
         <source>&amp;Type:</source>
@@ -10896,7 +13396,16 @@
     </message>
     <message>
         <source>Holds the location of the virtual machine.</source>
-        <translation>虚拟机的存放位置。</translation>
+        <translation type="vanished">虚拟机的存放位置。</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>名称:</translation>
+    </message>
+    <message>
+        <source>Machine Folder:</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>文件夹:</translation>
     </message>
 </context>
 <context>
@@ -11501,6 +14010,29 @@
     </message>
 </context>
 <context>
+    <name>UIScaleFactorEditor</name>
+    <message>
+        <source>Max</source>
+        <translation>最大</translation>
+    </message>
+    <message>
+        <source>Min</source>
+        <translation>最小</translation>
+    </message>
+    <message>
+        <source>All Monitors</source>
+        <translation>全部监视器</translation>
+    </message>
+    <message>
+        <source>Monitor %1</source>
+        <translation>监视器 %1</translation>
+    </message>
+    <message>
+        <source>Controls the guest screen scale factor.</source>
+        <translation>设置虚拟电脑屏幕缩放率。</translation>
+    </message>
+</context>
+<context>
     <name>UIScreenshotViewer</name>
     <message>
         <source>Screenshot of %1 (%2)</source>
@@ -11519,19 +14051,19 @@
     <name>UISelectorWindow</name>
     <message>
         <source>Show Toolbar</source>
-        <translation>显示工具栏</translation>
+        <translation type="vanished">显示工具栏</translation>
     </message>
     <message>
         <source>Show Statusbar</source>
-        <translation>显示状态栏</translation>
+        <translation type="vanished">显示状态栏</translation>
     </message>
     <message>
         <source>Select a virtual machine file</source>
-        <translation>选择虚拟电脑</translation>
+        <translation type="vanished">选择虚拟电脑</translation>
     </message>
     <message>
         <source>Virtual machine files (%1)</source>
-        <translation>虚拟电脑 (%1)</translation>
+        <translation type="vanished">虚拟电脑 (%1)</translation>
     </message>
     <message>
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of this window is  a list of all virtual machines on your computer. The list is empty now because you haven&apos;t created any virtual machines yet.&lt;img src=:/welcome.png align=right/&gt;&lt;/p&gt;&lt;p&gt;In order to create a new virtual machine, press the &lt;b&gt;New&lt;/b&gt; button in the main tool bar located at the top of the window.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for the latest information and news.&lt;/p&gt;</source>
@@ -11540,7 +14072,7 @@
     <message>
         <source>Manager</source>
         <comment>Note: main window title which is pretended by the product name.</comment>
-        <translation>管理器</translation>
+        <translation type="vanished">管理器</translation>
     </message>
     <message>
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of this window is  a list of all virtual machines on your computer. The list is empty now because you haven&apos;t created any virtual machines yet.&lt;img src=:/welcome.png align=right/&gt;&lt;/p&gt;&lt;p&gt;In order to create a new virtual machine, press the &lt;b&gt;New&lt;/b&gt; button in the main tool bar located at the top of the window.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for the latest information and news.&lt;/p&gt;</source>
@@ -11548,7 +14080,7 @@
     </message>
     <message>
         <source>Show Toolbar Text</source>
-        <translation>显示工具栏文字</translation>
+        <translation type="vanished">显示工具栏文字</translation>
     </message>
 </context>
 <context>
@@ -11806,7 +14338,7 @@
     </message>
 </context>
 <context>
-    <name>UISnapshotPane</name>
+    <name>UISnapshotItem</name>
     <message>
         <source>Current State (changed)</source>
         <comment>Current State (Modified)</comment>
@@ -11860,69 +14392,125 @@
         <comment>Snapshot (date + time)</comment>
         <translation>生成于 %1</translation>
     </message>
+</context>
+<context>
+    <name>UISnapshotPane</name>
+    <message>
+        <source>Current State (changed)</source>
+        <comment>Current State (Modified)</comment>
+        <translation type="vanished">当前状态 (已改变)</translation>
+    </message>
+    <message>
+        <source>Current State</source>
+        <comment>Current State (Unmodified)</comment>
+        <translation type="vanished">当前状态</translation>
+    </message>
+    <message>
+        <source>The current state differs from the state stored in the current snapshot</source>
+        <translation type="vanished">当前状态与最近备份中保存的状态不一致</translation>
+    </message>
+    <message>
+        <source>The current state is identical to the state stored in the current snapshot</source>
+        <translation type="vanished">当前状态与最近备份中保存的状态一致</translation>
+    </message>
+    <message>
+        <source>%1 (%2 ago)</source>
+        <comment>date time (how long ago)</comment>
+        <translation type="vanished">%1 (%2 之前)</translation>
+    </message>
+    <message>
+        <source>%1 since %2</source>
+        <comment>Current State (time or date + time)</comment>
+        <translation type="vanished">%1 自从 %2</translation>
+    </message>
+    <message>
+        <source>current</source>
+        <comment>snapshot</comment>
+        <translation type="vanished">当前</translation>
+    </message>
+    <message>
+        <source>online</source>
+        <comment>snapshot</comment>
+        <translation type="vanished">在线</translation>
+    </message>
+    <message>
+        <source>offline</source>
+        <comment>snapshot</comment>
+        <translation type="vanished">离线</translation>
+    </message>
+    <message>
+        <source>Taken at %1</source>
+        <comment>Snapshot (time)</comment>
+        <translation type="vanished">生成于 %1</translation>
+    </message>
+    <message>
+        <source>Taken on %1</source>
+        <comment>Snapshot (date + time)</comment>
+        <translation type="vanished">生成于 %1</translation>
+    </message>
     <message>
         <source>Contains the snapshot tree of the current virtual machine</source>
         <translation>虚拟电脑备份的树状列表</translation>
     </message>
     <message>
         <source>&amp;Take...</source>
-        <translation>生成(&amp;T)...</translation>
+        <translation type="vanished">生成(&amp;T)...</translation>
     </message>
     <message>
         <source>&amp;Delete</source>
-        <translation>删除备份(&amp;D)</translation>
+        <translation type="vanished">删除备份(&amp;D)</translation>
     </message>
     <message>
         <source>&amp;Restore</source>
-        <translation>恢复备份(&amp;R)</translation>
+        <translation type="vanished">恢复备份(&amp;R)</translation>
     </message>
     <message>
         <source>&amp;Properties...</source>
-        <translation>属性(&amp;P)...</translation>
+        <translation type="vanished">属性(&amp;P)...</translation>
     </message>
     <message>
         <source>&amp;Clone...</source>
-        <translation>复制(&amp;C)...</translation>
+        <translation type="vanished">复制(&amp;C)...</translation>
     </message>
     <message>
         <source>Take Snapshot (%1)</source>
-        <translation>生成备份 (%1)</translation>
+        <translation type="vanished">生成备份 (%1)</translation>
     </message>
     <message>
         <source>Delete Snapshot (%1)</source>
-        <translation>删除备份 (%1)</translation>
+        <translation type="vanished">删除备份 (%1)</translation>
     </message>
     <message>
         <source>Restore Snapshot (%1)</source>
-        <translation>恢复备份 (%1)</translation>
+        <translation type="vanished">恢复备份 (%1)</translation>
     </message>
     <message>
         <source>Open Snapshot Properties (%1)</source>
-        <translation>查看备份的属性 (%1)</translation>
+        <translation type="vanished">查看备份的属性 (%1)</translation>
     </message>
     <message>
         <source>Clone Virtual Machine (%1)</source>
-        <translation>复制虚拟电脑 (%1)</translation>
+        <translation type="vanished">复制虚拟电脑 (%1)</translation>
     </message>
     <message>
         <source>Take a snapshot of the current virtual machine state</source>
-        <translation>为虚拟电脑的当前状态生成一个备份</translation>
+        <translation type="vanished">为虚拟电脑的当前状态生成一个备份</translation>
     </message>
     <message>
         <source>Delete selected snapshot of the virtual machine</source>
-        <translation>删除所选备份</translation>
+        <translation type="vanished">删除所选备份</translation>
     </message>
     <message>
         <source>Restore selected snapshot of the virtual machine</source>
-        <translation>恢复虚拟电脑到所选备份时的状态</translation>
+        <translation type="vanished">恢复虚拟电脑到所选备份时的状态</translation>
     </message>
     <message>
         <source>Open pane with the selected snapshot properties</source>
-        <translation>查看选定备份的属性</translation>
+        <translation type="vanished">查看选定备份的属性</translation>
     </message>
     <message>
         <source>Clone selected virtual machine</source>
-        <translation>复制所选的虚拟电脑</translation>
+        <translation type="vanished">复制所选的虚拟电脑</translation>
     </message>
     <message>
         <source>Name</source>
@@ -12010,38 +14598,76 @@
     </message>
 </context>
 <context>
+    <name>UIToolsModel</name>
+    <message>
+        <source>Welcome</source>
+        <translation>欢迎</translation>
+    </message>
+    <message>
+        <source>Media</source>
+        <translation>介质</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>网络</translation>
+    </message>
+    <message>
+        <source>Cloud</source>
+        <translation>云服务</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>明细</translation>
+    </message>
+    <message>
+        <source>Snapshots</source>
+        <translation>备份[系统快照]</translation>
+    </message>
+    <message>
+        <source>Logs</source>
+        <translation>日志</translation>
+    </message>
+</context>
+<context>
     <name>UIToolsPaneGlobal</name>
     <message>
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;This window represents a set of global tools which are currently opened (or can be opened). They are not related to any particular machine but to the complete VM collection. For a list of currently available tools check the corresponding menu at the right side of the main tool bar located at the top of the window. This list will be extended with new tools in future releases.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;本窗口包括一些全局工具，不是关联到某个虚拟电脑而是虚拟电脑集。从窗口上边工具栏右边相应菜单中查看更多工具。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;本窗口包括一些全局工具，不是关联到某个虚拟电脑而是虚拟电脑集。从窗口上边工具栏右边相应菜单中查看更多工具。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Tool to observe virtual storage media. Reflects all the chains of &lt;u&gt;virtual disks&lt;/u&gt; you have registered (per each storage type) within your virtual machines and allows for media operations like &lt;u&gt;copy&lt;/u&gt;, &lt;u&gt;remove&lt;/u&gt;, &lt;u&gt;release&lt;/u&gt; (detach it from VMs where it is currently attached to) and observe their properties. Allows to &lt;u&gt;edit&lt;/u&gt; medium attributes like &lt;u&gt;type&lt;/u&gt;, &lt;u&gt;location/name&lt;/u&gt;, &lt;u&gt;description&lt;/u&gt; and &lt;u&gt;size&lt;/u&gt; (for dynamical storages only).</source>
-        <translation>查看虚拟存储介质。查看全部&lt;u&gt;虚拟磁盘&lt;/u&gt;，可以&lt;u&gt;复制&lt;/u&gt;, &lt;u&gt;移除&lt;/u&gt;, &lt;u&gt;释放&lt;/u&gt;它们以及查看属性。可以&lt;u&gt;修改&lt;/u&gt; 介质属性如 &lt;u&gt;类型&lt;/u&gt;, &lt;u&gt;存储位置/名称&lt;/u&gt;, &lt;u&gt;描述&lt;/u&gt; 及 &lt;u&gt;大小&lt;/u&gt; (仅限动态存储)。</translation>
+        <translation type="vanished">查看虚拟存储介质。查看全部&lt;u&gt;虚拟磁盘&lt;/u&gt;，可以&lt;u&gt;复制&lt;/u&gt;, &lt;u&gt;移除&lt;/u&gt;, &lt;u&gt;释放&lt;/u&gt;它们以及查看属性。可以&lt;u&gt;修改&lt;/u&gt; 介质属性如 &lt;u&gt;类型&lt;/u&gt;, &lt;u&gt;存储位置/名称&lt;/u&gt;, &lt;u&gt;描述&lt;/u&gt; 及 &lt;u&gt;大小&lt;/u&gt; (仅限动态存储)。</translation>
     </message>
     <message>
         <source>Tool to control host-only network interfaces. Reflects &lt;u&gt;host-only networks&lt;/u&gt;, their DHCP servers and allows for operations on the networks like possibility to &lt;u&gt;create&lt;/u&gt;, &lt;u&gt;remove&lt;/u&gt; and observe their properties. Allows to &lt;u&gt;edit&lt;/u&gt; various &lt;u&gt;attributes&lt;/u&gt; for host-only interface and corresponding DHCP server.</source>
-        <translation>控制仅主机(Host-Only)网络。查看&lt;u&gt;仅主机(Host-Only)网络&lt;/u&gt;及其 DHCP 服务器，允许查看、&lt;u&gt;创建&lt;/u&gt;、&lt;u&gt;移除&lt;/u&gt;及&lt;u&gt;编辑&lt;/u&gt;其属性。</translation>
+        <translation type="vanished">控制仅主机(Host-Only)网络。查看&lt;u&gt;仅主机(Host-Only)网络&lt;/u&gt;及其 DHCP 服务器，允许查看、&lt;u&gt;创建&lt;/u&gt;、&lt;u&gt;移除&lt;/u&gt;及&lt;u&gt;编辑&lt;/u&gt;其属性。</translation>
     </message>
 </context>
 <context>
     <name>UIToolsPaneMachine</name>
     <message>
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of this window lists all virtual machines and virtual machine groups on your computer. The list is empty now because you haven&apos;t created any virtual machines yet.&lt;/p&gt;&lt;p&gt;In order to create a new virtual machine, press the &lt;b&gt;New&lt;/b&gt; button in the main tool bar located at the top of the window.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;窗口的左边用来显示已生成的虚拟电脑. 现在是空的，因为你还没有新建任何虚拟电脑.&lt;img src=:/welcome.png align=right/&gt;&lt;/p&gt;&lt;p&gt;要新建一个虚拟电脑, 请按位于窗口顶部工具栏上的 &lt;b&gt;新建&lt;/b&gt; 按钮。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;窗口的左边用来显示已生成的虚拟电脑. 现在是空的，因为你还没有新建任何虚拟电脑.&lt;img src=:/welcome.png align=right/&gt;&lt;/p&gt;&lt;p&gt;要新建一个虚拟电脑, 请按位于窗口顶部工具栏上的 &lt;b&gt;新建&lt;/b&gt; 按钮。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of this window lists all virtual machines and virtual machine groups on your computer.&lt;/p&gt;&lt;p&gt;The right part of this window represents a set of tools which are currently opened (or can be opened) for the currently chosen machine. For a list of currently available tools check the corresponding menu at the right side of the main tool bar located at the top of the window. This list will be extended with new tools in future releases.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;窗口的左边用来显示已生成的虚拟电脑及编组。&lt;/p&gt;&lt;p&gt;窗口右边显示当前选中的虚拟电脑的可用工具集。 从窗口上边工具栏右边相应菜单中查看更多工具。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;窗口的左边用来显示已生成的虚拟电脑及编组。&lt;/p&gt;&lt;p&gt;窗口右边显示当前选中的虚拟电脑的可用工具集。 从窗口上边工具栏右边相应菜单中查看更多工具。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Tool to observe virtual machine (VM) details. Reflects groups of &lt;u&gt;properties&lt;/u&gt; for the currently chosen VM and allows basic operations on certain properties (like the machine storage devices).</source>
-        <translation>查看虚拟电脑明细。当前选中的虚拟电脑的&lt;u&gt;属性&lt;/u&gt;。</translation>
+        <translation type="vanished">查看虚拟电脑明细。当前选中的虚拟电脑的&lt;u&gt;属性&lt;/u&gt;。</translation>
     </message>
     <message>
         <source>Tool to control virtual machine (VM) snapshots. Reflects &lt;u&gt;snapshots&lt;/u&gt; created for the currently selected VM and allows snapshot operations like &lt;u&gt;create&lt;/u&gt;, &lt;u&gt;remove&lt;/u&gt;, &lt;u&gt;restore&lt;/u&gt; (make current) and observe their properties. Allows to &lt;u&gt;edit&lt;/u&gt; snapshot attributes like &lt;u&gt;name&lt;/u&gt; and &lt;u&gt;description&lt;/u&gt;.</source>
         <translatorcomment>todo</translatorcomment>
-        <translation>查看虚拟电脑备份明细。可&lt;u&gt;编辑&lt;/u&gt; 备份的属性如 &lt;u&gt;名称&lt;/u&gt; 和 &lt;u&gt;描述&lt;/u&gt;。</translation>
+        <translation type="vanished">查看虚拟电脑备份明细。可&lt;u&gt;编辑&lt;/u&gt; 备份的属性如 &lt;u&gt;名称&lt;/u&gt; 和 &lt;u&gt;描述&lt;/u&gt;。</translation>
+    </message>
+</context>
+<context>
+    <name>UIToolsView</name>
+    <message>
+        <source>Contains a list of VirtualBox tools</source>
+        <translation>虚拟电脑工具</translation>
     </message>
 </context>
 <context>
@@ -12055,6 +14681,46 @@
         <source>%1</source>
         <comment>col.1 text</comment>
         <translation>%1</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;厂家标识: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;产品标识: %2&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;修订版本: %3&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;产品: %4&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;制造商: %5&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;序号.: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;端口: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation>&lt;nobr&gt;状态: %1&lt;/nobr&gt;</translation>
     </message>
 </context>
 <context>
@@ -12327,79 +14993,253 @@
     <name>UIVMLogViewer</name>
     <message>
         <source>Close the search panel</source>
-        <translation>关闭搜索面板</translation>
+        <translation type="vanished">关闭搜索面板</translation>
     </message>
     <message>
         <source>&amp;Find</source>
-        <translation>查找(&amp;F)</translation>
+        <translation type="vanished">查找(&amp;F)</translation>
     </message>
     <message>
         <source>Enter a search string here</source>
-        <translation>输入搜索字符串</translation>
+        <translation type="vanished">输入搜索字符串</translation>
     </message>
     <message>
         <source>&amp;Previous</source>
-        <translation>向前(&amp;P)</translation>
+        <translation type="vanished">向前(&amp;P)</translation>
     </message>
     <message>
         <source>Search for the previous occurrence of the string</source>
-        <translation>向前搜索该字符串</translation>
+        <translation type="vanished">向前搜索该字符串</translation>
     </message>
     <message>
         <source>&amp;Next</source>
-        <translation>下一步(&amp;N)</translation>
+        <translation type="vanished">下一步(&amp;N)</translation>
     </message>
     <message>
         <source>Search for the next occurrence of the string</source>
-        <translation>向后搜索该字符串</translation>
+        <translation type="vanished">向后搜索该字符串</translation>
     </message>
     <message>
         <source>C&amp;ase Sensitive</source>
-        <translation>区分大小写(&amp;A)</translation>
+        <translation type="vanished">区分大小写(&amp;A)</translation>
     </message>
     <message>
         <source>Perform case sensitive search (when checked)</source>
-        <translation>区分大小写进行搜索(选中时)</translation>
+        <translation type="vanished">区分大小写进行搜索(选中时)</translation>
     </message>
     <message>
         <source>String not found</source>
-        <translation>字符串未找到</translation>
+        <translation type="vanished">字符串未找到</translation>
     </message>
     <message>
         <source>&lt;p&gt;No log files found. Press the &lt;b&gt;Refresh&lt;/b&gt; button to rescan the log folder &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;没发现任何日志文件. 按 &lt;b&gt;刷新&lt;/b&gt; 键重新搜索日志文件夹 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;没发现任何日志文件. 按 &lt;b&gt;刷新&lt;/b&gt; 键重新搜索日志文件夹 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Save VirtualBox Log As</source>
-        <translation>保存虚拟电脑控制台日志为</translation>
+        <translation type="vanished">保存虚拟电脑控制台日志为</translation>
     </message>
     <message>
         <source>%1 - VirtualBox Log Viewer</source>
-        <translation>%1 -虚拟电脑控制台日志查看器</translation>
+        <translation type="vanished">%1 -虚拟电脑控制台日志查看器</translation>
     </message>
     <message>
         <source>&amp;Refresh</source>
-        <translation>刷新(&amp;R)</translation>
+        <translation type="vanished">刷新(&amp;R)</translation>
     </message>
     <message>
         <source>&amp;Save</source>
-        <translation>保存(&amp;S)</translation>
+        <translation type="vanished">保存(&amp;S)</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation type="vanished">关闭</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation type="vanished">筛选器</translation>
+    </message>
+    <message>
+        <source>Enter filtering string here</source>
+        <translation type="vanished">输入搜索字符串</translation>
+    </message>
+    <message>
+        <source>Fil&amp;ter</source>
+        <translation type="vanished">筛选(&amp;T)</translation>
+    </message>
+</context>
+<context>
+    <name>UIVMLogViewerDialog</name>
+    <message>
+        <source>%1 - Log Viewer</source>
+        <translation>%1 - 日志查看器</translation>
+    </message>
+</context>
+<context>
+    <name>UIVMLogViewerWidget</name>
+    <message>
+        <source>Delete the current bookmark</source>
+        <translation>删除当前书签</translation>
+    </message>
+    <message>
+        <source>Delete all bookmarks</source>
+        <translation>删除全部书签</translation>
+    </message>
+    <message>
+        <source>Goto the next bookmark</source>
+        <translation type="vanished">转到下一个书签</translation>
+    </message>
+    <message>
+        <source>Goto the previous bookmark</source>
+        <translation type="vanished">转到上一个书签</translation>
+    </message>
+    <message>
+        <source>Goto selected bookmark</source>
+        <translation type="vanished">转到选定书签</translation>
+    </message>
+    <message>
+        <source>Log Viewer</source>
+        <translation>日志查看器</translation>
     </message>
     <message>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <source>Filter</source>
-        <translation>筛选器</translation>
+        <source>Select or enter a term which will be used in filtering the log text</source>
+        <translation>选择或输入日志搜索关键词</translation>
     </message>
     <message>
-        <source>Enter filtering string here</source>
+        <source>Add the filter term to the set of filter terms</source>
+        <translation>添加为搜索关键词</translation>
+    </message>
+    <message>
+        <source>Showing %1/%2</source>
+        <translation>显示 %2 中的 %1</translation>
+    </message>
+    <message>
+        <source>The filter terms list, select one to remove or click the button on the right side to remove them all</source>
+        <translation>关键词列表，选择一个删除或点击右边按钮全部删除</translation>
+    </message>
+    <message>
+        <source>The type of boolean operator for filter operation</source>
+        <translation>多重搜索类型</translation>
+    </message>
+    <message>
+        <source>Show Line Numbers</source>
+        <translation>显示行号</translation>
+    </message>
+    <message>
+        <source>When checked, show line numbers</source>
+        <translation>选中，显示行号</translation>
+    </message>
+    <message>
+        <source>Wrap Lines</source>
+        <translation>长行自动换行</translation>
+    </message>
+    <message>
+        <source>When checked, wrap lines</source>
+        <translation>选中，长行自动换行</translation>
+    </message>
+    <message>
+        <source>Font Size</source>
+        <translation>字号</translation>
+    </message>
+    <message>
+        <source>Log viewer font size</source>
+        <translation>日志查看器的字号</translation>
+    </message>
+    <message>
+        <source>Open a font dialog to select font face for the logviewer</source>
+        <translation>打开字体对话框选择字体</translation>
+    </message>
+    <message>
+        <source>Reset options to application defaults</source>
+        <translation>重置为默认值</translation>
+    </message>
+    <message>
+        <source>Close the pane</source>
+        <translation type="vanished">关闭面板</translation>
+    </message>
+    <message>
+        <source>Enter a search string here</source>
         <translation>输入搜索字符串</translation>
     </message>
     <message>
-        <source>Fil&amp;ter</source>
-        <translation>筛选(&amp;T)</translation>
+        <source>Search for the next occurrence of the string (F3)</source>
+        <translation>向后搜索该字符串 (F3)</translation>
+    </message>
+    <message>
+        <source>Search for the previous occurrence of the string (Shift+F3)</source>
+        <translation>向前搜索该字符串 (F3)</translation>
+    </message>
+    <message>
+        <source>C&amp;ase Sensitive</source>
+        <translation>区分大小写(&amp;A)</translation>
+    </message>
+    <message>
+        <source>When checked, perform case sensitive search</source>
+        <translation>选中时，区分大小写进行搜索</translation>
+    </message>
+    <message>
+        <source>Ma&amp;tch Whole Word</source>
+        <translation>全词匹配(&amp;T)</translation>
+    </message>
+    <message>
+        <source>When checked, search matches only complete words</source>
+        <translation>选中时，搜索匹配整个单词</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight All</source>
+        <translation>全部高亮显示(&amp;H)</translation>
+    </message>
+    <message>
+        <source>When checked, all occurence of the search text are highlighted</source>
+        <translation>选中时，所有匹配结果都高亮显示</translation>
+    </message>
+    <message>
+        <source>String not found</source>
+        <translation type="vanished">字符串未找到</translation>
+    </message>
+    <message>
+        <source>%1 Matches Found</source>
+        <translation type="vanished">找到 %1 个</translation>
+    </message>
+    <message>
+        <source>Filtered</source>
+        <translation>已过滤</translation>
+    </message>
+    <message>
+        <source>Bookmark</source>
+        <translation>书签</translation>
+    </message>
+    <message>
+        <source>Save VirtualBox Log As</source>
+        <translation>保存虚拟电脑控制台日志为</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;&lt;b&gt;No machine&lt;/b&gt; is currently selected or the selected machine is not valid. Please select a Virtual Machine to see its logs</source>
+        <translation>&lt;p&gt;&lt;b&gt;未选择虚拟电脑&lt;/b&gt; 或选择的虚拟电脑不可用。 请选择虚拟电脑查看日志</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;No log files found. Press the &lt;b&gt;Refresh&lt;/b&gt; button to rescan the log folder &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;没发现任何日志文件. 按 &lt;b&gt;刷新&lt;/b&gt; 键重新搜索日志文件夹 &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Go to the next bookmark</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to the previous bookmark</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to selected bookmark</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Matches Found</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -12431,6 +15271,179 @@
     <message>
         <source>No Preview</source>
         <translation type="obsolete">无预览</translation>
+    </message>
+</context>
+<context>
+    <name>UIVirtualBoxManager</name>
+    <message>
+        <source>Manager</source>
+        <comment>Note: main window title which is prepended by the product name.</comment>
+        <translation>管理器</translation>
+    </message>
+    <message>
+        <source>Select a virtual machine file</source>
+        <translation>选择虚拟电脑</translation>
+    </message>
+    <message>
+        <source>Virtual machine files (%1)</source>
+        <translation>虚拟电脑 (%1)</translation>
+    </message>
+    <message>
+        <source>Select a destination folder to move the selected virtual machine</source>
+        <translation>选择目的文件夹移动选中虚拟电脑</translation>
+    </message>
+    <message>
+        <source>Show Toolbar Text</source>
+        <translation>显示工具栏文字</translation>
+    </message>
+</context>
+<context>
+    <name>UIVirtualBoxManagerWidget</name>
+    <message>
+        <source>Show Toolbar Text</source>
+        <translation type="obsolete">显示工具栏文字</translation>
+    </message>
+</context>
+<context>
+    <name>UIVisoCreator</name>
+    <message>
+        <source>VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove selected file objects from VISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation type="unfinished">大小</translation>
+    </message>
+    <message>
+        <source>Change Time</source>
+        <translation type="unfinished">修改时间</translation>
+    </message>
+    <message>
+        <source>Owner</source>
+        <translation type="unfinished">所有者</translation>
+    </message>
+    <message>
+        <source>Permissions</source>
+        <translation type="unfinished">权限</translation>
+    </message>
+    <message>
+        <source>Local Path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ISO Path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Options...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Hidden Objects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host file system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create a new directory under the current location</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset ISO content.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename the selected object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Configuration...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Configuration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manage VISO Configuration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dialog Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manage Dialog Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Name:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add selected file objects to ISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom VISO options:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close the pane</source>
+        <translation type="unfinished">关闭面板</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Creator</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host Browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove current option.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation type="unfinished">添加</translation>
+    </message>
+</context>
+<context>
+    <name>UIWelcomePane</name>
+    <message>
+        <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of application window contains global tools and lists all virtual machines and virtual machine groups on your computer. You can import, add and create new VMs using corresponding toolbar buttons. You can popup a tools of currently selected element using corresponding element button.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;欢迎使用虚拟电脑控制台!&lt;/h3&gt;&lt;p&gt;窗口的左边用来显示已生成的虚拟电脑和编组。 可以用这些工具新建任何虚拟电脑。&lt;/p&gt;&lt;p&gt;你可以按  &lt;b&gt;%1&lt;/b&gt; 键来查看帮助，或访问 &lt;a href=http://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; 查看最新信息和新闻.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -12723,20 +15736,20 @@
     </message>
     <message>
         <source>New machine name</source>
-        <translation>新虚拟电脑名称</translation>
+        <translation type="vanished">新虚拟电脑名称</translation>
     </message>
     <message>
         <source>&lt;p&gt;Please choose a name for the new virtual machine. The new machine will be a clone of the machine &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
         <translatorcomment>TODO</translatorcomment>
-        <translation>&lt;p&gt;请为新虚拟电脑选择一个名称。 新虚拟电脑将是虚拟电脑 &lt;b&gt;%1&lt;/b&gt;的副本。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;请为新虚拟电脑选择一个名称。 新虚拟电脑将是虚拟电脑 &lt;b&gt;%1&lt;/b&gt;的副本。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>When checked a new unique MAC address will be assigned to all configured network cards.</source>
-        <translation>选中时，将把新的唯一的 MAC 地址分配给所有已配置的网卡。</translation>
+        <translation type="vanished">选中时，将把新的唯一的 MAC 地址分配给所有已配置的网卡。</translation>
     </message>
     <message>
         <source>&amp;Reinitialize the MAC address of all network cards</source>
-        <translation>重新初始化所有网卡的 MAC 地址(&amp;R)</translation>
+        <translation type="vanished">重新初始化所有网卡的 MAC 地址(&amp;R)</translation>
     </message>
     <message>
         <source>Clone type</source>
@@ -12793,7 +15806,7 @@
     </message>
     <message>
         <source>New machine &amp;name</source>
-        <translation>新虚拟电脑名称(&amp;N)</translation>
+        <translation type="vanished">新虚拟电脑名称(&amp;N)</translation>
     </message>
     <message>
         <source>&amp;Full Clone</source>
@@ -12806,6 +15819,78 @@
     <message>
         <source>&lt;p&gt;Please choose the type of clone you wish to create.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Full clone&lt;/b&gt;, an exact copy (including all virtual hard disk files) of the original virtual machine will be created.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Linked clone&lt;/b&gt;, a new machine will be created, but the virtual hard disk files will be tied to the virtual hard disk files of original machine and you will not be able to move the new virtual machine to a different computer without moving the original as well.&lt;/p&gt;</source>
         <translation>&lt;p&gt;请选择创建副本的方式。&lt;/p&gt;&lt;p&gt;若选择 &lt;b&gt;完全复制&lt;/b&gt;， 则生成一个与原虚拟电脑完整的副本(复制全部虚拟硬盘文件)。&lt;/p&gt;&lt;p&gt;若选择 &lt;b&gt;链接复制&lt;/b&gt;，则生成一个新虚拟电脑，不过新虚拟电脑的虚拟硬盘是绑定到原虚拟电脑的虚拟硬盘的，因此这种副本要移动到别的电脑上的时候，需要将原虚拟电脑一并移动。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose a name and optionally a folder for the new virtual machine. The new machine will be a clone of the machine &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;请设置名称， 另外可根据需要选择文件夹。 新虚拟电脑将复制 &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Name:</source>
+        <translation>名称:</translation>
+    </message>
+    <message>
+        <source>Path:</source>
+        <translation>路径:</translation>
+    </message>
+    <message>
+        <source>MAC Address &amp;Policy:</source>
+        <translation>MAC 地址设定(&amp;P):</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses</source>
+        <translation>包含所有网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses</source>
+        <translation>仅包含 NAT 网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Generate new MAC addresses for all network adapters</source>
+        <translation>为所有网卡重新生成 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses during cloning.</source>
+        <translation>复制虚拟机时仅包含 NAT 网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Generate new MAC addresses for all network adapters during cloning.</source>
+        <translation>复制虚拟机时为所有网卡重新生成 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Additional Options:</source>
+        <translation>其它选项:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t change the disk names during cloning.</source>
+        <translation>复制时不改变硬盘名称。</translation>
+    </message>
+    <message>
+        <source>Keep &amp;Disk Names</source>
+        <translation>保留磁盘名称(&amp;D)</translation>
+    </message>
+    <message>
+        <source>Don&apos;t change hardware UUIDs during cloning.</source>
+        <translation>复制时不改变硬盘的 UUID。</translation>
+    </message>
+    <message>
+        <source>Keep &amp;Hardware UUIDs</source>
+        <translation>保留硬件的 UUID(&amp;H)</translation>
+    </message>
+    <message>
+        <source>New machine &amp;name and path</source>
+        <translation>新虚拟电脑名称和保存路径(&amp;N)</translation>
+    </message>
+    <message>
+        <source>New machine name and path</source>
+        <translation>新虚拟电脑名称和保存路径</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses during cloning.</source>
+        <translation>复制虚拟机时包含所有网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Additional options</source>
+        <translation>其它选项</translation>
     </message>
 </context>
 <context>
@@ -12848,23 +15933,23 @@
     </message>
     <message>
         <source>Please choose where to create the virtual appliance. You can create it on your own computer, on the Sun Cloud service or on an S3 storage server.</source>
-        <translation>选择导出到哪里。你可选择你的电脑、云服务或某个S3存储服务器。</translation>
+        <translation type="vanished">选择导出到哪里。你可选择你的电脑、云服务或某个S3存储服务器。</translation>
     </message>
     <message>
         <source>Create on</source>
-        <translation>创建于</translation>
+        <translation type="vanished">创建于</translation>
     </message>
     <message>
         <source>&amp;This computer</source>
-        <translation>本机(&amp;T)</translation>
+        <translation type="vanished">本机(&amp;T)</translation>
     </message>
     <message>
         <source>Sun &amp;Cloud</source>
-        <translation>Sun 云服务(&amp;C)</translation>
+        <translation type="vanished">Sun 云服务(&amp;C)</translation>
     </message>
     <message>
         <source>&amp;Simple Storage System (S3)</source>
-        <translation>(S3)简单存储系统(&amp;S)</translation>
+        <translation type="vanished">(S3)简单存储系统(&amp;S)</translation>
     </message>
     <message>
         <source>Appliance</source>
@@ -12872,19 +15957,19 @@
     </message>
     <message>
         <source>&amp;Username:</source>
-        <translation>用户名(&amp;U):</translation>
+        <translation type="vanished">用户名(&amp;U):</translation>
     </message>
     <message>
         <source>&amp;Password:</source>
-        <translation>密码(&amp;P):</translation>
+        <translation type="vanished">密码(&amp;P):</translation>
     </message>
     <message>
         <source>&amp;Hostname:</source>
-        <translation>主机名(&amp;H):</translation>
+        <translation type="vanished">主机名(&amp;H):</translation>
     </message>
     <message>
         <source>&amp;Bucket:</source>
-        <translation>存储桶(&amp;B):</translation>
+        <translation type="vanished">存储桶(&amp;B):</translation>
     </message>
     <message>
         <source>&amp;File:</source>
@@ -12917,7 +16002,7 @@
     </message>
     <message>
         <source>Write &amp;Manifest file</source>
-        <translation>写入 Manifest 文件(&amp;M)</translation>
+        <translation type="vanished">写入 Manifest 文件(&amp;M)</translation>
     </message>
     <message>
         <source>This is the descriptive information which will be added to the virtual appliance.  You can change it by double clicking on individual lines.</source>
@@ -12929,19 +16014,19 @@
     </message>
     <message>
         <source>Appliance &amp;settings</source>
-        <translation>虚拟电脑导出设置(&amp;S)</translation>
+        <translation type="vanished">虚拟电脑导出设置(&amp;S)</translation>
     </message>
     <message>
         <source>&amp;Destination</source>
-        <translation>位置(&amp;D)</translation>
+        <translation type="vanished">位置(&amp;D)</translation>
     </message>
     <message>
         <source>&amp;Local Filesystem </source>
-        <translation>本地文件系统(&amp;L)</translation>
+        <translation type="vanished">本地文件系统(&amp;L)</translation>
     </message>
     <message>
         <source>Storage settings</source>
-        <translation>存储设置</translation>
+        <translation type="vanished">存储设置</translation>
     </message>
     <message>
         <source>Please choose a file to export the virtual appliance to</source>
@@ -12973,11 +16058,11 @@
     </message>
     <message>
         <source>&amp;Storage settings</source>
-        <translation>存储设置(&amp;S)</translation>
+        <translation type="vanished">存储设置(&amp;S)</translation>
     </message>
     <message>
         <source>Oracle Public Cloud Format Archive (%1)</source>
-        <translation>Oracle公共云格式包 (%1)</translation>
+        <translation type="vanished">Oracle公共云格式包 (%1)</translation>
     </message>
     <message>
         <source>Open Virtualization Format 0.9</source>
@@ -12993,7 +16078,7 @@
     </message>
     <message>
         <source>Oracle Public Cloud Format 1.0</source>
-        <translation>Oracle公共云格式 1.0</translation>
+        <translation type="vanished">Oracle公共云格式 1.0</translation>
     </message>
     <message>
         <source>Write in new OVF 2.0 format.</source>
@@ -13001,7 +16086,87 @@
     </message>
     <message>
         <source>Write in Oracle Public Cloud 1.0 format.</source>
-        <translation>用Oracle公共云格式 1.0格式写入。</translation>
+        <translation type="vanished">用Oracle公共云格式 1.0格式写入。</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose a format to export the virtual appliance to.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Open Virtualization Format&lt;/b&gt; supports only &lt;b&gt;ovf&lt;/b&gt; or &lt;b&gt;ova&lt;/b&gt; extensions. If you use the &lt;b&gt;ovf&lt;/b&gt; extension, several files will be written separately. If you use the &lt;b&gt;ova&lt;/b&gt; extension, all the files will be combined into one Open Virtualization Format archive.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Oracle Cloud Infrastructure&lt;/b&gt; format supports exporting to remote cloud servers only. Main virtual disk of each selected machine will be uploaded to remote server.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;请选择导出格式。&lt;/p&gt;&lt;p&gt; &lt;b&gt;开放式虚拟化格式&lt;/b&gt; 仅支持 &lt;b&gt;ovf&lt;/b&gt; 或 &lt;b&gt;ova&lt;/b&gt; 扩展名。 &lt;br&gt;若采用 &lt;b&gt;ovf&lt;/b&gt; 格式, 将分别存成多个独立文件。&lt;br&gt;若采用 &lt;b&gt;ova&lt;/b&gt; 格式, 这些文件将合并成一个开放式虚拟化格式包。&lt;/p&gt;&lt;p&gt; &lt;b&gt;Oracle 公共云格式&lt;/b&gt; 仅支持 &lt;b&gt;tar.gz&lt;/b&gt; 扩展名。&lt;br&gt;选中的虚拟机的主虚拟磁盘文件将保存到服务器上。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Choose a file to export the virtual appliance to...</source>
+        <translation>选择一个文件...</translation>
+    </message>
+    <message>
+        <source>Export to cloud service provider.</source>
+        <translation>导出到云服务上.</translation>
+    </message>
+    <message>
+        <source>MAC Address &amp;Policy:</source>
+        <translation>MAC 地址设定(&amp;P):</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses</source>
+        <translation>包含所有网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses</source>
+        <translation>仅包含 NAT 网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Strip all network adapter MAC addresses</source>
+        <translation>清除所有网卡的 MAC 地址</translation>
+    </message>
+    <message>
+        <source>Include all network adapter MAC addresses in exported appliance archive.</source>
+        <translation>导出虚拟机时包含所有网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Include only NAT network adapter MAC addresses in exported appliance archive.</source>
+        <translation>导出虚拟机时仅包含 NAT 网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Strip all network adapter MAC addresses from exported appliance archive.</source>
+        <translation>导出虚拟机时清除所有网卡的 MAC 地址。</translation>
+    </message>
+    <message>
+        <source>Additionally:</source>
+        <translation>其它选项:</translation>
+    </message>
+    <message>
+        <source>&amp;Write Manifest file</source>
+        <translation>写入 Manifest 文件(&amp;W)</translation>
+    </message>
+    <message>
+        <source>Include ISO image files in exported VM archive.</source>
+        <translation>在导出的虚拟机文件包中加入 ISO 映像文件.</translation>
+    </message>
+    <message>
+        <source>&amp;Include ISO image files</source>
+        <translation>加入 ISO 映像文件(&amp;I)</translation>
+    </message>
+    <message>
+        <source>&amp;Account:</source>
+        <translation>账户(&amp;A):</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose a filename to export the virtual appliance to. Besides that you can specify a certain amount of options which affects the size and content of resulting archive.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;请选择导出文件名。 另外可对导出文件大小和内容做一些设置。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Virtual system settings</source>
+        <translation>虚拟系统设置</translation>
+    </message>
+    <message>
+        <source>Virtual &amp;system settings</source>
+        <translation>虚拟系统设置(&amp;S)</translation>
+    </message>
+    <message>
+        <source>Include ISO image files into exported VM archive.</source>
+        <translation>在导出的虚拟机文件包中加入 ISO 映像文件.</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose one of cloud service accounts you have registered to export virtual machines to. Make sure profile settings reflected in the underlying table are valid. They will be used to establish network connection required to upload your virtual machine files to a remote cloud facility.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;请选择导出虚拟电脑对应的云服务账号。 请确认下表中的配置有效。 这些配置用于建立网络连接并上传虚拟电脑到服务器上。&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -13012,26 +16177,26 @@
     </message>
     <message>
         <source>Please complete the additional fields like the username, password and the bucket, and provide a filename for the OVF target.</source>
-        <translation>请填写额外的字段如用户名，密码和存储桶，并为要导出的虚拟电脑指定一个文件名。</translation>
+        <translation type="vanished">请填写额外的字段如用户名，密码和存储桶，并为要导出的虚拟电脑指定一个文件名。</translation>
     </message>
     <message>
         <source>Please complete the additional fields like the username, password, hostname and the bucket, and provide a filename for the OVF target.</source>
-        <translation>请填写额外的字段如用户名，密码，主机名和存储桶，并为要导出的虚拟电脑指定一个文件名。</translation>
+        <translation type="vanished">请填写额外的字段如用户名，密码，主机名和存储桶，并为要导出的虚拟电脑指定一个文件名。</translation>
     </message>
     <message>
         <source>Choose a file to export the virtual appliance to...</source>
-        <translation>选择一个文件...</translation>
+        <translation type="vanished">选择一个文件...</translation>
     </message>
     <message>
         <source>&lt;p&gt;Please choose a filename to export the virtual appliance to.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Open Virtualization Format&lt;/b&gt; supports only &lt;b&gt;ovf&lt;/b&gt; or &lt;b&gt;ova&lt;/b&gt; extensions. &lt;br&gt;If you use the &lt;b&gt;ovf&lt;/b&gt; extension, several files will be written separately.&lt;br&gt;If you use the &lt;b&gt;ova&lt;/b&gt; extension, all the files will be combined into one Open Virtualization Format archive.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Oracle Public Cloud Format&lt;/b&gt; supports only the &lt;b&gt;tar.gz&lt;/b&gt; extension.&lt;br&gt;Each virtual disk file will be written separately.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;请选择导出的文件名。&lt;/p&gt;&lt;p&gt; &lt;b&gt;开放式虚拟化格式&lt;/b&gt; 仅支持 &lt;b&gt;ovf&lt;/b&gt; 或 &lt;b&gt;ova&lt;/b&gt; 扩展名。 &lt;br&gt;若采用 &lt;b&gt;ovf&lt;/b&gt; 格式, 将分别存成多个独立文件。&lt;br&gt;若采用 &lt;b&gt;ova&lt;/b&gt; 格式, 这些文件将合并成一个开放式虚拟化格式包。&lt;/p&gt;&lt;p&gt; &lt;b&gt;Oracle 公共云格式&lt;/b&gt; 仅支持 &lt;b&gt;tar.gz&lt;/b&gt; 扩展名。&lt;br&gt;每个虚拟磁盘文件分别保存。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;请选择导出的文件名。&lt;/p&gt;&lt;p&gt; &lt;b&gt;开放式虚拟化格式&lt;/b&gt; 仅支持 &lt;b&gt;ovf&lt;/b&gt; 或 &lt;b&gt;ova&lt;/b&gt; 扩展名。 &lt;br&gt;若采用 &lt;b&gt;ovf&lt;/b&gt; 格式, 将分别存成多个独立文件。&lt;br&gt;若采用 &lt;b&gt;ova&lt;/b&gt; 格式, 这些文件将合并成一个开放式虚拟化格式包。&lt;/p&gt;&lt;p&gt; &lt;b&gt;Oracle 公共云格式&lt;/b&gt; 仅支持 &lt;b&gt;tar.gz&lt;/b&gt; 扩展名。&lt;br&gt;每个虚拟磁盘文件分别保存。&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
     <name>UIWizardExportAppPageExpert</name>
     <message>
         <source>Choose a file to export the virtual appliance to...</source>
-        <translation>选择一个文件...</translation>
+        <translation type="vanished">选择一个文件...</translation>
     </message>
 </context>
 <context>
@@ -13138,6 +16303,10 @@
     <message>
         <source>Unverified self signed signature by %1!</source>
         <translation>未验证的自签署签名 %1!</translation>
+    </message>
+    <message>
+        <source>You can modify the base folder which will host all the virtual machines. Home folders can also be individually (per virtual machine) modified.</source>
+        <translation>可修改主文件夹，用来保存虚拟机文件。 每个虚拟机的主文件夹可以单独设定。</translation>
     </message>
 </context>
 <context>
@@ -13309,7 +16478,7 @@
     </message>
     <message>
         <source>Please choose a descriptive name for the new virtual machine and select the type of operating system you intend to install on it. The name you choose will be used throughout VirtualBox to identify this machine.</source>
-        <translation>请选择新虚拟电脑的描述名称及要安装的操作系统类型。此名称将用于标识此虚拟电脑。</translation>
+        <translation type="vanished">请选择新虚拟电脑的描述名称及要安装的操作系统类型。此名称将用于标识此虚拟电脑。</translation>
     </message>
     <message>
         <source>Memory size</source>
@@ -13390,6 +16559,10 @@
     <message>
         <source>&lt;p&gt;&lt;nobr&gt;You are about to create the virtual machine in the following folder:&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;&lt;/p&gt;</source>
         <translation type="vanished">&lt;p&gt;&lt;nobr&gt;拟创建的虚拟机位于:&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Please choose a descriptive name and destination folder for the new virtual machine and select the type of operating system you intend to install on it. The name you choose will be used throughout VirtualBox to identify this machine.</source>
+        <translation>请选择新虚拟电脑的描述名称及要安装的操作系统类型。此名称将用于标识此虚拟电脑。</translation>
     </message>
 </context>
 <context>
@@ -13869,7 +17042,7 @@
     <message>
         <source>VT-x/AMD-V</source>
         <comment>details report</comment>
-        <translation>VT-x/AMD-V</translation>
+        <translation type="vanished">VT-x/AMD-V</translation>
     </message>
     <message>
         <source>PAE/NX</source>
@@ -14171,7 +17344,7 @@
     <message>
         <source>Processor(s)</source>
         <comment>details report</comment>
-        <translation>处理器</translation>
+        <translation type="vanished">处理器</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1&lt;/nobr&gt;</source>
@@ -14939,27 +18112,27 @@
     </message>
     <message>
         <source>VDI (VirtualBox Disk Image)</source>
-        <translation>VDI (VirtualBox 磁盘映像)</translation>
+        <translation type="vanished">VDI (VirtualBox 磁盘映像)</translation>
     </message>
     <message>
         <source>VMDK (Virtual Machine Disk)</source>
-        <translation>VMDK (虚拟机磁盘)</translation>
+        <translation type="vanished">VMDK (虚拟机磁盘)</translation>
     </message>
     <message>
         <source>VHD (Virtual Hard Disk)</source>
-        <translation>VHD (虚拟硬盘)</translation>
+        <translation type="vanished">VHD (虚拟硬盘)</translation>
     </message>
     <message>
         <source>HDD (Parallels Hard Disk)</source>
-        <translation>HDD (并口硬盘)</translation>
+        <translation type="vanished">HDD (并口硬盘)</translation>
     </message>
     <message>
         <source>QED (QEMU enhanced disk)</source>
-        <translation>QED (QEMU 增强型磁盘)</translation>
+        <translation type="vanished">QED (QEMU 增强型磁盘)</translation>
     </message>
     <message>
         <source>QCOW (QEMU Copy-On-Write)</source>
-        <translation>QCOW (QEMU 写入时复制)</translation>
+        <translation type="vanished">QCOW (QEMU 写入时复制)</translation>
     </message>
     <message>
         <source>Please choose a location for new virtual hard drive file</source>
@@ -15324,7 +18497,7 @@
     <message>
         <source>Video Capture</source>
         <comment>IndicatorType</comment>
-        <translation>录像</translation>
+        <translation type="vanished">录像</translation>
     </message>
     <message>
         <source>Features</source>
@@ -15350,6 +18523,256 @@
         <source>Audio</source>
         <comment>IndicatorType</comment>
         <translation>声音</translation>
+    </message>
+    <message>
+        <source>not set</source>
+        <comment>details report (execution engine)</comment>
+        <translation>未设置</translation>
+    </message>
+    <message>
+        <source>Execution engine</source>
+        <comment>details report</comment>
+        <translation>运行引擎</translation>
+    </message>
+    <message>
+        <source>Processors</source>
+        <comment>details report</comment>
+        <translation>处理器</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名称</translation>
+    </message>
+    <message>
+        <source>OS</source>
+        <translation>操作系统</translation>
+    </message>
+    <message>
+        <source>Location</source>
+        <translation>位置</translation>
+    </message>
+    <message>
+        <source>Groups</source>
+        <translation>编组</translation>
+    </message>
+    <message>
+        <source>RAM</source>
+        <translation>内存</translation>
+    </message>
+    <message>
+        <source>CPU Count</source>
+        <translation>处理器数量</translation>
+    </message>
+    <message>
+        <source>CPU Execution Cap</source>
+        <translation>处理器运行峰值</translation>
+    </message>
+    <message>
+        <source>Boot Order</source>
+        <translation>启动顺序</translation>
+    </message>
+    <message>
+        <source>Chipset Type</source>
+        <translation>芯片组</translation>
+    </message>
+    <message>
+        <source>Firmware</source>
+        <translation>固件</translation>
+    </message>
+    <message>
+        <source>Acceleration</source>
+        <translation>硬件加速</translation>
+    </message>
+    <message>
+        <source>VRAM</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>虚拟内存</translation>
+    </message>
+    <message>
+        <source>Screen Count</source>
+        <translation>显示器数量</translation>
+    </message>
+    <message>
+        <source>Scale Factor</source>
+        <translation>缩放率</translation>
+    </message>
+    <message>
+        <source>VRDE</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>VRDE</translation>
+    </message>
+    <message>
+        <source>Recording</source>
+        <translation>录制</translation>
+    </message>
+    <message>
+        <source>Hard Disks</source>
+        <translation>虚拟硬盘</translation>
+    </message>
+    <message>
+        <source>Optical Devices</source>
+        <translation>虚拟光盘</translation>
+    </message>
+    <message>
+        <source>Floppy Devices</source>
+        <translation>虚拟软盘</translation>
+    </message>
+    <message>
+        <source>Driver</source>
+        <translation>驱动</translation>
+    </message>
+    <message>
+        <source>Controller</source>
+        <translation>控制芯片</translation>
+    </message>
+    <message>
+        <source>Input/Output</source>
+        <translation>输入/输出</translation>
+    </message>
+    <message>
+        <source>Not Attached</source>
+        <translation type="obsolete">未分配</translation>
+    </message>
+    <message>
+        <source>NAT</source>
+        <translation>网络地址转换(NAT)</translation>
+    </message>
+    <message>
+        <source>Bridget Adapter</source>
+        <translation>桥接网卡</translation>
+    </message>
+    <message>
+        <source>Internal Network</source>
+        <translation>内部网络</translation>
+    </message>
+    <message>
+        <source>Host Only Adapter</source>
+        <translation>仅主机(Host-Only)网络</translation>
+    </message>
+    <message>
+        <source>Generic Driver</source>
+        <translation>通用驱动</translation>
+    </message>
+    <message>
+        <source>Host Pipe</source>
+        <translation>主机管道</translation>
+    </message>
+    <message>
+        <source>Host Device</source>
+        <translation>主机设备</translation>
+    </message>
+    <message>
+        <source>Raw File</source>
+        <translatorcomment>TODO</translatorcomment>
+        <translation>裸文件</translation>
+    </message>
+    <message>
+        <source>TCP</source>
+        <translation>TCP</translation>
+    </message>
+    <message>
+        <source>Device Filters</source>
+        <translation>设备筛选</translation>
+    </message>
+    <message>
+        <source>Menu Bar</source>
+        <translation>菜单栏</translation>
+    </message>
+    <message>
+        <source>Status Bar</source>
+        <translation>状态栏</translation>
+    </message>
+    <message>
+        <source>Mini Toolbar</source>
+        <translation>小工具栏</translation>
+    </message>
+    <message>
+        <source>Recording</source>
+        <comment>IndicatorType</comment>
+        <translation>录制</translation>
+    </message>
+    <message>
+        <source>VDI (VirtualBox Disk Image)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>VDI (VirtualBox 磁盘映像)</translation>
+    </message>
+    <message>
+        <source>VMDK (Virtual Machine Disk)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>VMDK (虚拟机磁盘)</translation>
+    </message>
+    <message>
+        <source>VHD (Virtual Hard Disk)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>VHD (虚拟硬盘)</translation>
+    </message>
+    <message>
+        <source>HDD (Parallels Hard Disk)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>HDD (并口硬盘)</translation>
+    </message>
+    <message>
+        <source>QED (QEMU enhanced disk)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>QED (QEMU 增强型磁盘)</translation>
+    </message>
+    <message>
+        <source>QCOW (QEMU Copy-On-Write)</source>
+        <comment>UIMediumFormat</comment>
+        <translation>QCOW (QEMU 写入时复制)</translation>
+    </message>
+    <message>
+        <source>Please select files to be on the VISO</source>
+        <translation type="vanished">选择文件放到 VISO</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <comment>GraphicsControllerType</comment>
+        <translation>无</translation>
+    </message>
+    <message>
+        <source>VBoxVGA</source>
+        <comment>GraphicsControllerType</comment>
+        <translation>VBoxVGA</translation>
+    </message>
+    <message>
+        <source>VMSVGA</source>
+        <comment>GraphicsControllerType</comment>
+        <translation>VMSVGA</translation>
+    </message>
+    <message>
+        <source>VBoxSVGA</source>
+        <comment>GraphicsControllerType</comment>
+        <translation>VBoxSVGA</translation>
+    </message>
+    <message>
+        <source>Graphics Controller</source>
+        <translation>显卡控制器</translation>
+    </message>
+    <message>
+        <source>Video/Audio</source>
+        <comment>UISettingsDefs::RecordingMode</comment>
+        <translation>视频/音频</translation>
+    </message>
+    <message>
+        <source>Video Only</source>
+        <comment>UISettingsDefs::RecordingMode</comment>
+        <translation>仅视频</translation>
+    </message>
+    <message>
+        <source>Audio Only</source>
+        <comment>UISettingsDefs::RecordingMode</comment>
+        <translation>仅音频</translation>
+    </message>
+    <message>
+        <source>Not Attached</source>
+        <comment>network adapter</comment>
+        <translation>未指定</translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <comment>serial port</comment>
+        <translation>已断开</translation>
     </message>
 </context>
 <context>

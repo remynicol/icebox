@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxUhgsmiBase_h__
-#define ___VBoxUhgsmiBase_h__
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxUhgsmiBase_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxUhgsmiBase_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBoxUhgsmi.h>
 #include <VBoxCrHgsmi.h>
@@ -93,7 +96,7 @@ DECLINLINE(int) vboxUhgsmiBaseDxLockData(PVBOXUHGSMI_BUFFER_PRIVATE_DX_ALLOC_BAS
     PVBOXUHGSMI_BUFFER pBuf = &pPrivate->BasePrivate.Base;
     D3DDDICB_LOCKFLAGS fLockFlags;
     fLockFlags.Value = 0;
-    if (fFlags.bLockEntire)
+    if (fFlags.s.fLockEntire)
     {
         Assert(!offLock);
         fLockFlags.LockEntire = 1;
@@ -125,10 +128,10 @@ DECLINLINE(int) vboxUhgsmiBaseDxLockData(PVBOXUHGSMI_BUFFER_PRIVATE_DX_ALLOC_BAS
 
     }
 
-    fLockFlags.ReadOnly = fFlags.bReadOnly;
-    fLockFlags.WriteOnly = fFlags.bWriteOnly;
-    fLockFlags.DonotWait = fFlags.bDonotWait;
-//    fLockFlags.Discard = fFlags.bDiscard;
+    fLockFlags.ReadOnly  = fFlags.s.fReadOnly;
+    fLockFlags.WriteOnly = fFlags.s.fWriteOnly;
+    fLockFlags.DonotWait = fFlags.s.fDonotWait;
+//    fLockFlags.Discard = fFlags.s.fDiscard;
     *pfFlags = fLockFlags;
     return VINF_SUCCESS;
 }
@@ -172,9 +175,9 @@ DECLINLINE(int) vboxUhgsmiBaseDxDmaFill(PVBOXUHGSMI_BUFFER_SUBMIT aBuffers, uint
         memset(pAllocationList, 0, sizeof (D3DDDI_ALLOCATIONLIST));
         pAllocationList->hAllocation = pBuffer->hAllocation;
         pAllocationList->Value = 0;
-        pAllocationList->WriteOperation = !pBufInfo->fFlags.bHostReadOnly;
-        pAllocationList->DoNotRetireInstance = pBufInfo->fFlags.bDoNotRetire;
-        if (pBufInfo->fFlags.bEntireBuffer)
+        pAllocationList->WriteOperation = !pBufInfo->fFlags.s.fHostReadOnly;
+        pAllocationList->DoNotRetireInstance = pBufInfo->fFlags.s.fDoNotRetire;
+        if (pBufInfo->fFlags.s.fEntireBuffer)
         {
             pBufSubmInfo->offData = 0;
             pBufSubmInfo->cbData = pBuffer->BasePrivate.Base.cbBuffer;
@@ -208,4 +211,4 @@ DECLINLINE(void) vboxUhgsmiBaseInit(PVBOXUHGSMI_PRIVATE_BASE pHgsmi, PFNVBOXCRHG
     pHgsmi->pfnEscape = pfnEscape;
 }
 
-#endif /* #ifndef ___VBoxUhgsmiBase_h__ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxUhgsmiBase_h */

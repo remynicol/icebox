@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -1341,7 +1341,7 @@ NTSTATUS VBoxVidPnUpdateModes(PVBOXMP_DEVEXT pDevExt, uint32_t u32TargetId, cons
     }
 
 #ifdef VBOX_WDDM_REPLUG_ON_MODE_CHANGE
-    /* The VBOXESC_UPDATEMODES is a hint for VBoxVideoW8.sys to use new display mode as soon as VidPn
+    /* The VBOXESC_UPDATEMODES is a hint for the driver to use new display mode as soon as VidPn
      * manager will ask for it.
      * Probably, some new interface is required to plug/unplug displays by calling
      * VBoxWddmChildStatusReportReconnected.
@@ -1688,6 +1688,14 @@ static BOOLEAN vboxVidPnIsPathSupported(PVBOXMP_DEVEXT pDevExt, const D3DKMDT_VI
 
 NTSTATUS VBoxVidPnIsSupported(PVBOXMP_DEVEXT pDevExt, D3DKMDT_HVIDPN hVidPn, BOOLEAN *pfSupported)
 {
+    /* According Microsoft Docs we must return pfSupported = TRUE here if hVidPn is NULL, as
+     * the display adapter can always be configured to display nothing. */
+    if (hVidPn == NULL)
+    {
+        *pfSupported = TRUE;
+        return STATUS_SUCCESS;
+    }
+
     *pfSupported = FALSE;
 
     const DXGK_VIDPN_INTERFACE* pVidPnInterface = NULL;
@@ -2259,12 +2267,11 @@ NTSTATUS vboxVidPnSetupSourceInfo(PVBOXMP_DEVEXT pDevExt, CONST D3DKMDT_VIDPN_SO
             fChanges |= VBOXWDDM_HGSYNC_F_SYNCED_DIMENSIONS;
             pSource->AllocData.SurfDesc.cbSize = pVidPnSourceModeInfo->Format.Graphics.Stride * pVidPnSourceModeInfo->Format.Graphics.PrimSurfSize.cy;
         }
-#ifdef VBOX_WDDM_WIN8
+
         if (g_VBoxDisplayOnly)
         {
             vboxWddmDmSetupDefaultVramLocation(pDevExt, VidPnSourceId, paSources);
         }
-#endif
     }
     else
     {
@@ -2273,10 +2280,8 @@ NTSTATUS vboxVidPnSetupSourceInfo(PVBOXMP_DEVEXT pDevExt, CONST D3DKMDT_VIDPN_SO
         fChanges |= VBOXWDDM_HGSYNC_F_SYNCED_ALL;
     }
 
-#ifdef VBOX_WDDM_WIN8
     Assert(!g_VBoxDisplayOnly || !pAllocation);
     if (!g_VBoxDisplayOnly)
-#endif
     {
         vboxWddmAssignPrimary(pSource, pAllocation, VidPnSourceId);
     }

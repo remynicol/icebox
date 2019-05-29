@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -36,7 +36,7 @@
 #include <iprt/path.h>
 #include <iprt/string.h>
 #include <iprt/param.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 #include <iprt/log.h>
 #include <iprt/assert.h>
 #include "internal/fs.h"
@@ -195,6 +195,48 @@ RTR3DECL(bool) RTFsIsCaseSensitive(const char *pszFsPath)
 }
 
 
+int rtNtQueryFsType(HANDLE hHandle, PRTFSTYPE penmType)
+{
+    /*
+     * Get the file system name.
+     */
+    union
+    {
+        FILE_FS_ATTRIBUTE_INFORMATION FsAttrInfo;
+        uint8_t abBuf[sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 4096];
+    } u;
+    IO_STATUS_BLOCK Ios = RTNT_IO_STATUS_BLOCK_INITIALIZER;
+    NTSTATUS rcNt = NtQueryVolumeInformationFile(hHandle, &Ios, &u, sizeof(u), FileFsAttributeInformation);
+    if (NT_SUCCESS(rcNt))
+    {
+#define IS_FS(a_szName) rtNtCompWideStrAndAscii(u.FsAttrInfo.FileSystemName, u.FsAttrInfo.FileSystemNameLength, RT_STR_TUPLE(a_szName))
+        if (IS_FS("NTFS"))
+            *penmType = RTFSTYPE_NTFS;
+        else if (IS_FS("FAT"))
+            *penmType = RTFSTYPE_FAT;
+        else if (IS_FS("FAT32"))
+            *penmType = RTFSTYPE_FAT;
+        else if (IS_FS("exFAT"))
+            *penmType = RTFSTYPE_EXFAT;
+        else if (IS_FS("UDF"))
+            *penmType = RTFSTYPE_UDF;
+        else if (IS_FS("CDFS"))
+            *penmType = RTFSTYPE_ISO9660;
+        else if (IS_FS("HPFS"))
+            *penmType = RTFSTYPE_HPFS;
+        else if (IS_FS("ReFS")) /** @todo verify ReFS signature. */
+            *penmType = RTFSTYPE_REFS;
+        else if (IS_FS("VBoxSharedFolderFS"))
+            *penmType = RTFSTYPE_VBOXSHF;
+#undef IS_FS
+        return VINF_SUCCESS;
+    }
+
+    *penmType = RTFSTYPE_UNKNOWN;
+    return RTErrConvertFromNtStatus(rcNt);
+}
+
+
 RTR3DECL(int) RTFsQueryType(const char *pszFsPath, PRTFSTYPE penmType)
 {
     /*
@@ -219,33 +261,7 @@ RTR3DECL(int) RTFsQueryType(const char *pszFsPath, PRTFSTYPE penmType)
                           NULL);
     if (RT_SUCCESS(rc))
     {
-        /*
-         * Get the file system name.
-         */
-        union
-        {
-            FILE_FS_ATTRIBUTE_INFORMATION FsAttrInfo;
-            uint8_t abBuf[sizeof(FILE_FS_ATTRIBUTE_INFORMATION) + 4096];
-        } u;
-        IO_STATUS_BLOCK Ios = RTNT_IO_STATUS_BLOCK_INITIALIZER;
-        NTSTATUS rcNt = NtQueryVolumeInformationFile(hFile, &Ios, &u, sizeof(u), FileFsAttributeInformation);
-        if (NT_SUCCESS(rcNt))
-        {
-#define IS_FS(a_szName) \
-    rtNtCompWideStrAndAscii(u.FsAttrInfo.FileSystemName, u.FsAttrInfo.FileSystemNameLength, RT_STR_TUPLE(a_szName))
-            if (IS_FS("NTFS"))
-                *penmType = RTFSTYPE_NTFS;
-            else if (IS_FS("FAT"))
-                *penmType = RTFSTYPE_FAT;
-            else if (IS_FS("FAT32"))
-                *penmType = RTFSTYPE_FAT;
-            else if (IS_FS("VBoxSharedFolderFS"))
-                *penmType = RTFSTYPE_VBOXSHF;
-#undef IS_FS
-        }
-        else
-            rc = RTErrConvertFromNtStatus(rcNt);
-
+        rc = rtNtQueryFsType(hFile, penmType);
         RTNtPathClose(hFile);
     }
     return rc;

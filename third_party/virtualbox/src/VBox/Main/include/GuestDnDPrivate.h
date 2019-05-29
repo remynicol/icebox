@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -16,8 +16,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ____H_GUESTDNDPRIVATE
-#define ____H_GUESTDNDPRIVATE
+#ifndef MAIN_INCLUDED_GuestDnDPrivate_h
+#define MAIN_INCLUDED_GuestDnDPrivate_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/dir.h>
 #include <iprt/file.h>
@@ -25,6 +28,7 @@
 
 #include <VBox/hgcmsvc.h> /* For PVBOXHGCMSVCPARM. */
 #include <VBox/GuestHost/DragAndDrop.h>
+#include <VBox/GuestHost/DragAndDropDefs.h>
 #include <VBox/HostServices/DragAndDropSvc.h>
 
 /**
@@ -164,7 +168,7 @@ public:
 
     int fromURIList(const DnDURIList &lstURI)
     {
-        return fromString(lstURI.RootToString());
+        return fromString(lstURI.GetRootEntries());
     }
 
 protected:
@@ -364,10 +368,12 @@ protected:
     uint64_t          cbProcessed;
 };
 
-/** Initial state. */
+/** Initial object context state / no state set. */
 #define DND_OBJCTX_STATE_NONE           0
-/** The header was received/sent. */
+/** The header was received / sent. */
 #define DND_OBJCTX_STATE_HAS_HDR        RT_BIT(0)
+/** Validation mask for object context state. */
+#define DND_OBJCTX_STATE_VALID_MASK     UINT32_C(0x00000001)
 
 /**
  * Structure for keeping a DnDURIObject context around.
@@ -388,7 +394,7 @@ public:
 
 public:
 
-    int createIntermediate(DnDURIObject::Type enmType = DnDURIObject::Unknown)
+    int createIntermediate(DnDURIObject::Type enmType)
     {
         reset();
 
@@ -430,6 +436,7 @@ public:
 
     bool isValid(void) const { return (pObjURI != NULL); }
 
+    /** Returns the current state. */
     uint32_t getState(void) const { return fState; }
 
     void reset(void)
@@ -439,7 +446,7 @@ public:
         destroy();
 
         fIntermediate = false;
-        fState        = 0;
+        fState        = DND_OBJCTX_STATE_NONE;
     }
 
     void setObj(DnDURIObject *pObj)
@@ -451,9 +458,15 @@ public:
         pObjURI = pObj;
     }
 
+    /**
+     * Sets the new state.
+     *
+     * @returns The new state, if set.
+     * @param   fStateNew       New state to set.
+     */
     uint32_t setState(uint32_t fStateNew)
     {
-        /** @todo Add validation. */
+        AssertReturn(!(fStateNew & ~DND_OBJCTX_STATE_VALID_MASK), fState /* Return old state */);
         fState = fStateNew;
         return fState;
     }
@@ -562,8 +575,8 @@ public:
         /** @todo Find objct in lstURI first! */
         switch (Obj.GetType())
         {
-            case DnDURIObject::Directory:
-            case DnDURIObject::File:
+            case DnDURIObject::Type_Directory:
+            case DnDURIObject::Type_File:
                 rc = VINF_SUCCESS;
                 break;
 
@@ -645,7 +658,7 @@ public:
                  *       operation, also to keep the accounting right. */
                 rc = lstURI.AppendURIPathsFromList(lstURIOrg, DNDURILIST_FLAGS_KEEP_OPEN);
                 if (RT_SUCCESS(rc))
-                    cObjToProcess = lstURI.TotalCount();
+                    cObjToProcess = lstURI.GetTotalCount();
             }
         }
 
@@ -657,10 +670,10 @@ public:
     {
         LogFlowFuncEnter();
 
-        int rc = lstURI.RootFromURIData(Data.getData(), Data.getSize(), 0 /* uFlags */);
+        int rc = lstURI.SetFromURIData(Data.getData(), Data.getSize(), 0 /* uFlags */);
         if (RT_SUCCESS(rc))
         {
-            const size_t cRootCount = lstURI.RootCount();
+            const size_t cRootCount = lstURI.GetRootCount();
             LogFlowFunc(("cRootCount=%zu, cObjToProcess=%RU64\n", cRootCount, cObjToProcess));
             if (cRootCount > cObjToProcess)
                 rc = VERR_INVALID_PARAMETER;
@@ -673,10 +686,10 @@ public:
     {
         const char *pszDroppedFilesDir = droppedFiles.GetDirAbs();
 
-        Utf8Str strURIs = lstURI.RootToString(RTCString(pszDroppedFilesDir));
+        Utf8Str strURIs = lstURI.GetRootEntries(RTCString(pszDroppedFilesDir));
         size_t cbData = strURIs.length();
 
-        LogFlowFunc(("%zu root URIs (%zu bytes)\n", lstURI.RootCount(), cbData));
+        LogFlowFunc(("%zu root URIs (%zu bytes)\n", lstURI.GetRootCount(), cbData));
 
         int rc;
 
@@ -796,7 +809,7 @@ typedef struct RECVDATACTX
     /** Desired drop action to perform on the host.
      *  Needed to tell the guest if data has to be
      *  deleted e.g. when moving instead of copying. */
-    uint32_t                            mAction;
+    VBOXDNDACTION                       mAction;
     /** Drag'n drop received from the guest.
      *  This can be arbitrary data or an URI list. */
     GuestDnDData                        mData;
@@ -885,7 +898,7 @@ public:
                 return VERR_NO_MEMORY;
         }
 
-        pParm->setPointer(pvTmp, cbBuf);
+        HGCMSvcSetPv(pParm, pvTmp, cbBuf);
         return VINF_SUCCESS;
     }
 
@@ -899,7 +912,7 @@ public:
         if (!pszTemp)
             return VERR_NO_MEMORY;
 
-        pParm->setString(pszTemp);
+        HGCMSvcSetStr(pParm, pszTemp);
         return VINF_SUCCESS;
     }
 
@@ -909,7 +922,7 @@ public:
         if (!pParm)
             return VERR_NO_MEMORY;
 
-        pParm->setUInt32(u32Val);
+        HGCMSvcSetU32(pParm, u32Val);
         return VINF_SUCCESS;
     }
 
@@ -919,7 +932,7 @@ public:
         if (!pParm)
             return VERR_NO_MEMORY;
 
-        pParm->setUInt64(u64Val);
+        HGCMSvcSetU64(pParm, u64Val);
         return VINF_SUCCESS;
     }
 
@@ -985,11 +998,11 @@ public:
     int notifyAboutGuestResponse(void) const;
     int waitForGuestResponse(RTMSINTERVAL msTimeout = 500) const;
 
-    void setAllActions(uint32_t a) { m_allActions = a; }
-    uint32_t allActions(void) const { return m_allActions; }
+    void setActionsAllowed(VBOXDNDACTIONLIST a) { m_dndLstActionsAllowed = a; }
+    VBOXDNDACTIONLIST getActionsAllowed(void) const { return m_dndLstActionsAllowed; }
 
-    void setDefAction(uint32_t a) { m_defAction = a; }
-    uint32_t defAction(void) const { return m_defAction; }
+    void setActionDefault(VBOXDNDACTION a) { m_dndActionDefault = a; }
+    VBOXDNDACTION getActionDefault(void) const { return m_dndActionDefault; }
 
     void setFormats(const GuestDnDMIMEList &lstFormats) { m_lstFormats = lstFormats; }
     GuestDnDMIMEList formats(void) const { return m_lstFormats; }
@@ -1017,10 +1030,9 @@ protected:
     RTSEMEVENT            m_EventSem;
     /** Default action to perform in case of a
      *  successful drop. */
-    uint32_t              m_defAction;
-    /** Actions supported by the guest in case of
-     *  a successful drop. */
-    uint32_t              m_allActions;
+    VBOXDNDACTION         m_dndActionDefault;
+    /** Actions supported by the guest in case of a successful drop. */
+    VBOXDNDACTIONLIST     m_dndLstActionsAllowed;
     /** Format(s) requested/supported from the guest. */
     GuestDnDMIMEList      m_lstFormats;
     /** Pointer to IGuest parent object. */
@@ -1093,10 +1105,10 @@ public:
     static com::Utf8Str             toFormatString(const GuestDnDMIMEList &lstFormats);
     static GuestDnDMIMEList         toFilteredFormatList(const GuestDnDMIMEList &lstFormatsSupported, const GuestDnDMIMEList &lstFormatsWanted);
     static GuestDnDMIMEList         toFilteredFormatList(const GuestDnDMIMEList &lstFormatsSupported, const com::Utf8Str &strFormatsWanted);
-    static DnDAction_T              toMainAction(uint32_t uAction);
-    static std::vector<DnDAction_T> toMainActions(uint32_t uActions);
-    static uint32_t                 toHGCMAction(DnDAction_T enmAction);
-    static void                     toHGCMActions(DnDAction_T enmDefAction, uint32_t *puDefAction, const std::vector<DnDAction_T> vecAllowedActions, uint32_t *puAllowedActions);
+    static DnDAction_T              toMainAction(VBOXDNDACTION dndAction);
+    static std::vector<DnDAction_T> toMainActions(VBOXDNDACTIONLIST dndActionList);
+    static VBOXDNDACTION            toHGCMAction(DnDAction_T enmAction);
+    static void                     toHGCMActions(DnDAction_T enmDefAction, VBOXDNDACTION *pDefAction, const std::vector<DnDAction_T> vecAllowedActions, VBOXDNDACTIONLIST *pLstAllowedActions);
     /** @}  */
 
 protected:
@@ -1118,11 +1130,8 @@ private:
     static GuestDnD           *s_pInstance;
 };
 
-/** Access to the GuestDnD's singleton instance.
- * @todo r=bird: Please add a 'Get' or something to this as it currently looks
- *       like a class instantiation rather than a getter.  Alternatively, use
- *       UPPER_CASE like the coding guideline suggest for macros. */
-#define GuestDnDInst() GuestDnD::getInstance()
+/** Access to the GuestDnD's singleton instance. */
+#define GUESTDNDINST() GuestDnD::getInstance()
 
 /** List of pointers to guest DnD Messages. */
 typedef std::list<GuestDnDMsg *> GuestDnDMsgList;
@@ -1192,5 +1201,5 @@ protected:
         GuestDnDMsgList             m_lstMsgOut;
     } mDataBase;
 };
-#endif /* ____H_GUESTDNDPRIVATE */
+#endif /* !MAIN_INCLUDED_GuestDnDPrivate_h */
 

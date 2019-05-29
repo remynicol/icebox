@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -845,6 +845,7 @@ HRESULT VBoxD3DIfDeviceCreateDummy(PVBOXWDDMDISP_DEVICE pDevice)
         if (SUCCEEDED(hr))
         {
             Assert(hostId);
+            Assert(pDevice->DefaultContext.ContextInfo.hContext);
 
             VBOXDISPIFESCAPE Data;
             Data.escapeCode = VBOXESC_SETCTXHOSTID;
@@ -875,10 +876,12 @@ HRESULT VBoxD3DIfDeviceCreateDummy(PVBOXWDDMDISP_DEVICE pDevice)
     return hr;
 }
 
-int vboxD3DIfSetHostId(PVBOXWDDMDISP_ALLOCATION pAlloc, uint32_t hostID, uint32_t *pHostID)
+static int vboxD3DIfSetHostId(PVBOXWDDMDISP_ALLOCATION pAlloc, uint32_t hostID, uint32_t *pHostID)
 {
     struct VBOXWDDMDISP_RESOURCE *pRc = pAlloc->pRc;
     PVBOXWDDMDISP_DEVICE pDevice = pRc->pDevice;
+
+    AssertReturn(pDevice->DefaultContext.ContextInfo.hContext, VERR_GENERAL_FAILURE);
 
     VBOXDISPIFESCAPE_SETALLOCHOSTID SetHostID = {0};
     SetHostID.EscapeHdr.escapeCode = VBOXESC_SETALLOCHOSTID;

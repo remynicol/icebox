@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Oracle Corporation
+ * Copyright (C) 2013-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -36,7 +36,7 @@ VBoxDnDDropSource::VBoxDnDDropSource(VBoxDnDWnd *pParent)
     : mRefCount(1),
       mpWndParent(pParent),
       mdwCurEffect(0),
-      muCurAction(DND_IGNORE_ACTION)
+      mDnDActionCurrent(VBOX_DND_ACTION_IGNORE)
 {
     LogFlowFuncEnter();
 }
@@ -96,15 +96,15 @@ STDMETHODIMP VBoxDnDDropSource::QueryInterface(REFIID iid, void **ppvObject)
 STDMETHODIMP VBoxDnDDropSource::QueryContinueDrag(BOOL fEscapePressed, DWORD dwKeyState)
 {
 #if 1
-    LogFlowFunc(("fEscapePressed=%RTbool, dwKeyState=0x%x, mdwCurEffect=%RI32, muCurAction=%RU32\n",
-                 fEscapePressed, dwKeyState, mdwCurEffect, muCurAction));
+    LogFlowFunc(("fEscapePressed=%RTbool, dwKeyState=0x%x, mdwCurEffect=%RI32, mDnDActionCurrent=%RU32\n",
+                 fEscapePressed, dwKeyState, mdwCurEffect, mDnDActionCurrent));
 #endif
 
     /* ESC pressed? Bail out. */
     if (fEscapePressed)
     {
         mdwCurEffect = 0;
-        muCurAction = DND_IGNORE_ACTION;
+        mDnDActionCurrent = VBOX_DND_ACTION_IGNORE;
 
         LogFlowFunc(("Canceled\n"));
         return DRAGDROP_S_CANCEL;
@@ -129,7 +129,7 @@ STDMETHODIMP VBoxDnDDropSource::QueryContinueDrag(BOOL fEscapePressed, DWORD dwK
  */
 STDMETHODIMP VBoxDnDDropSource::GiveFeedback(DWORD dwEffect)
 {
-    uint32_t uAction = DND_IGNORE_ACTION;
+    uint32_t uAction = VBOX_DND_ACTION_IGNORE;
 
 #if 1
     LogFlowFunc(("dwEffect=0x%x\n", dwEffect));
@@ -137,15 +137,15 @@ STDMETHODIMP VBoxDnDDropSource::GiveFeedback(DWORD dwEffect)
     if (dwEffect)
     {
         if (dwEffect & DROPEFFECT_COPY)
-            uAction |= DND_COPY_ACTION;
+            uAction |= VBOX_DND_ACTION_COPY;
         if (dwEffect & DROPEFFECT_MOVE)
-            uAction |= DND_MOVE_ACTION;
+            uAction |= VBOX_DND_ACTION_MOVE;
         if (dwEffect & DROPEFFECT_LINK)
-            uAction |= DND_LINK_ACTION;
+            uAction |= VBOX_DND_ACTION_LINK;
     }
 
     mdwCurEffect = dwEffect;
-    muCurAction = uAction;
+    mDnDActionCurrent = uAction;
 
     return DRAGDROP_S_USEDEFAULTCURSORS;
 }

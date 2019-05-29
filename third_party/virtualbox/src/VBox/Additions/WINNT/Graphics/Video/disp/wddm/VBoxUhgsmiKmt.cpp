@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -18,7 +18,7 @@
 #include "VBoxDispD3DCmn.h"
 
 #include <iprt/mem.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 
 #include <cr_protocol.h>
 
@@ -53,7 +53,8 @@ DECLCALLBACK(int) vboxUhgsmiKmtBufferDestroy(PVBOXUHGSMI_BUFFER pBuf)
     return VERR_GENERAL_FAILURE;
 }
 
-DECLCALLBACK(int) vboxUhgsmiKmtBufferLock(PVBOXUHGSMI_BUFFER pBuf, uint32_t offLock, uint32_t cbLock, VBOXUHGSMI_BUFFER_LOCK_FLAGS fFlags, void**pvLock)
+DECLCALLBACK(int) vboxUhgsmiKmtBufferLock(PVBOXUHGSMI_BUFFER pBuf, uint32_t offLock, uint32_t cbLock,
+                                          VBOXUHGSMI_BUFFER_LOCK_FLAGS fFlags, void**pvLock)
 {
     PVBOXUHGSMI_BUFFER_PRIVATE_DX_ALLOC_BASE pBuffer = VBOXUHGSMDXALLOCBASE_GET_BUFFER(pBuf);
     PVBOXUHGSMI_PRIVATE_KMT pPrivate = VBOXUHGSMIKMT_GET(pBuffer->BasePrivate.pHgsmi);
@@ -310,7 +311,7 @@ HRESULT vboxUhgsmiKmtEscCreate(PVBOXUHGSMI_PRIVATE_KMT pHgsmi, BOOL bD3D)
 
 static HRESULT vboxUhgsmiKmtQueryCaps(PVBOXUHGSMI_PRIVATE_KMT pHgsmi, uint32_t *pu32Caps)
 {
-    VBOXWDDM_QI Query;
+    VBOXWDDM_QAI Query;
     D3DKMT_QUERYADAPTERINFO Info;
     Info.hAdapter = pHgsmi->Adapter.hAdapter;
     Info.Type = KMTQAITYPE_UMDRIVERPRIVATE;
@@ -330,7 +331,10 @@ static HRESULT vboxUhgsmiKmtQueryCaps(PVBOXUHGSMI_PRIVATE_KMT pHgsmi, uint32_t *
         return E_FAIL;
     }
 
-    *pu32Caps = Query.u32VBox3DCaps;
+    if (Query.enmHwType == VBOXVIDEO_HWTYPE_VBOX)
+        *pu32Caps = Query.u.vbox.u32VBox3DCaps;
+    else
+        *pu32Caps = 0;
 
     return S_OK;
 }

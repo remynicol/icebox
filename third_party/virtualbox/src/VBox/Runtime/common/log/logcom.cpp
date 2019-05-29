@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -120,8 +120,8 @@ RTDECL(void) RTLogWriteCom(const char *pach, size_t cb)
     const uint8_t *pu8;
     for (pu8 = (const uint8_t *)pach; cb-- > 0; pu8++)
     {
-        register unsigned cMaxWait;
-        register uint8_t  u8;
+        unsigned cMaxWait;
+        uint8_t  u8;
 
         /* expand \n -> \r\n */
         if (*pu8 == '\n')

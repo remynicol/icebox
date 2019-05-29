@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2005-2017 Oracle Corporation
+ * Copyright (C) 2005-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -28,7 +28,7 @@
 #include <iprt/process.h>
 #include <iprt/time.h>
 
-#include <VBox/err.h>
+#include <iprt/errcore.h>
 #include <VBox/log.h>
 #include <VBox/version.h>
 #include "package-generated.h"
@@ -149,15 +149,12 @@ int VBoxLogRelCreate(const char *pcszEntity, const char *pcszLogFile,
     fFlags |= RTLOGFLAGS_USECRLF;
 #endif
     g_pszLogEntity = pcszEntity;
-    int vrc = RTLogCreateEx(&pReleaseLogger, fFlags, pcszGroupSettings,
-                            pcszEnvVarBase, RT_ELEMENTS(s_apszGroups), s_apszGroups, fDestFlags,
+    int vrc = RTLogCreateEx(&pReleaseLogger, fFlags, pcszGroupSettings, pcszEnvVarBase,
+                            RT_ELEMENTS(s_apszGroups), s_apszGroups, cMaxEntriesPerGroup, fDestFlags,
                             vboxHeaderFooter, cHistory, uHistoryFileSize, uHistoryFileTime,
                             pErrInfo, pcszLogFile ? "%s" : NULL, pcszLogFile);
     if (RT_SUCCESS(vrc))
     {
-        /* make sure that we don't flood logfiles */
-        RTLogSetGroupLimit(pReleaseLogger, cMaxEntriesPerGroup);
-
         /* explicitly flush the log, to have some info when buffering */
         RTLogFlush(pReleaseLogger);
 

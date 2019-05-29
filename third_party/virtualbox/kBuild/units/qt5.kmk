@@ -1,10 +1,10 @@
-# $Id: qt5.kmk 3016 2017-01-04 12:51:53Z bird $
+# $Id: qt5.kmk 3284 2019-01-05 01:40:31Z bird $
 ## @file
 # Qt 5 unit.
 #
 
 #
-# Copyright (c) 2008-2016 knut st. osmundsen <bird-kBuild-spam-xiv@anduin.net>
+# Copyright (c) 2008-2017 knut st. osmundsen <bird-kBuild-spam-xviiv@anduin.net>
 #
 # This file is part of kBuild.
 #
@@ -454,9 +454,9 @@ define TOOL_QT5_RCC_QRC_CMDS
 		$(flags)\
 		-o $(out)\
 		$(source)
-	$(QUIET2)$(APPEND) $(dep) '\'
-	$(QUIET2)$(APPEND) $(dep) '$(out): \'
-	$(QUIET2)$(APPEND) $(dep) '$(source) \'
+	$(QUIET2)$(APPEND) -n $(dep) '\' \
+		'$(out): \' \
+		'$(source) \'
 	$(QUIET2)$(SED) \
 		-e '/^[[:blank:]]*<file[[:blank:]][^>]*>/!d' \
 		-e 's/^.*<file[[:blank:]][^>]*>\([^<]*\)<\/file>.*$$$$/\1/' \
@@ -532,10 +532,17 @@ $(out) + $(more_output) +| $(maybe_output): \
 $(cmds)
 
 ifndef NO_COMPILE_CMDS_DEPS
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+	%$$(QUIET2)$$(APPEND) -ni '$(dep)' \
+		'define $(target)_$(subst :,_,$(source))_QT5_LRC_CMDS_PREV_' \
+		'--insert-command=$(out)' \
+		'endef'
+else
 	%$$(QUIET2)$$(APPEND) '$(dep)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'define $(target)_$(subst :,_,$(source))_QT5_LRC_CMDS_PREV_'
 	%$$(QUIET2)$$(APPEND) -c '$(dep)' '$(out)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'endef'
+endif
 endif
 
 $(target)_CLEAN += $(out) $(more_output) $(maybe_output) $(dep)
@@ -620,13 +627,20 @@ $(cmds)
 
 	$(QUIET)$(CP) --changed -f $(out) $(realout)
 ifndef NO_COMPILE_CMDS_DEPS
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+	%$$(QUIET2)$$(APPEND) -ni '$(dep)' \
+		'define $(target)_$(subst :,_,$(source))_QT5_RCC_CMDS_PREV_' \
+		'--insert-command=$(out)' \
+		'endef'
+else
 	%$$(QUIET2)$$(APPEND) '$(dep)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'define $(target)_$(subst :,_,$(source))_QT5_RCC_CMDS_PREV_'
 	%$$(QUIET2)$$(APPEND) -c '$(dep)' '$(out)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'endef'
 endif
+endif
 
-$(target)_INTERMEDIATES += $(realout)
+$(target)_2_INTERMEDIATES += $(realout)
 $(target)_GEN_SOURCES_ += $(realout)
 $(target)_CLEAN += $(out) $(realout) $(more_output) $(maybe_output) $(dep)
 
@@ -707,13 +721,20 @@ $(cmds)
 
 	$(QUIET)$(CP) --changed -f $(out) $(realout)
 ifndef NO_COMPILE_CMDS_DEPS
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+	%$$(QUIET2)$$(APPEND) -ni '$(dep)' \
+		'define $(target)_$(subst :,_,$(source))_QT5_UIC_CMDS_PREV_' \
+		'--insert-command=$(out)' \
+		'endef'
+else
 	%$$(QUIET2)$$(APPEND) '$(dep)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'define $(target)_$(subst :,_,$(source))_QT5_UIC_CMDS_PREV_'
 	%$$(QUIET2)$$(APPEND) -c '$(dep)' '$(out)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'endef'
 endif
+endif
 
-$(target)_INTERMEDIATES += $(realout)
+$(target)_2_INTERMEDIATES += $(realout)
 $(target)_CLEAN += $(out) $(realout) $(more_output) $(maybe_output) $(dep)
 
 endef # def_unit_qt5_target_pre_handle_ui_dx
@@ -793,13 +814,20 @@ $(cmds)
 
 	$(QUIET)$(CP) --changed -f $(out) $(realout)
 ifndef NO_COMPILE_CMDS_DEPS
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+	%$$(QUIET2)$$(APPEND) -ni '$(dep)' \
+		'define $(target)_$(subst :,_,$(source))_QT5_MOC_HPP_CMDS_PREV_' \
+		'--insert-command=$(out)' \
+		'endef'
+else
 	%$$(QUIET2)$$(APPEND) '$(dep)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'define $(target)_$(subst :,_,$(source))_QT5_MOC_HPP_CMDS_PREV_'
 	%$$(QUIET2)$$(APPEND) -c '$(dep)' '$(out)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'endef'
 endif
+endif
 
-$(target)_INTERMEDIATES += $(realout)
+$(target)_2_INTERMEDIATES += $(realout)
 $(target)_GEN_SOURCES_ += $(realout)
 $(target)_CLEAN += $(out) $(realout) $(more_output) $(maybe_output) $(dep)
 
@@ -886,13 +914,20 @@ $(cmds)
 
 	$(QUIET)$(CP) --changed -f $(out) $(realout)
 ifndef NO_COMPILE_CMDS_DEPS
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+	%$$(QUIET2)$$(APPEND) -ni '$(dep)' \
+		'define $(target)_$(subst :,_,$(source))_QT5_MOC_CPP_CMDS_PREV_' \
+		'--insert-command=$(out)' \
+		'endef'
+else
 	%$$(QUIET2)$$(APPEND) '$(dep)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'define $(target)_$(subst :,_,$(source))_QT5_MOC_CPP_CMDS_PREV_'
 	%$$(QUIET2)$$(APPEND) -c '$(dep)' '$(out)'
 	%$$(QUIET2)$$(APPEND) '$(dep)' 'endef'
 endif
+endif
 
-$(target)_INTERMEDIATES += $(realout)
+$(target)_2_INTERMEDIATES += $(realout)
 $(target)_CLEAN += $(out) $(realout) $(more_output) $(maybe_output) $(dep)
 
 endef

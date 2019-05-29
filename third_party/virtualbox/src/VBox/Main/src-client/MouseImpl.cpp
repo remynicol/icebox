@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -25,12 +25,10 @@
 #include "VMMDev.h"
 #include "MousePointerShapeWrap.h"
 
-#include "AutoCaller.h"
-
 #include <VBox/vmm/pdmdrv.h>
 #include <VBox/VMMDev.h>
+#include <VBox/err.h>
 
-#include <iprt/asm.h>
 
 class ATL_NO_VTABLE MousePointerShape:
     public MousePointerShapeWrap
@@ -503,9 +501,9 @@ HRESULT Mouse::i_reportRelEventToMouseDev(int32_t dx, int32_t dy, int32_t dz,
         int vrc = pUpPort->pfnPutEvent(pUpPort, dx, dy, dz, dw, fButtons);
 
         if (RT_FAILURE(vrc))
-            return setError(VBOX_E_IPRT_ERROR,
-                            tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
-                            vrc);
+            return setErrorBoth(VBOX_E_IPRT_ERROR, vrc,
+                                tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
+                                vrc);
         mfLastButtons = fButtons;
     }
     return S_OK;
@@ -546,9 +544,9 @@ HRESULT Mouse::i_reportAbsEventToMouseDev(int32_t x, int32_t y,
         int vrc = pUpPort->pfnPutEventAbs(pUpPort, x, y, dz,
                                           dw, fButtons);
         if (RT_FAILURE(vrc))
-            return setError(VBOX_E_IPRT_ERROR,
-                            tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
-                            vrc);
+            return setErrorBoth(VBOX_E_IPRT_ERROR, vrc,
+                                tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
+                                vrc);
         mfLastButtons = fButtons;
 
     }
@@ -581,9 +579,9 @@ HRESULT Mouse::i_reportMultiTouchEventToDevice(uint8_t cContacts,
     {
         int vrc = pUpPort->pfnPutEventMultiTouch(pUpPort, cContacts, pau64Contacts, u32ScanTime);
         if (RT_FAILURE(vrc))
-            hrc = setError(VBOX_E_IPRT_ERROR,
-                           tr("Could not send the multi-touch event to the virtual device (%Rrc)"),
-                           vrc);
+            hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrc,
+                               tr("Could not send the multi-touch event to the virtual device (%Rrc)"),
+                               vrc);
     }
     else
     {
@@ -612,9 +610,9 @@ HRESULT Mouse::i_reportAbsEventToVMMDev(int32_t x, int32_t y)
         int vrc = pVMMDevPort->pfnSetAbsoluteMouse(pVMMDevPort,
                                                    x, y);
         if (RT_FAILURE(vrc))
-            return setError(VBOX_E_IPRT_ERROR,
-                            tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
-                            vrc);
+            return setErrorBoth(VBOX_E_IPRT_ERROR, vrc,
+                                tr("Could not send the mouse event to the virtual mouse (%Rrc)"),
+                                vrc);
     }
     return S_OK;
 }
@@ -671,7 +669,7 @@ HRESULT Mouse::i_reportAbsEventToDisplayDevice(int32_t x, int32_t y)
 
     if (x != mcLastX || y != mcLastY)
     {
-        pDisplay->i_reportHostCursorPosition(x - 1, y - 1);
+        pDisplay->i_reportHostCursorPosition(x - 1, y - 1, false);
     }
     return S_OK;
 }
@@ -851,10 +849,27 @@ HRESULT Mouse::putMouseEventAbsolute(LONG x, LONG y, LONG dz, LONG dw,
     LogRel3(("%s: x=%d, y=%d, dz=%d, dw=%d, fButtons=0x%x\n",
              __PRETTY_FUNCTION__, x, y, dz, dw, aButtonState));
 
+    DisplayMouseInterface *pDisplay = mParent->i_getDisplayMouseInterface();
+    ComAssertRet(pDisplay, E_FAIL);
     int32_t xAdj, yAdj;
     uint32_t fButtonsAdj;
     bool fValid;
 
+    /* If we are doing old-style (IRQ-less) absolute reporting to the VMM
+     * device then make sure the guest is aware of it, so that it knows to
+     * ignore relative movement on the PS/2 device. */
+    i_updateVMMDevMouseCaps(VMMDEV_MOUSE_HOST_WANTS_ABSOLUTE, 0);
+    /* Detect out-of-range. */
+    if (x == 0x7FFFFFFF && y == 0x7FFFFFFF)
+    {
+        pDisplay->i_reportHostCursorPosition(0, 0, true);
+        return S_OK;
+    }
+    /* Detect "report-only" (-1, -1).  This is not ideal, as in theory the
+     * front-end could be sending negative values relative to the primary
+     * screen. */
+    if (x == -1 && y == -1)
+        return S_OK;
     /** @todo the front end should do this conversion to avoid races */
     /** @note Or maybe not... races are pretty inherent in everything done in
      *        this object and not really bad as far as I can see. */
@@ -862,10 +877,6 @@ HRESULT Mouse::putMouseEventAbsolute(LONG x, LONG y, LONG dz, LONG dw,
     if (FAILED(rc)) return rc;
 
     fButtonsAdj = i_mouseButtonsToPDM(aButtonState);
-    /* If we are doing old-style (IRQ-less) absolute reporting to the VMM
-     * device then make sure the guest is aware of it, so that it knows to
-     * ignore relative movement on the PS/2 device. */
-    i_updateVMMDevMouseCaps(VMMDEV_MOUSE_HOST_WANTS_ABSOLUTE, 0);
     if (fValid)
     {
         rc = i_reportAbsEventToInputDevices(xAdj, yAdj, dz, dw, fButtonsAdj,

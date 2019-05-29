@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -14,8 +14,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___winnt_include_VBoxDisplay_h___
-#define ___winnt_include_VBoxDisplay_h___
+#ifndef GA_INCLUDED_WINNT_VBoxDisplay_h
+#define GA_INCLUDED_WINNT_VBoxDisplay_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/types.h>
 #include <iprt/assert.h>
@@ -119,5 +122,5 @@ typedef struct VBOXDISPIFESCAPE_TARGETCONNECTIVITY
 
 #endif /* VBOX_WITH_WDDM */
 
-#endif
+#endif /* !GA_INCLUDED_WINNT_VBoxDisplay_h */
 

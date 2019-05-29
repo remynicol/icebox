@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -32,6 +32,7 @@
 
 #include <iprt/assert.h>
 #include <iprt/ctype.h>
+#include <iprt/err.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
 
@@ -444,7 +445,7 @@ static int rtUriParse(const char *pszUri, PRTURIPARSED pParsed)
     {
         off += 2;
         pParsed->offAuthority = pParsed->offAuthorityUsername = pParsed->offAuthorityPassword = pParsed->offAuthorityHost = off;
-        pParsed->fFlags |= RTURIPARSED_F_HAVE_AUTHORITY;
+        pParsed->fFlags |= RTURIPARSED_F_HAS_AUTHORITY;
 
         /*
          * RFC-3986, section 3.2:
@@ -495,19 +496,22 @@ static int rtUriParse(const char *pszUri, PRTURIPARSED pParsed)
             {
                 size_t cchTmp = &pszUri[pParsed->offAuthorityHost + pParsed->cchAuthorityHost] - &pszColon[1];
                 pParsed->cchAuthorityHost -= cchTmp + 1;
-
-                pParsed->uAuthorityPort = 0;
-                while (cchTmp-- > 0)
+                pParsed->fFlags |= RTURIPARSED_F_HAS_PORT;
+                if (cchTmp > 0)
                 {
-                    ch = *++pszColon;
-                    if (   RT_C_IS_DIGIT(ch)
-                        && pParsed->uAuthorityPort < UINT32_MAX / UINT32_C(10))
+                    pParsed->uAuthorityPort = 0;
+                    while (cchTmp-- > 0)
                     {
-                        pParsed->uAuthorityPort *= 10;
-                        pParsed->uAuthorityPort += ch - '0';
+                        ch = *++pszColon;
+                        if (   RT_C_IS_DIGIT(ch)
+                            && pParsed->uAuthorityPort < UINT32_MAX / UINT32_C(10))
+                        {
+                            pParsed->uAuthorityPort *= 10;
+                            pParsed->uAuthorityPort += ch - '0';
+                        }
+                        else
+                            return VERR_URI_INVALID_PORT_NUMBER;
                     }
-                    else
-                        return VERR_URI_INVALID_PORT_NUMBER;
                 }
             }
         }
@@ -677,7 +681,7 @@ RTDECL(char *) RTUriParsedAuthority(const char *pszUri, PCRTURIPARSED pParsed)
     AssertPtrReturn(pszUri, NULL);
     AssertPtrReturn(pParsed, NULL);
     AssertReturn(pParsed->u32Magic == RTURIPARSED_MAGIC, NULL);
-    if (pParsed->cchAuthority || (pParsed->fFlags & RTURIPARSED_F_HAVE_AUTHORITY))
+    if (pParsed->cchAuthority || (pParsed->fFlags & RTURIPARSED_F_HAS_AUTHORITY))
         return rtUriPercentDecodeN(&pszUri[pParsed->offAuthority], pParsed->cchAuthority);
     return NULL;
 }
@@ -875,12 +879,16 @@ RTDECL(int) RTUriFileCreateEx(const char *pszPath, uint32_t fPathStyle, char **p
      * Let the RTPath code parse the stuff (no reason to duplicate path parsing
      * and get it slightly wrong here).
      */
-    RTPATHPARSED ParsedPath;
-    int rc = RTPathParse(pszPath, &ParsedPath, sizeof(ParsedPath), fPathStyle);
+    union
+    {
+        RTPATHPARSED ParsedPath;
+        uint8_t      abPadding[sizeof(RTPATHPARSED)];
+    } u;
+    int rc = RTPathParse(pszPath, &u.ParsedPath, sizeof(u.ParsedPath), fPathStyle);
     if (RT_SUCCESS(rc) || rc == VERR_BUFFER_OVERFLOW)
     {
         /* Skip leading slashes. */
-        if (ParsedPath.fProps & RTPATH_PROP_ROOT_SLASH)
+        if (u.ParsedPath.fProps & RTPATH_PROP_ROOT_SLASH)
         {
             if (fPathStyle == RTPATH_STR_F_STYLE_DOS)
                 while (pszPath[0] == '/' || pszPath[0] == '\\')
@@ -895,7 +903,7 @@ RTDECL(int) RTUriFileCreateEx(const char *pszPath, uint32_t fPathStyle, char **p
          * Calculate the encoded length and figure destination buffering.
          */
         static const char s_szPrefix[] = "file:///";
-        size_t const      cchPrefix    = sizeof(s_szPrefix) - (ParsedPath.fProps & RTPATH_PROP_UNC ? 2 : 1);
+        size_t const      cchPrefix    = sizeof(s_szPrefix) - (u.ParsedPath.fProps & RTPATH_PROP_UNC ? 2 : 1);
         size_t cchEncoded = rtUriCalcEncodedLength(pszPath, cchPath, fPathStyle != RTPATH_STR_F_STYLE_DOS);
 
         if (pcchUri)

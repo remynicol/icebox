@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (C) 2015-2017 Oracle Corporation
+# Copyright (C) 2015-2019 Oracle Corporation
 #
 # This file is part of VirtualBox Open Source Edition (OSE), as
 # available from http://www.virtualbox.org. This file is free software;
@@ -66,5 +66,6 @@ remove_init_script vboxdrv
 stop_init_script vboxnet >/dev/null 2>&1
 delrunlevel vboxnet >/dev/null 2>&1
 remove_init_script vboxnet >/dev/null 2>&1
+finish_init_script_install
 rm -f /sbin/vboxconfig
 exit 0

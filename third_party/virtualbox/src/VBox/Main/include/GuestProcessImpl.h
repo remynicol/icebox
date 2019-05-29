@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ____H_GUESTPROCESSIMPL
-#define ____H_GUESTPROCESSIMPL
+#ifndef MAIN_INCLUDED_GuestProcessImpl_h
+#define MAIN_INCLUDED_GuestProcessImpl_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include "GuestCtrlImplPrivate.h"
 #include "GuestProcessWrap.h"
@@ -39,7 +42,7 @@ public:
      * @{ */
     DECLARE_EMPTY_CTOR_DTOR(GuestProcess)
 
-    int     init(Console *aConsole, GuestSession *aSession, ULONG aProcessID,
+    int     init(Console *aConsole, GuestSession *aSession, ULONG aObjectID,
                  const GuestProcessStartupInfo &aProcInfo, const GuestEnvironment *pBaseEnv);
     void    uninit(void);
     HRESULT FinalConstruct(void);
@@ -47,11 +50,17 @@ public:
     /** @}  */
 
 public:
-    /** @name Public internal methods.
+    /** @name Implemented virtual methods from GuestObject.
      * @{ */
     int i_callbackDispatcher(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCb);
+    int i_onUnregister(void);
+    int i_onSessionStatusChange(GuestSessionStatus_T enmSessionStatus);
+    /** @}  */
+
+public:
+    /** @name Public internal methods.
+     * @{ */
     inline int i_checkPID(uint32_t uPID);
-    int i_onRemove(void);
     int i_readData(uint32_t uHandle, uint32_t uSize, uint32_t uTimeoutMS, void *pvData, size_t cbData, uint32_t *pcbRead, int *pGuestRc);
     int i_startProcess(uint32_t cMsTimeout, int *pGuestRc);
     int i_startProcessInner(uint32_t cMsTimeout, AutoWriteLock &rLock, GuestWaitEvent *pEvent, int *pGuestRc);
@@ -71,7 +80,7 @@ public:
     static bool i_isGuestError(int guestRc);
     static HRESULT i_setErrorExternal(VirtualBoxBase *pInterface, int guestRc);
     static ProcessWaitResult_T i_waitFlagsToResultEx(uint32_t fWaitFlags, ProcessStatus_T oldStatus, ProcessStatus_T newStatus, uint32_t uProcFlags, uint32_t uProtocol);
-    static bool i_waitResultImpliesEx(ProcessWaitResult_T waitResult, ProcessStatus_T procStatus, uint32_t uProcFlags, uint32_t uProtocol);
+    static bool i_waitResultImpliesEx(ProcessWaitResult_T waitResult, ProcessStatus_T procStatus, uint32_t uProtocol);
     /** @}  */
 
 protected:
@@ -86,7 +95,7 @@ protected:
     int i_onProcessOutput(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData);
     int i_prepareExecuteEnv(const char *pszEnv, void **ppvList, ULONG *pcbList, ULONG *pcEnvVars);
     int i_setProcessStatus(ProcessStatus_T procStatus, int procRc);
-    static void i_startProcessThreadTask(GuestProcessStartTask *pTask);
+    static int i_startProcessThreadTask(GuestProcessStartTask *pTask);
     /** @}  */
 
 private:
@@ -146,7 +155,8 @@ private:
         GuestEnvironment const  *mpSessionBaseEnv;
         /** Exit code if process has been terminated. */
         LONG                     mExitCode;
-        /** PID reported from the guest. */
+        /** PID reported from the guest.
+         *  Note: This is *not* the internal object ID! */
         ULONG                    mPID;
         /** The current process status. */
         ProcessStatus_T          mStatus;
@@ -170,16 +180,16 @@ private:
 };
 
 /**
- * Guest process tool flags.
+ * Guest process tool wait flags.
  */
-/** No flags specified; wait until process terminates.
+/** No wait flags specified; wait until process terminates.
  *  The maximum waiting time is set in the process' startup
  *  info. */
-#define GUESTPROCESSTOOL_FLAG_NONE            0
+#define GUESTPROCESSTOOL_WAIT_FLAG_NONE            0
 /** Wait until next stream block from stdout has been
  *  read in completely, then return.
  */
-#define GUESTPROCESSTOOL_FLAG_STDOUT_BLOCK    RT_BIT(0)
+#define GUESTPROCESSTOOL_WAIT_FLAG_STDOUT_BLOCK    RT_BIT(0)
 
 /**
  * Structure for keeping a VBoxService toolbox tool's error info around.
@@ -187,7 +197,7 @@ private:
 struct GuestProcessToolErrorInfo
 {
     /** Return code from the guest side for executing the process tool. */
-    int  guestRc;
+    int     rcGuest;
     /** The process tool's returned exit code. */
     int32_t iExitCode;
 };
@@ -212,51 +222,65 @@ public:
 
 public:
 
-    int Init(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, bool fAsync, int *pGuestRc);
+    int init(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, bool fAsync, int *pGuestRc);
 
-    int i_getCurrentBlock(uint32_t uHandle, GuestProcessStreamBlock &strmBlock);
+    void uninit(void);
 
-    int i_getRc(void) const;
+    int getCurrentBlock(uint32_t uHandle, GuestProcessStreamBlock &strmBlock);
 
-    GuestProcessStream &i_getStdOut(void) { return mStdOut; }
+    int getRc(void) const;
 
-    GuestProcessStream &i_getStdErr(void) { return mStdErr; }
+    GuestProcessStream &getStdOut(void) { return mStdOut; }
 
-    int i_wait(uint32_t fFlags, int *pGuestRc);
+    GuestProcessStream &getStdErr(void) { return mStdErr; }
 
-    int i_waitEx(uint32_t fFlags, GuestProcessStreamBlock *pStreamBlock, int *pGuestRc);
+    int wait(uint32_t fToolWaitFlags, int *pGuestRc);
 
-    bool i_isRunning(void);
+    int waitEx(uint32_t fToolWaitFlags, GuestProcessStreamBlock *pStreamBlock, int *pGuestRc);
 
-    int i_terminatedOk(int32_t *piExitCode = NULL);
+    bool isRunning(void);
 
-    int i_terminate(uint32_t uTimeoutMS, int *pGuestRc);
+    bool isTerminatedOk(void);
+
+    int getTerminationStatus(int32_t *piExitCode = NULL);
+
+    int terminate(uint32_t uTimeoutMS, int *pGuestRc);
 
 public:
 
-    static int i_run(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, int *pGuestRc);
+    /** Wrapped @name Static run methods.
+     * @{ */
+    static int run(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, int *pGuestRc);
 
-    static int i_runErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, GuestProcessToolErrorInfo &errorInfo);
+    static int runErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, GuestProcessToolErrorInfo &errorInfo);
 
-    static int i_runEx(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
-                       GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, int *pGuestRc);
+    static int runEx(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
+                     GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, int *pGuestRc);
 
-    static int i_runExErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
-                                GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, GuestProcessToolErrorInfo &errorInfo);
+    static int runExErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
+                              GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, GuestProcessToolErrorInfo &errorInfo);
+    /** @}  */
 
-    static int i_exitCodeToRc(const GuestProcessStartupInfo &startupInfo, int32_t iExitCode);
+    /** Wrapped @name Static exit code conversion methods.
+     * @{ */
+    static int exitCodeToRc(const GuestProcessStartupInfo &startupInfo, int32_t iExitCode);
 
-    static int i_exitCodeToRc(const char *pszTool, int32_t iExitCode);
+    static int exitCodeToRc(const char *pszTool, int32_t iExitCode);
+    /** @}  */
 
 protected:
 
+    /** Pointer to session this toolbox object is bound to. */
     ComObjPtr<GuestSession>     pSession;
+    /** Pointer to process object this toolbox object is bound to. */
     ComObjPtr<GuestProcess>     pProcess;
+    /** The toolbox' startup info. */
     GuestProcessStartupInfo     mStartupInfo;
+    /** Stream object for handling the toolbox' stdout data. */
     GuestProcessStream          mStdOut;
+    /** Stream object for handling the toolbox' stderr data. */
     GuestProcessStream          mStdErr;
-
 };
 
-#endif /* !____H_GUESTPROCESSIMPL */
+#endif /* !MAIN_INCLUDED_GuestProcessImpl_h */
 

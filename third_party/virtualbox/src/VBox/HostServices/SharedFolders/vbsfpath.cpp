@@ -1,10 +1,10 @@
 /* $Id: vbsfpath.cpp $ */
 /** @file
- * Shared Folders - guest/host path convertion and verification.
+ * Shared Folders Service - guest/host path convertion and verification.
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,6 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
+#define LOG_GROUP LOG_GROUP_SHARED_FOLDERS
 #ifdef UNITTEST
 # include "testcase/tstSharedFolderService.h"
 #endif
@@ -43,7 +48,12 @@
 # include "teststubs.h"
 #endif
 
+
+/*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
 #define SHFL_RT_LINK(pClient) ((pClient)->fu32Flags & SHFL_CF_SYMLINKS ? RTPATH_F_ON_LINK : RTPATH_F_FOLLOW_LINK)
+
 
 /**
  * @todo find a better solution for supporting the execute bit for non-windows
@@ -323,7 +333,7 @@ static int vbsfCorrectPathCasing(SHFLCLIENTDATA *pClient, char *pszFullPath, siz
  * @param ppwszDst Where to store the pointer to the resulting normalized string.
  * @param pcwcDst  Where to store length of the normalized string in characters (without the trailing nul).
  */
-static int vbsfNormalizeStringDarwin(const PRTUTF16 pwszSrc, uint32_t cwcSrc, PRTUTF16 *ppwszDst, uint32_t *pcwcDst)
+static int vbsfNormalizeStringDarwin(PCRTUTF16 pwszSrc, uint32_t cwcSrc, PRTUTF16 *ppwszDst, uint32_t *pcwcDst)
 {
     /** @todo This belongs in rtPathToNative or in the windows shared folder file system driver...
      * The question is simply whether the NFD normalization is actually applied on a (virtual) file
@@ -418,7 +428,7 @@ static bool vbsfPathIsWildcardChar(char c)
 }
 
 int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
-                        PSHFLSTRING pGuestString, uint32_t cbGuestString,
+                        PCSHFLSTRING pGuestString, uint32_t cbGuestString,
                         char **ppszHostPath, uint32_t *pcbHostPathRoot,
                         uint32_t fu32Options,
                         uint32_t *pfu32PathFlags)
@@ -461,23 +471,21 @@ int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
     {
         /* UTF-8 */
         cbGuestPath = pGuestString->u16Length;
-        pchGuestPath = (char *)&pGuestString->String.utf8[0];
+        pchGuestPath = pGuestString->String.ach;
     }
     else
     {
         /* UTF-16 */
-        uint32_t cwcSrc;
-        PRTUTF16 pwszSrc;
 
 #ifdef RT_OS_DARWIN /* Misplaced hack! See todo! */
-        cwcSrc = 0;
-        pwszSrc = NULL;
+        uint32_t cwcSrc  = 0;
+        PRTUTF16 pwszSrc = NULL;
         rc = vbsfNormalizeStringDarwin(&pGuestString->String.ucs2[0],
                                        pGuestString->u16Length / sizeof(RTUTF16),
                                        &pwszSrc, &cwcSrc);
 #else
-        cwcSrc  = pGuestString->u16Length / sizeof(RTUTF16);
-        pwszSrc = &pGuestString->String.ucs2[0];
+        uint32_t  const cwcSrc  = pGuestString->u16Length / sizeof(RTUTF16);
+        PCRTUTF16 const pwszSrc = &pGuestString->String.ucs2[0];
 #endif
 
         if (RT_SUCCESS(rc))
@@ -688,3 +696,4 @@ void vbsfFreeHostPath(char *pszHostPath)
 {
     RTMemFree(pszHostPath);
 }
+

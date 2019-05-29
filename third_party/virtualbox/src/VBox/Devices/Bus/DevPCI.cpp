@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -151,7 +151,7 @@ static int pci_data_write(PDEVPCIROOT pGlobals, uint32_t addr, uint32_t val, int
         {
 #ifdef IN_RING3
             LogFunc(("%s: addr=%02x val=%08x len=%d\n", pci_dev->pszNameR3, config_addr, val, len));
-            pci_dev->Int.s.pfnConfigWrite(pci_dev->Int.s.CTX_SUFF(pDevIns), pci_dev, config_addr, val, len);
+            return VBOXSTRICTRC_TODO(pci_dev->Int.s.pfnConfigWrite(pci_dev->Int.s.CTX_SUFF(pDevIns), pci_dev, config_addr, val, len));
 #else
             return VINF_IOM_R3_IOPORT_WRITE;
 #endif
@@ -473,8 +473,8 @@ static void pci_bios_init_device(PDEVPCIROOT pGlobals, PDEVPCIBUS pBus, PPDMPCID
                     && (device_id == 0x7010 || device_id == 0x7111 || device_id == 0x269e))
                 {
                     /* PIIX3, PIIX4 or ICH6 IDE */
-                    devpciR3SetWord(pPciDev, 0x40, 0x8000); /* enable IDE0 */
-                    devpciR3SetWord(pPciDev, 0x42, 0x8000); /* enable IDE1 */
+                    devpciR3SetWord(pPciDev, 0x40, 0x8011); /* enable IDE0 + fast timing */
+                    devpciR3SetWord(pPciDev, 0x42, 0x8011); /* enable IDE1 + fast timing  */
                     goto default_map;
                 }
                 else
@@ -490,6 +490,7 @@ static void pci_bios_init_device(PDEVPCIROOT pGlobals, PDEVPCIBUS pBus, PPDMPCID
                 }
                 break;
             case 0x0300:
+            {
                 if (vendor_id != 0x80ee)
                     goto default_map;
                 /* VGA: map frame buffer to default Bochs VBE address */
@@ -503,6 +504,7 @@ static void pci_bios_init_device(PDEVPCIROOT pGlobals, PDEVPCIBUS pBus, PPDMPCID
                                   devpciR3GetWord(pPciDev, PCI_COMMAND)
                                 | PCI_COMMAND_IOACCESS | PCI_COMMAND_MEMACCESS);
                 break;
+            }
             case 0x0800:
                 /* PIC */
                 vendor_id = devpciR3GetWord(pPciDev, PCI_VENDOR_ID);
@@ -728,7 +730,7 @@ static int pciR3FakePCIBIOS(PPDMDEVINS pDevIns)
     uint64_t const  cbAbove4GB = MMR3PhysGetRamSizeAbove4GB(pVM);
     RT_NOREF(cbBelow4GB, cbAbove4GB);
 
-    LogRel(("PCI: setting up resources and interrupts\n"));
+    LogRel(("PCI: Setting up resources and interrupts\n"));
 
     /*
      * Set the start addresses.
@@ -1513,6 +1515,7 @@ static DECLCALLBACK(void) pcibridgeR3ConfigWrite(PPDMDEVINSR3 pDevIns, uint8_t i
         if (pPciDev)
         {
             LogFunc(("%s: addr=%02x val=%08x len=%d\n", pPciDev->pszNameR3, u32Address, u32Value, cb));
+            /** @todo return rc   */
             pPciDev->Int.s.pfnConfigWrite(pPciDev->Int.s.CTX_SUFF(pDevIns), pPciDev, u32Address, u32Value, cb);
         }
     }

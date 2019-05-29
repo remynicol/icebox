@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -47,7 +47,7 @@ static int vboxUhgsmiBaseEventChkCreate(VBOXUHGSMI_BUFFER_TYPE_FLAGS fUhgsmiType
 {
     *phSynch = NULL;
 
-    if (fUhgsmiType.fCommand)
+    if (fUhgsmiType.s.fCommand)
     {
         *phSynch = CreateEvent(
                   NULL, /* LPSECURITY_ATTRIBUTES lpEventAttributes */
@@ -185,7 +185,7 @@ DECLCALLBACK(int) vboxUhgsmiBaseEscBufferSubmit(PVBOXUHGSMI pHgsmi, PVBOXUHGSMI_
         PVBOXUHGSMI_BUFFER_SUBMIT pBufInfo = &aBuffers[i];
         PVBOXUHGSMI_BUFFER_PRIVATE_ESC_BASE pBuf = VBOXUHGSMIESCBASE_GET_BUFFER(pBufInfo->pBuf);
         pSubmInfo->hAlloc = pBuf->Alloc.hAlloc;
-        if (pBufInfo->fFlags.bEntireBuffer)
+        if (pBufInfo->fFlags.s.fEntireBuffer)
         {
             pSubmInfo->Info.offData = 0;
             pSubmInfo->Info.cbData = pBuf->BasePrivate.Base.cbBuffer;

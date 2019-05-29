@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -839,12 +839,13 @@ RTDECL(int) RTBigNumDestroy(PRTBIGNUM pBigNum)
         if (pBigNum->pauElements)
         {
             Assert(pBigNum->cAllocated > 0);
-            if (pBigNum->fSensitive)
+            if (!pBigNum->fSensitive)
+                RTMemFree(pBigNum->pauElements);
+            else
             {
                 RTMemSaferFree(pBigNum->pauElements, pBigNum->cAllocated * RTBIGNUM_ELEMENT_SIZE);
                 RT_ZERO(*pBigNum);
             }
-            RTMemFree(pBigNum->pauElements);
             pBigNum->pauElements = NULL;
         }
     }
@@ -2230,7 +2231,7 @@ static int rtBigNumMagnitudeDivideKnuth(PRTBIGNUM pQuotient, PRTBIGNUM pRemainde
      * Delete temporary variables.
      */
     RTBigNumDestroy(&NormDividend);
-    if (pDivisor == &NormDivisor)
+    if (pNormDivisor == &NormDivisor)
         RTBigNumDestroy(&NormDivisor);
     return rc;
 }
@@ -2663,6 +2664,8 @@ static int rtBigNumMagnitudeExponentiate(PRTBIGNUM pResult, PCRTBIGNUM pBase, PC
                     if (RT_FAILURE(rc))
                         break;
                 }
+
+                RTBigNumDestroy(&TmpMultiplicand);
             }
         }
         RTBigNumDestroy(&Pow2);

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Oracle Corporation
+ * Copyright (C) 2013-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -32,7 +32,6 @@ using namespace DragAndDropSvc;
 
 #include <iprt/asm.h>
 #include <iprt/assert.h>
-#include <iprt/err.h>
 #include <iprt/ldr.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
@@ -42,6 +41,7 @@ using namespace DragAndDropSvc;
 
 #include <iprt/cpp/mtlist.h>
 
+#include <VBox/err.h>
 #include <VBox/log.h>
 
 
@@ -93,7 +93,7 @@ VBoxDnDWnd::VBoxDnDWnd(void)
     : hThread(NIL_RTTHREAD),
       mEventSem(NIL_RTSEMEVENT),
       hWnd(NULL),
-      uAllActions(DND_IGNORE_ACTION),
+      dndLstActionsAllowed(VBOX_DND_ACTION_IGNORE),
       mfMouseButtonDown(false),
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
       pDropTarget(NULL),
@@ -141,7 +141,13 @@ int VBoxDnDWnd::Initialize(PVBOXDNDCONTEXT pCtx)
                             0, RTTHREADTYPE_MSG_PUMP, RTTHREADFLAGS_WAITABLE,
                             "dndwnd"); /** @todo Include ID if there's more than one proxy window. */
         if (RT_SUCCESS(rc))
-            rc = RTThreadUserWait(hThread, 30 * 1000 /* Timeout in ms */);
+        {
+            int rc2 = RTThreadUserWait(hThread, 30 * 1000 /* Timeout in ms */);
+            AssertRC(rc2);
+
+            if (!pCtx->fStarted) /* Did the thread fail to start? */
+                rc = VERR_GENERAL_FAILURE; /** @todo Find a better rc. */
+        }
     }
 
     if (RT_FAILURE(rc))
@@ -166,7 +172,7 @@ void VBoxDnDWnd::Destroy(void)
         NOREF(rc);
     }
 
-    reset();
+    Reset();
 
     RTCritSectDelete(&mCritSect);
     if (mEventSem != NIL_RTSEMEVENT)
@@ -289,8 +295,6 @@ int VBoxDnDWnd::Thread(RTTHREAD hThread, void *pvUser)
     {
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
         rc = pThis->RegisterAsDropTarget();
-#else
-        rc = VINF_SUCCESS;
 #endif
     }
     else
@@ -299,13 +303,14 @@ int VBoxDnDWnd::Thread(RTTHREAD hThread, void *pvUser)
         rc = VERR_COM_UNEXPECTED;
     }
 
-    bool fSignalled = false;
+    if (RT_SUCCESS(rc))
+        pCtx->fStarted = true; /* Set started indicator on success. */
+
+    int rc2 = RTThreadUserSignal(hThread);
+    bool fSignalled = RT_SUCCESS(rc2);
 
     if (RT_SUCCESS(rc))
     {
-        rc = RTThreadUserSignal(hThread);
-        fSignalled = RT_SUCCESS(rc);
-
         bool fShutdown = false;
         for (;;)
         {
@@ -331,7 +336,7 @@ int VBoxDnDWnd::Thread(RTTHREAD hThread, void *pvUser)
         }
 
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
-        int rc2 = pThis->UnregisterAsDropTarget();
+        rc2 = pThis->UnregisterAsDropTarget();
         if (RT_SUCCESS(rc))
             rc = rc2;
 #endif
@@ -340,7 +345,7 @@ int VBoxDnDWnd::Thread(RTTHREAD hThread, void *pvUser)
 
     if (!fSignalled)
     {
-        int rc2 = RTThreadUserSignal(hThread);
+        rc2 = RTThreadUserSignal(hThread);
         AssertRC(rc2);
     }
 
@@ -395,11 +400,12 @@ LRESULT CALLBACK VBoxDnDWnd::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
         case WM_CREATE:
         {
             int rc = OnCreate();
-            /** @todo r=bird: MSDN says this returns 0 on success and -1 on failure, not
-             *        TRUE/FALSE... */
             if (RT_FAILURE(rc))
-                return FALSE;
-            return TRUE;
+            {
+                LogRel(("DnD: Failed to create proxy window, rc=%Rrc\n", rc));
+                return -1;
+            }
+            return 0;
         }
 
         case WM_QUIT:
@@ -434,7 +440,7 @@ LRESULT CALLBACK VBoxDnDWnd::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
              * - the user bumped a guest window to the screen's edges
              * - there was no drop data from the guest available and the user
              *   enters the guest screen again after this unsuccessful operation */
-            reset();
+            Reset();
             return 0;
         }
 
@@ -468,10 +474,10 @@ LRESULT CALLBACK VBoxDnDWnd::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
                      * whether the desired range is covered correctly. */
                     RTThreadSleep(5000);
 #endif
-                    hide();
+                    Hide();
 
-                    LogFlowThisFunc(("Starting drag and drop: uAllActions=0x%x, dwOKEffects=0x%x ...\n",
-                                     uAllActions, startupInfo.dwOKEffects));
+                    LogFlowThisFunc(("Starting drag and drop: dndLstActionsAllowed=0x%x, dwOKEffects=0x%x ...\n",
+                                     dndLstActionsAllowed, startupInfo.dwOKEffects));
 
                     AssertPtr(startupInfo.pDataObject);
                     AssertPtr(startupInfo.pDropSource);
@@ -536,149 +542,121 @@ LRESULT CALLBACK VBoxDnDWnd::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 
         case WM_VBOXTRAY_DND_MESSAGE:
         {
-            VBOXDNDEVENT *pEvent = (PVBOXDNDEVENT)lParam;
+            PVBOXDNDEVENT pEvent = (PVBOXDNDEVENT)lParam;
             if (!pEvent)
                 break; /* No event received, bail out. */
 
-            LogFlowThisFunc(("Received uType=%RU32, uScreenID=%RU32\n",
-                         pEvent->Event.uType, pEvent->Event.uScreenId));
+            PVBGLR3DNDEVENT pVbglR3Event = pEvent->pVbglR3Event;
+            AssertPtrBreak(pVbglR3Event);
+
+            LogFlowThisFunc(("Received enmType=%RU32\n", pVbglR3Event->enmType));
 
             int rc;
-            switch (pEvent->Event.uType)
+            switch (pVbglR3Event->enmType)
             {
-                case HOST_DND_HG_EVT_ENTER:
+                case VBGLR3DNDEVENTTYPE_HG_ENTER:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_EVT_ENTER\n"));
-
-                    if (pEvent->Event.cbFormats)
+                    if (pVbglR3Event->u.HG_Enter.cbFormats)
                     {
                         RTCList<RTCString> lstFormats =
-                            RTCString(pEvent->Event.pszFormats, pEvent->Event.cbFormats - 1).split("\r\n");
-                        rc = OnHgEnter(lstFormats, pEvent->Event.u.a.uAllActions);
+                            RTCString(pVbglR3Event->u.HG_Enter.pszFormats, pVbglR3Event->u.HG_Enter.cbFormats - 1).split("\r\n");
+                        rc = OnHgEnter(lstFormats, pVbglR3Event->u.HG_Enter.dndLstActionsAllowed);
+                        if (RT_FAILURE(rc))
+                            break;
                     }
                     else
                     {
                         AssertMsgFailed(("cbFormats is 0\n"));
                         rc = VERR_INVALID_PARAMETER;
+                        break;
                     }
 
                     /* Note: After HOST_DND_HG_EVT_ENTER there immediately is a move
                      *       event, so fall through is intentional here. */
+                    RT_FALL_THROUGH();
                 }
 
-                case HOST_DND_HG_EVT_MOVE:
+                case VBGLR3DNDEVENTTYPE_HG_MOVE:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_EVT_MOVE: %d,%d\n",
-                                     pEvent->Event.u.a.uXpos, pEvent->Event.u.a.uYpos));
-
-                    rc = OnHgMove(pEvent->Event.u.a.uXpos, pEvent->Event.u.a.uYpos,
-                                  pEvent->Event.u.a.uDefAction);
+                    rc = OnHgMove(pVbglR3Event->u.HG_Move.uXpos, pVbglR3Event->u.HG_Move.uYpos,
+                                  pVbglR3Event->u.HG_Move.dndActionDefault);
                     break;
                 }
 
-                case HOST_DND_HG_EVT_LEAVE:
+                case VBGLR3DNDEVENTTYPE_HG_LEAVE:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_EVT_LEAVE\n"));
-
                     rc = OnHgLeave();
                     break;
                 }
 
-                case HOST_DND_HG_EVT_DROPPED:
+                case VBGLR3DNDEVENTTYPE_HG_DROP:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_EVT_DROPPED\n"));
-
                     rc = OnHgDrop();
                     break;
                 }
 
-                case HOST_DND_HG_SND_DATA:
-                    /* Protocol v1 + v2: Also contains the header data.
-                    /* Note: Fall through is intentional. */
-                case HOST_DND_HG_SND_DATA_HDR:
+                /**
+                 * The data header now will contain all the (meta) data the guest needs in
+                 * order to complete the DnD operation.
+                 */
+                case VBGLR3DNDEVENTTYPE_HG_RECEIVE:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_SND_DATA\n"));
-
-                    rc = OnHgDataReceived(pEvent->Event.u.b.pvData,
-                                          pEvent->Event.u.b.cbData);
+                    rc = OnHgDataReceive(&pVbglR3Event->u.HG_Received.Meta);
                     break;
                 }
 
-                case HOST_DND_HG_EVT_CANCEL:
+                case VBGLR3DNDEVENTTYPE_HG_CANCEL:
                 {
-                    LogFlowThisFunc(("HOST_DND_HG_EVT_CANCEL\n"));
-
                     rc = OnHgCancel();
                     break;
                 }
 
-                case HOST_DND_GH_REQ_PENDING:
-                {
-                    LogFlowThisFunc(("HOST_DND_GH_REQ_PENDING\n"));
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
-                    rc = OnGhIsDnDPending(pEvent->Event.uScreenId);
-
-#else
-                    rc = VERR_NOT_SUPPORTED;
-#endif
+                case VBGLR3DNDEVENTTYPE_GH_ERROR:
+                {
+                    Reset();
+                    rc = VINF_SUCCESS;
                     break;
                 }
 
-                case HOST_DND_GH_EVT_DROPPED:
+                case VBGLR3DNDEVENTTYPE_GH_REQ_PENDING:
                 {
-                    LogFlowThisFunc(("HOST_DND_GH_EVT_DROPPED\n"));
-#ifdef VBOX_WITH_DRAG_AND_DROP_GH
-                    rc = OnGhDropped(pEvent->Event.pszFormats,
-                                     pEvent->Event.cbFormats,
-                                     pEvent->Event.u.a.uDefAction);
-#else
-                    rc = VERR_NOT_SUPPORTED;
-#endif
+                    rc = OnGhIsDnDPending();
                     break;
                 }
 
+                case VBGLR3DNDEVENTTYPE_GH_DROP:
+                {
+                    rc = OnGhDrop(pVbglR3Event->u.GH_Drop.pszFormat, pVbglR3Event->u.GH_Drop.dndActionRequested);
+                    break;
+                }
+#endif
                 default:
+                {
+                    LogRel(("DnD: Received unsupported message '%RU32'\n", pVbglR3Event->enmType));
                     rc = VERR_NOT_SUPPORTED;
                     break;
+                }
             }
 
-            /* Some messages require cleanup. */
-            switch (pEvent->Event.uType)
+            LogFlowFunc(("Message %RU32 processed with %Rrc\n", pVbglR3Event->enmType, rc));
+            if (RT_FAILURE(rc))
             {
-                case HOST_DND_HG_EVT_ENTER:
-                case HOST_DND_HG_EVT_MOVE:
-                case HOST_DND_HG_EVT_DROPPED:
-#ifdef VBOX_WITH_DRAG_AND_DROP_GH
-                case HOST_DND_GH_EVT_DROPPED:
-#endif
-                {
-                    if (pEvent->Event.pszFormats)
-                        RTMemFree(pEvent->Event.pszFormats);
-                    break;
-                }
+                /* Tell the user. */
+                LogRel(("DnD: Processing message %RU32 failed with %Rrc\n", pVbglR3Event->enmType, rc));
 
-                case HOST_DND_HG_SND_DATA:
-                case HOST_DND_HG_SND_DATA_HDR:
-                {
-                    if (pEvent->Event.pszFormats)
-                        RTMemFree(pEvent->Event.pszFormats);
-                    if (pEvent->Event.u.b.pvData)
-                        RTMemFree(pEvent->Event.u.b.pvData);
-                    break;
-                }
-
-                default:
-                    /* Ignore. */
-                    break;
+                /* If anything went wrong, do a reset and start over. */
+                Reset();
             }
 
             if (pEvent)
             {
-                LogFlowThisFunc(("Processing event %RU32 resulted in rc=%Rrc\n",
-                                 pEvent->Event.uType, rc));
+                VbglR3DnDEventFree(pEvent->pVbglR3Event);
+                pEvent->pVbglR3Event = NULL;
 
                 RTMemFree(pEvent);
             }
+
             return 0;
         }
 
@@ -770,7 +748,7 @@ int VBoxDnDWnd::OnCreate(void)
     int rc = VbglR3DnDConnect(&mDnDCtx);
     if (RT_FAILURE(rc))
     {
-        LogFlowThisFunc(("Connection to host service failed, rc=%Rrc\n", rc));
+        LogRel(("DnD: Connection to host service failed, rc=%Rrc\n", rc));
         return rc;
     }
 
@@ -790,26 +768,54 @@ void VBoxDnDWnd::OnDestroy(void)
 }
 
 /**
+ * Aborts an in-flight DnD operation on the guest.
+ *
+ * @return  VBox status code.
+ */
+int VBoxDnDWnd::Abort(void)
+{
+    LogFlowThisFunc(("mMode=%ld, mState=%RU32\n", mMode, mState));
+    LogRel(("DnD: Drag and drop operation aborted\n"));
+
+    int rc = RTCritSectEnter(&mCritSect);
+    if (RT_SUCCESS(rc))
+    {
+        if (startupInfo.pDataObject)
+            startupInfo.pDataObject->Abort();
+
+        RTCritSectLeave(&mCritSect);
+    }
+
+    /* Post ESC to our window to officially abort the
+     * drag and drop operation. */
+    this->PostMessage(WM_KEYDOWN, VK_ESCAPE /* wParam */, 0 /* lParam */);
+
+    Reset();
+
+    return rc;
+}
+
+/**
  * Handles actions required when the host cursor enters
  * the guest's screen to initiate a host -> guest DnD operation.
  *
  * @return  IPRT status code.
  * @param   lstFormats              Supported formats offered by the host.
- * @param   uAllActions             Supported actions offered by the host.
+ * @param   dndLstActionsAllowed    Supported actions offered by the host.
  */
-int VBoxDnDWnd::OnHgEnter(const RTCList<RTCString> &lstFormats, uint32_t uAllActions)
+int VBoxDnDWnd::OnHgEnter(const RTCList<RTCString> &lstFormats, VBOXDNDACTIONLIST dndLstActionsAllowed)
 {
     if (mMode == GH) /* Wrong mode? Bail out. */
         return VERR_WRONG_ORDER;
 
 #ifdef DEBUG
-    LogFlowThisFunc(("uActions=0x%x, lstFormats=%zu: ", uAllActions, lstFormats.size()));
+    LogFlowThisFunc(("dndActionList=0x%x, lstFormats=%zu: ", dndLstActionsAllowed, lstFormats.size()));
     for (size_t i = 0; i < lstFormats.size(); i++)
         LogFlow(("'%s' ", lstFormats.at(i).c_str()));
     LogFlow(("\n"));
 #endif
 
-    reset();
+    Reset();
     setMode(HG);
 
     /* Check if the VM session has changed and reconnect to the HGCM service if necessary. */
@@ -820,7 +826,7 @@ int VBoxDnDWnd::OnHgEnter(const RTCList<RTCString> &lstFormats, uint32_t uAllAct
     try
     {
         /* Save all allowed actions. */
-        this->uAllActions = uAllActions;
+        this->dndLstActionsAllowed = dndLstActionsAllowed;
 
         /*
          * Check if reported formats from host are compatible with this client.
@@ -905,13 +911,13 @@ int VBoxDnDWnd::OnHgEnter(const RTCList<RTCString> &lstFormats, uint32_t uAllAct
 
         /* Translate our drop actions into allowed Windows drop effects. */
         startupInfo.dwOKEffects = DROPEFFECT_NONE;
-        if (uAllActions)
+        if (dndLstActionsAllowed)
         {
-            if (uAllActions & DND_COPY_ACTION)
+            if (dndLstActionsAllowed & VBOX_DND_ACTION_COPY)
                 startupInfo.dwOKEffects |= DROPEFFECT_COPY;
-            if (uAllActions & DND_MOVE_ACTION)
+            if (dndLstActionsAllowed & VBOX_DND_ACTION_MOVE)
                 startupInfo.dwOKEffects |= DROPEFFECT_MOVE;
-            if (uAllActions & DND_LINK_ACTION)
+            if (dndLstActionsAllowed & VBOX_DND_ACTION_LINK)
                 startupInfo.dwOKEffects |= DROPEFFECT_LINK;
         }
 
@@ -946,19 +952,19 @@ int VBoxDnDWnd::OnHgEnter(const RTCList<RTCString> &lstFormats, uint32_t uAllAct
  *                                  inside the guest.
  * @param   u32yPos                 Absolute Y position (in pixels) of the host cursor
  *                                  inside the guest.
- * @param   uAction                 Action the host wants to perform while moving.
+ * @param   dndAction               Action the host wants to perform while moving.
  *                                  Currently ignored.
  */
-int VBoxDnDWnd::OnHgMove(uint32_t u32xPos, uint32_t u32yPos, uint32_t uAction)
+int VBoxDnDWnd::OnHgMove(uint32_t u32xPos, uint32_t u32yPos, VBOXDNDACTION dndAction)
 {
-    RT_NOREF(uAction);
+    RT_NOREF(dndAction);
     int rc;
 
-    uint32_t uActionNotify = DND_IGNORE_ACTION;
+    uint32_t uActionNotify = VBOX_DND_ACTION_IGNORE;
     if (mMode == HG)
     {
-        LogFlowThisFunc(("u32xPos=%RU32, u32yPos=%RU32, uAction=0x%x\n",
-                         u32xPos, u32yPos, uAction));
+        LogFlowThisFunc(("u32xPos=%RU32, u32yPos=%RU32, dndAction=0x%x\n",
+                         u32xPos, u32yPos, dndAction));
 
         rc = mouseMove(u32xPos, u32yPos, MOUSEEVENTF_LEFTDOWN);
 
@@ -998,16 +1004,7 @@ int VBoxDnDWnd::OnHgLeave(void)
     if (mMode == GH) /* Wrong mode? Bail out. */
         return VERR_WRONG_ORDER;
 
-    LogFlowThisFunc(("mMode=%ld, mState=%RU32\n", mMode, mState));
-    LogRel(("DnD: Drag and drop operation aborted\n"));
-
-    reset();
-
-    int rc = VINF_SUCCESS;
-
-    /* Post ESC to our window to officially abort the
-     * drag and drop operation. */
-    this->PostMessage(WM_KEYDOWN, VK_ESCAPE /* wParam */, 0 /* lParam */);
+    int rc = Abort();
 
     LogFlowFuncLeaveRC(rc);
     return rc;
@@ -1067,25 +1064,23 @@ int VBoxDnDWnd::OnHgDrop(void)
  * to the guest after a "drop" event.
  *
  * @return  IPRT status code.
- * @param   pvData                  Pointer to raw data received.
- * @param   cbData                  Size of data (in bytes) received.
+ * @param   pMeta                   Pointer to meta data received.
  */
-int VBoxDnDWnd::OnHgDataReceived(const void *pvData, uint32_t cbData)
+int VBoxDnDWnd::OnHgDataReceive(PVBGLR3GUESTDNDMETADATA pMeta)
 {
-    LogFlowThisFunc(("mState=%ld, pvData=%p, cbData=%RU32\n",
-                     mState, pvData, cbData));
+    LogFlowThisFunc(("mState=%ld, enmMetaType=%RU32, cbMeta=%RU32\n", mState, pMeta->enmType, pMeta->cbMeta));
 
     mState = Dropped;
 
     int rc = VINF_SUCCESS;
-    if (pvData)
+    if (pMeta->pvMeta)
     {
-        Assert(cbData);
+        Assert(pMeta->cbMeta);
         rc = RTCritSectEnter(&mCritSect);
         if (RT_SUCCESS(rc))
         {
             if (startupInfo.pDataObject)
-                rc = startupInfo.pDataObject->Signal(mFormatRequested, pvData, cbData);
+                rc = startupInfo.pDataObject->Signal(mFormatRequested, pMeta->pvMeta, pMeta->cbMeta);
             else
                 rc = VERR_NOT_FOUND;
 
@@ -1109,22 +1104,7 @@ int VBoxDnDWnd::OnHgDataReceived(const void *pvData, uint32_t cbData)
  */
 int VBoxDnDWnd::OnHgCancel(void)
 {
-    int rc = RTCritSectEnter(&mCritSect);
-    if (RT_SUCCESS(rc))
-    {
-        if (startupInfo.pDataObject)
-            startupInfo.pDataObject->Abort();
-
-        RTCritSectLeave(&mCritSect);
-    }
-
-    int rc2 = mouseRelease();
-    if (RT_SUCCESS(rc))
-        rc = rc2;
-
-    reset();
-
-    return rc;
+    return Abort();
 }
 
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
@@ -1148,13 +1128,10 @@ int VBoxDnDWnd::OnHgCancel(void)
  * this class again.
  *
  * @return  IPRT status code.
- * @param   uScreenID               Screen ID the host wants to query a pending operation
- *                                  for. Currently not used/needed here.
  */
-int VBoxDnDWnd::OnGhIsDnDPending(uint32_t uScreenID)
+int VBoxDnDWnd::OnGhIsDnDPending(void)
 {
-    RT_NOREF(uScreenID);
-    LogFlowThisFunc(("mMode=%ld, mState=%ld, uScreenID=%RU32\n", mMode, mState, uScreenID));
+    LogFlowThisFunc(("mMode=%ld, mState=%ld\n", mMode, mState));
 
     if (mMode == Unknown)
         setMode(GH);
@@ -1235,16 +1212,16 @@ int VBoxDnDWnd::OnGhIsDnDPending(uint32_t uScreenID)
 
     if (RT_SUCCESS(rc))
     {
-        uint32_t uDefAction = DND_IGNORE_ACTION;
+        VBOXDNDACTION dndActionDefault = VBOX_DND_ACTION_IGNORE;
 
         AssertPtr(pDropTarget);
         RTCString strFormats = pDropTarget->Formats();
         if (!strFormats.isEmpty())
         {
-            uDefAction = DND_COPY_ACTION;
+            dndActionDefault = VBOX_DND_ACTION_COPY;
 
-            LogFlowFunc(("Acknowledging pDropTarget=0x%p, uDefAction=0x%x, uAllActions=0x%x, strFormats=%s\n",
-                         pDropTarget, uDefAction, uAllActions, strFormats.c_str()));
+            LogFlowFunc(("Acknowledging pDropTarget=0x%p, dndActionDefault=0x%x, dndLstActionsAllowed=0x%x, strFormats=%s\n",
+                         pDropTarget, dndActionDefault, dndLstActionsAllowed, strFormats.c_str()));
         }
         else
         {
@@ -1253,10 +1230,10 @@ int VBoxDnDWnd::OnGhIsDnDPending(uint32_t uScreenID)
         }
 
         /** @todo Support more than one action at a time. */
-        uAllActions = uDefAction;
+        dndLstActionsAllowed = dndActionDefault;
 
         int rc2 = VbglR3DnDGHSendAckPending(&mDnDCtx,
-                                            uDefAction, uAllActions,
+                                            dndActionDefault, dndLstActionsAllowed,
                                             strFormats.c_str(), (uint32_t)strFormats.length() + 1 /* Include termination */);
         if (RT_FAILURE(rc2))
         {
@@ -1284,12 +1261,12 @@ int VBoxDnDWnd::OnGhIsDnDPending(uint32_t uScreenID)
             }
 
             LogRel2(("DnD: Host refuses drag and drop operation from guest: %Rrc\n", rc2));
-            reset();
+            Reset();
         }
     }
 
     if (RT_FAILURE(rc))
-        reset(); /* Reset state on failure. */
+        Reset(); /* Reset state on failure. */
 
     LogFlowFuncLeaveRC(rc);
     return rc;
@@ -1303,16 +1280,14 @@ int VBoxDnDWnd::OnGhIsDnDPending(uint32_t uScreenID)
  * @return  IPRT status code.
  * @param   pszFormat               Format the host requests the data in.
  * @param   cbFormat                Size (in bytes) of format string.
- * @param   uDefAction              Default action on the host.
+ * @param   dndActionDefault        Default action on the host.
  */
-int VBoxDnDWnd::OnGhDropped(const char *pszFormat, uint32_t cbFormat, uint32_t uDefAction)
+int VBoxDnDWnd::OnGhDrop(const RTCString &strFormat, uint32_t dndActionDefault)
 {
-    RT_NOREF(uDefAction);
-    AssertPtrReturn(pszFormat, VERR_INVALID_POINTER);
-    AssertReturn(cbFormat,     VERR_INVALID_PARAMETER);
+    RT_NOREF(dndActionDefault);
 
-    LogFlowThisFunc(("mMode=%ld, mState=%ld, pDropTarget=0x%p, pszFormat=%s, uDefAction=0x%x\n",
-                     mMode, mState, pDropTarget, pszFormat, uDefAction));
+    LogFlowThisFunc(("mMode=%ld, mState=%ld, pDropTarget=0x%p, strFormat=%s, dndActionDefault=0x%x\n",
+                     mMode, mState, pDropTarget, strFormat.c_str(), dndActionDefault));
     int rc;
     if (mMode == GH)
     {
@@ -1321,7 +1296,7 @@ int VBoxDnDWnd::OnGhDropped(const char *pszFormat, uint32_t cbFormat, uint32_t u
             AssertPtr(pDropTarget);
             rc = pDropTarget->WaitForDrop(5 * 1000 /* 5s timeout */);
 
-            reset();
+            Reset();
         }
         else if (mState == Dropped)
         {
@@ -1340,7 +1315,7 @@ int VBoxDnDWnd::OnGhDropped(const char *pszFormat, uint32_t cbFormat, uint32_t u
             if (   pvData
                 && cbData)
             {
-                rc = VbglR3DnDGHSendData(&mDnDCtx, pszFormat, pvData, cbData);
+                rc = VbglR3DnDGHSendData(&mDnDCtx, strFormat.c_str(), pvData, cbData);
                 LogFlowFunc(("Sent pvData=0x%p, cbData=%RU32, rc=%Rrc\n", pvData, cbData, rc));
             }
             else
@@ -1398,6 +1373,8 @@ int VBoxDnDWnd::ProcessEvent(PVBOXDNDEVENT pEvent)
                     pEvent, dwErr, RTErrConvertFromWin32(dwErr)));
         }
 
+        VbglR3DnDEventFree(pEvent->pVbglR3Event);
+
         RTMemFree(pEvent);
         pEvent = NULL;
 
@@ -1438,7 +1415,7 @@ int VBoxDnDWnd::checkForSessionChange(void)
  *
  * @return  IPRT status code.
  */
-int VBoxDnDWnd::hide(void)
+int VBoxDnDWnd::Hide(void)
 {
 #ifdef DEBUG_andy
     LogFlowFunc(("\n"));
@@ -1605,7 +1582,7 @@ int VBoxDnDWnd::mouseRelease(void)
 /**
  * Resets the proxy window.
  */
-void VBoxDnDWnd::reset(void)
+void VBoxDnDWnd::Reset(void)
 {
     LogFlowThisFunc(("Resetting, old mMode=%ld, mState=%ld\n",
                      mMode, mState));
@@ -1617,12 +1594,12 @@ void VBoxDnDWnd::reset(void)
      */
 
     this->lstFmtActive.clear();
-    this->uAllActions = DND_IGNORE_ACTION;
+    this->dndLstActionsAllowed = VBOX_DND_ACTION_IGNORE;
 
     int rc2 = setMode(Unknown);
     AssertRC(rc2);
 
-    hide();
+    Hide();
 }
 
 /**
@@ -1850,17 +1827,19 @@ DECLCALLBACK(int) VBoxDnDWorker(void *pInstance, bool volatile *pfShutdown)
         }
         /* Note: pEvent will be free'd by the consumer later. */
 
-        rc = VbglR3DnDRecvNextMsg(&pCtx->cmdCtx, &pEvent->Event);
-        LogFlowFunc(("VbglR3DnDRecvNextMsg: uType=%RU32, rc=%Rrc\n", pEvent->Event.uType, rc));
-
-        if (   RT_SUCCESS(rc)
-            /* Cancelled from host. */
-            || rc == VERR_CANCELLED
-            )
+        PVBGLR3DNDEVENT pVbglR3Event = NULL;
+        rc = VbglR3DnDEventGetNext(&pCtx->cmdCtx, &pVbglR3Event);
+        if (RT_SUCCESS(rc))
         {
+            LogFunc(("enmType=%RU32, rc=%Rrc\n", pVbglR3Event->enmType, rc));
+
             cMsgSkippedInvalid = 0; /* Reset skipped messages count. */
 
-            LogFlowFunc(("Received new event, type=%RU32, rc=%Rrc\n", pEvent->Event.uType, rc));
+            LogRel2(("DnD: Received new event, type=%RU32, rc=%Rrc\n", pVbglR3Event->enmType, rc));
+
+            /* pEvent now owns pVbglR3Event. */
+            pEvent->pVbglR3Event = pVbglR3Event;
+            pVbglR3Event         = NULL;
 
             rc = pWnd->ProcessEvent(pEvent);
             if (RT_SUCCESS(rc))
@@ -1869,8 +1848,7 @@ DECLCALLBACK(int) VBoxDnDWorker(void *pInstance, bool volatile *pfShutdown)
                 pEvent = NULL;
             }
             else
-                LogRel(("DnD: Processing proxy window event %RU32 on screen %RU32 failed with %Rrc\n",
-                        pEvent->Event.uType, pEvent->Event.uScreenId, rc));
+                LogRel(("DnD: Processing proxy window event %RU32 failed with %Rrc\n", pVbglR3Event->enmType, rc));
         }
         else if (rc == VERR_INTERRUPTED) /* Disconnected from service. */
         {
@@ -1881,14 +1859,18 @@ DECLCALLBACK(int) VBoxDnDWorker(void *pInstance, bool volatile *pfShutdown)
 
         if (RT_FAILURE(rc))
         {
+            if (pEvent)
+            {
+                RTMemFree(pEvent);
+                pEvent = NULL;
+            }
+
             LogFlowFunc(("Processing next message failed with rc=%Rrc\n", rc));
 
             /* Old(er) hosts either are broken regarding DnD support or otherwise
              * don't support the stuff we do on the guest side, so make sure we
              * don't process invalid messages forever. */
-            if (rc == VERR_INVALID_PARAMETER)
-                cMsgSkippedInvalid++;
-            if (cMsgSkippedInvalid > 32)
+            if (cMsgSkippedInvalid++ > 32)
             {
                 LogRel(("DnD: Too many invalid/skipped messages from host, exiting ...\n"));
                 break;
@@ -1896,18 +1878,8 @@ DECLCALLBACK(int) VBoxDnDWorker(void *pInstance, bool volatile *pfShutdown)
 
             /* Make sure our proxy window is hidden when an error occured to
              * not block the guest's UI. */
-            pWnd->hide();
-
-            int rc2 = VbglR3DnDGHSendError(&pCtx->cmdCtx, rc);
-            if (RT_FAILURE(rc2))
-            {
-                /* Ignore the following errors reported back from the host. */
-                if (   rc2 != VERR_NOT_SUPPORTED
-                    && rc2 != VERR_NOT_IMPLEMENTED)
-                {
-                    LogRel(("DnD: Could not report error %Rrc back to host: %Rrc\n", rc, rc2));
-                }
-            }
+            int rc2 = pWnd->Abort();
+            AssertRC(rc2);
         }
 
         if (*pfShutdown)
@@ -1922,6 +1894,8 @@ DECLCALLBACK(int) VBoxDnDWorker(void *pInstance, bool volatile *pfShutdown)
 
     if (pEvent)
     {
+        VbglR3DnDEventFree(pEvent->pVbglR3Event);
+
         RTMemFree(pEvent);
         pEvent = NULL;
     }

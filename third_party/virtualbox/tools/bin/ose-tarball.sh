@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (C) 2006-2017 Oracle Corporation
+# Copyright (C) 2006-2019 Oracle Corporation
 #
 # This file is part of VirtualBox Open Source Edition (OSE), as
 # available from http://www.virtualbox.org. This file is free software;
@@ -28,9 +28,18 @@ fi
 vermajor=`grep "^VBOX_VERSION_MAJOR *=" "$vboxdir/Version.kmk"|sed -e "s|.*= *\(.*\)|\1|g"`
 verminor=`grep "^VBOX_VERSION_MINOR *=" "$vboxdir/Version.kmk"|sed -e "s|.*= *\(.*\)|\1|g"`
 verbuild=`grep "^VBOX_VERSION_BUILD *=" "$vboxdir/Version.kmk"|sed -e "s|.*= *\(.*\)|\1|g"`
-rootpath=`cd ..;pwd`
+verpre=`grep "^VBOX_VERSION_PRERELEASE *=" "$vboxdir/Version.kmk"|sed -e "s|.*= *\(.*\)|\1|g"`
+verpub=`grep "^VBOX_BUILD_PUBLISHER *=" "$vboxdir/Version.kmk"|sed -e "s|.*= *\(.*\)|\1|g"`
 verstr="$vermajor.$verminor.$verbuild"
+[ -n "$verpre" ] && verstr="$verstr"_"$verpre"
+[ -n "$verpub" ] && verstr="$verstr$verpub"
+rootpath=`cd ..;pwd`
 rootname="VirtualBox-$verstr"
+if [ $# -eq 1 ]; then
+    tarballname="$1"
+else
+    tarballname="$rootpath/$rootname.tar.bz2"
+fi
 rm -f "$rootpath/$rootname"
 ln -s `basename "$vboxdir"` "$rootpath/$rootname"
 if [ $? -ne 0 ]; then
@@ -53,7 +62,7 @@ tar \
   --exclude="$rootname/LocalConfig.kmk" \
   --exclude="$rootname/prebuild" \
   --directory "$rootpath" \
-  --file "$rootpath/$rootname.tar.bz2" \
+  --file "$tarballname" \
   "$rootname"
-echo "Successfully created $rootpath/$rootname.tar.bz2"
+echo "Successfully created $tarballname"
 rm -f "$rootpath/$rootname"

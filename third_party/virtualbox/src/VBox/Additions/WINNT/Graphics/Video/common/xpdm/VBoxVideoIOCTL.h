@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,13 +15,16 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef VBOXVIDEOIOCTL_H
-#define VBOXVIDEOIOCTL_H
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_common_xpdm_VBoxVideoIOCTL_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_common_xpdm_VBoxVideoIOCTL_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBox/VMMDev.h> /* VBVAMEMORY */
 #include <HGSMI.h>
 
-/* ==================== Virtual Box specific VRP's ==================== */
+/* ==================== VirtualBox specific VRP's ==================== */
 
 /* Called by the display driver when it is ready to
  * switch to VBVA operation mode.
@@ -61,7 +64,7 @@
 #define IOCTL_VIDEO_QUERY_VBOXVIDEO_INFO \
     CTL_CODE(FILE_DEVICE_VIDEO, 0x436, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-/* ==================== Data structures used by Virtual Box VRPS's ==================== */
+/* ==================== Data structures used by VirtualBox VRPS's ==================== */
 typedef void* HVBOXVIDEOHGSMI;
 
 /** Complete host commands addressed to the display */
@@ -155,4 +158,4 @@ typedef struct _VHWAQUERYINFO
 
 #define VBOXVIDEO_REGISTRY_FLAGS_DISABLE_BITMAP_CACHE 0x00000001
 
-#endif /* !VBOXVIDEOIOCTL_H */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_common_xpdm_VBoxVideoIOCTL_h */

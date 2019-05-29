@@ -5,7 +5,7 @@ rem Windows NT batch script for preparing for signing submission.
 rem
 
 rem
-rem Copyright (C) 2018 Oracle Corporation
+rem Copyright (C) 2018-2019 Oracle Corporation
 rem
 rem This file is part of VirtualBox Open Source Edition (OSE), as
 rem available from http://www.virtualbox.org. This file is free software;
@@ -232,10 +232,6 @@ echo %_MY_OPT_BINDIR%\VMMR0.r0 VMMR0.r0>>                                       
 if "%_MY_OPT_WITH_PDB%" == "1" echo %_MY_OPT_PDBDIR%\VMMR0.pdb VMMR0.pdb>>              "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_BINDIR%\VBoxDDR0.r0 VBoxDDR0.r0>>                                         "%_MY_OPT_DDF_FILE%"
 if "%_MY_OPT_WITH_PDB%" == "1" echo %_MY_OPT_PDBDIR%\VBoxDDR0.pdb VBoxDDR0.pdb>>        "%_MY_OPT_DDF_FILE%"
-if not exist %_MY_OPT_BINDIR%\VBoxDD2R0.r0 goto no_vboxdd2r0
-echo %_MY_OPT_BINDIR%\VBoxDD2R0.r0 VBoxDD2R0.r0>>                                       "%_MY_OPT_DDF_FILE%"
-if "%_MY_OPT_WITH_PDB%" == "1" echo %_MY_OPT_PDBDIR%\VBoxDD2R0.pdb VBoxDD2R0.pdb>>      "%_MY_OPT_DDF_FILE%"
-:no_vboxdd2r0
 
 if "%_MY_OPT_WITH_EXTPACK" == "0"   goto no_extpack_ddf
 echo .Set DestinationDir=VBoxExtPackPuel>>                                              "%_MY_OPT_DDF_FILE%"

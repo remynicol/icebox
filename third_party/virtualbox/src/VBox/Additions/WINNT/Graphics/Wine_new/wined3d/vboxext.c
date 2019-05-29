@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -21,7 +21,7 @@
 #include "vboxext.h"
 #ifdef VBOX_WITH_WDDM
 #include <VBoxCrHgsmi.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 #endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3d_vbox);

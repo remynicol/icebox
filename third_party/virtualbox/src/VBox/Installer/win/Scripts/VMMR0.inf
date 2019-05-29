@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2018 Oracle Corporation
+; Copyright (C) 2018-2019 Oracle Corporation
 ;
 ; This file is part of VirtualBox Open Source Edition (OSE), as
 ; available from http://www.virtualbox.org. This file is free software;
@@ -29,7 +29,6 @@ Provider    = %ORACLE%
 [SourceDisksFiles]
 VMMR0.r0=1
 VBoxDDR0.r0=1
-VBoxDD2R0.r0=1
 
 [DestinationDirs]
 DefaultDestDir = 12
@@ -47,7 +46,6 @@ CopyFiles = VBoxVMMInstall.Files
 [VBoxVMMInstall.Files]
 VMMR0.r0,,,2
 VBoxDDR0.r0,,,2
-VBoxDD2R0.r0,,,2
 
 [Strings]
 ORACLE = "Oracle Corporation"

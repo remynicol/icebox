@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Oracle Corporation
+ * Copyright (C) 2010-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBOXTRAY_MSG_H
-#define ___VBOXTRAY_MSG_H
+#ifndef GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTrayMsg_h
+#define GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTrayMsg_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 /** The IPC pipe's prefix (native).
  * Will be followed by the username VBoxTray runs under. */
@@ -94,5 +97,5 @@ typedef struct VBOXTRAYIPCRES_USERLASTINPUT
     uint32_t uLastInput;
 } VBOXTRAYIPCRES_USERLASTINPUT, *PVBOXTRAYIPCRES_USERLASTINPUT;
 
-#endif /* !___VBOXTRAY_MSG_H */
+#endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTrayMsg_h */
 

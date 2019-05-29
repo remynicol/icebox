@@ -1,10 +1,12 @@
 /* $Id: GuestControl.h $ */
 /** @file
  * Guest Control - Common Guest and Host Code.
+ *
+ * @todo r=bird: Just merge this with GuestControlSvc.h!
  */
 
 /*
- * Copyright (C) 2016-2018 Oracle Corporation
+ * Copyright (C) 2016-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -24,8 +26,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___VBox_GuestHost_GuestControl_h
-#define ___VBox_GuestHost_GuestControl_h
+#ifndef VBOX_INCLUDED_GuestHost_GuestControl_h
+#define VBOX_INCLUDED_GuestHost_GuestControl_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/types.h>
 
@@ -74,18 +79,21 @@ enum eProcessStatus
  */
 #define SESSIONCREATIONFLAG_NONE            0x0
 
-/** @name DIRREMOVE_FLAG_XXX - Guest directory removement flags.
+/** @name DIRREMOVEREC_FLAG_XXX - Guest directory removement flags.
  * Essentially using what IPRT's RTDIRRMREC_F_
  * defines have to offer.
  * @{
  */
-#define DIRREMOVE_FLAG_RECURSIVE            RT_BIT(0)
+/** No remove flags specified. */
+#define DIRREMOVEREC_FLAG_NONE                 UINT32_C(0x0)
+/** Recursively deletes the directorie's contents. */
+#define DIRREMOVEREC_FLAG_RECURSIVE            RT_BIT(0)
 /** Delete the content of the directory and the directory itself. */
-#define DIRREMOVE_FLAG_CONTENT_AND_DIR      RT_BIT(1)
+#define DIRREMOVEREC_FLAG_CONTENT_AND_DIR      RT_BIT(1)
 /** Only delete the content of the directory, omit the directory it self. */
-#define DIRREMOVE_FLAG_CONTENT_ONLY         RT_BIT(2)
+#define DIRREMOVEREC_FLAG_CONTENT_ONLY         RT_BIT(2)
 /** Mask of valid flags. */
-#define DIRREMOVE_FLAG_VALID_MASK           UINT32_C(0x00000003)
+#define DIRREMOVEREC_FLAG_VALID_MASK           UINT32_C(0x00000007)
 /** @}   */
 
 /** @name EXECUTEPROCESSFLAG_XXX - Guest process creation flags.
@@ -123,7 +131,7 @@ enum eProcessStatus
 /** Don't allow symbolic links as part of the path. */
 #define PATHRENAME_FLAG_NO_SYMLINKS         RT_BIT(1)
 /** Mask of valid flags. */
-#define PATHRENAME_FLAG_VALID_MASK          UINT32_C(0x00000002)
+#define PATHRENAME_FLAG_VALID_MASK          UINT32_C(0x00000003)
 /** @} */
 
 /** @name Defines for guest process array lengths.
@@ -167,6 +175,7 @@ typedef enum VBOXSERVICETOOLBOX_STAT_EXITCODE
     VBOXSERVICETOOLBOX_STAT_EXITCODE_ACCESS_DENIED = RTEXITCODE_END,
     VBOXSERVICETOOLBOX_STAT_EXITCODE_FILE_NOT_FOUND,
     VBOXSERVICETOOLBOX_STAT_EXITCODE_PATH_NOT_FOUND,
+    VBOXSERVICETOOLBOX_STAT_EXITCODE_NET_PATH_NOT_FOUND,
     /** The usual 32-bit type hack. */
     VBOXSERVICETOOLBOX_STAT_32BIT_HACK = 0x7fffffff
 } VBOXSERVICETOOLBOX_STAT_EXITCODE;
@@ -192,5 +201,5 @@ enum eInputStatus
 
 } /* namespace guestControl */
 
-#endif /* !___VBox_GuestHost_GuestControl_h */
+#endif /* !VBOX_INCLUDED_GuestHost_GuestControl_h */
 

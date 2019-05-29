@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Oracle Corporation
+ * Copyright (C) 2009-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -17,7 +17,7 @@
 
 #include <iprt/assert.h>
 #include <iprt/buildconfig.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 #include <iprt/getopt.h>
 #include <iprt/initterm.h>
 #include <iprt/stream.h>
@@ -131,7 +131,7 @@ static int vboxInitLogging(const char *pszFilename, bool bGenNameSuffix)
     }
 
     int vrc = RTLogCreateEx(&loggerRelease, fFlags, "all",
-                            "VBOX_RELEASE_LOG", RT_ELEMENTS(s_apszGroups), s_apszGroups, enmLogDest,
+                            "VBOX_RELEASE_LOG", RT_ELEMENTS(s_apszGroups), s_apszGroups, UINT32_MAX, enmLogDest,
                             NULL /* pfnBeginEnd */, 0 /* cHistory */, 0 /* cbHistoryFileMax */, 0 /* uHistoryTimeMax */,
                             NULL /* pErrInfo */, pszFilenameFmt, pszFilename, RTTimeMilliTS());
     if (RT_SUCCESS(vrc))
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
                     break;
 
                 case 'V':
-                    RTPrintf("$Revision: 119149 $\n");
+                    RTPrintf("$Revision: 129714 $\n");
                     return 0;
 
                 case VERR_GETOPT_UNKNOWN_OPTION:

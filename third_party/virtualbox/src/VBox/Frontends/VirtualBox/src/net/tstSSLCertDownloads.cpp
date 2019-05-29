@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -55,6 +55,13 @@
     RTTESTI_CHECK_RC(RTCrStoreCreateInMem(&hStore, RT_ELEMENTS(s_aCerts) * 2), VINF_SUCCESS);
 
     int rc;
+
+    bool const     fSavedVerifyPeer   = RTHttpGetVerifyPeer(TestObj.m_hHttp);
+    uint32_t const cSavedMaxRedirects = RTHttpGetFollowRedirects(TestObj.m_hHttp);
+    RTTESTI_CHECK_RC(RTHttpSetVerifyPeer(TestObj.m_hHttp, false), VINF_SUCCESS);
+    RTTESTI_CHECK_RC(RTHttpSetFollowRedirects(TestObj.m_hHttp, 8), VINF_SUCCESS);
+    RTTESTI_CHECK(RTHttpGetVerifyPeer(TestObj.m_hHttp) == false);
+    RTTESTI_CHECK(RTHttpGetFollowRedirects(TestObj.m_hHttp) == 8);
 
     /* ZIP files: */
     for (uint32_t iUrl = 0; iUrl < RT_ELEMENTS(s_apszRootsZipUrls); iUrl++)
@@ -111,6 +118,9 @@
     }
 
     RTTESTI_CHECK(RTCrStoreRelease(hStore) == 0);
+
+    RTTESTI_CHECK_RC(RTHttpSetVerifyPeer(TestObj.m_hHttp, fSavedVerifyPeer), VINF_SUCCESS);
+    RTTESTI_CHECK_RC(RTHttpSetFollowRedirects(TestObj.m_hHttp, cSavedMaxRedirects), VINF_SUCCESS);
 
     /*
      * Now check the gathering of certificates on the system doesn't crash.

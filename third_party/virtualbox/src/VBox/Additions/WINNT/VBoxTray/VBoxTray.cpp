@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -30,7 +30,6 @@
 #include "VBoxDisplay.h"
 #include "VBoxVRDP.h"
 #include "VBoxHostVersion.h"
-#include "VBoxSharedFolders.h"
 #ifdef VBOX_WITH_DRAG_AND_DROP
 # include "VBoxDnD.h"
 #endif
@@ -567,7 +566,7 @@ static int vboxTrayLogCreate(const char *pszLogFile)
                            "all",
                            "VBOXTRAY_RELEASE_LOG",
 #endif
-                           RT_ELEMENTS(s_apszGroups), s_apszGroups, RTLOGDEST_STDOUT,
+                           RT_ELEMENTS(s_apszGroups), s_apszGroups, UINT32_MAX, RTLOGDEST_STDOUT,
                            vboxTrayLogHeaderFooter, g_cHistory, g_uHistoryFileSize, g_uHistoryFileTime,
                            RTErrInfoInitStatic(&ErrInfo), pszLogFile);
     if (RT_SUCCESS(rc))
@@ -582,7 +581,7 @@ static int vboxTrayLogCreate(const char *pszLogFile)
         RTLogFlush(g_pLoggerRelease);
     }
     else
-        MessageBoxA(GetDesktopWindow(), ErrInfo.szMsg, "VBoxTray - Logging Error", MB_OK | MB_ICONERROR);
+        VBoxTrayShowError(ErrInfo.szMsg);
 
     return rc;
 }
@@ -590,6 +589,31 @@ static int vboxTrayLogCreate(const char *pszLogFile)
 static void vboxTrayLogDestroy(void)
 {
     RTLogDestroy(RTLogRelSetDefaultInstance(NULL));
+}
+
+/**
+ * Displays an error message.
+ *
+ * @returns RTEXITCODE_FAILURE.
+ * @param   pszFormat   The message text.
+ * @param   ...         Format arguments.
+ */
+RTEXITCODE VBoxTrayShowError(const char *pszFormat, ...)
+{
+    va_list args;
+    va_start(args, pszFormat);
+    char *psz = NULL;
+    RTStrAPrintfV(&psz, pszFormat, args);
+    va_end(args);
+
+    AssertPtr(psz);
+    LogRel(("Error: %s", psz));
+
+    MessageBox(GetDesktopWindow(), psz, "VBoxTray - Error", MB_OK | MB_ICONERROR);
+
+    RTStrFree(psz);
+
+    return RTEXITCODE_FAILURE;
 }
 
 static void vboxTrayDestroyToolWindow(void)
@@ -824,13 +848,8 @@ static int vboxTrayServiceMain(void)
 
             if (RT_SUCCESS(rc))
             {
-                /* Do the Shared Folders auto-mounting stuff. */
-                rc = VBoxSharedFoldersAutoMount();
-                if (RT_SUCCESS(rc))
-                {
-                    /* Report the host that we're up and running! */
-                    hlpReportStatus(VBoxGuestFacilityStatus_Active);
-                }
+                /* Report the host that we're up and running! */
+                hlpReportStatus(VBoxGuestFacilityStatus_Active);
             }
 
             if (RT_SUCCESS(rc))

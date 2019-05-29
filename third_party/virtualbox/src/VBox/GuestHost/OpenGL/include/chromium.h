@@ -22,7 +22,7 @@
 
 #ifdef IN_RING0
 
-# ifndef VBOXVIDEOLOG_H
+# ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_common_VBoxVideoLog_h
 #  undef WARN     /* VBoxMpUtils.h includes common/VBoxVideoLog.h which */
 #  undef LOG      /* uncondtionally redefines these three macros. */
 #  undef LOGREL
@@ -137,6 +137,13 @@ struct VBOXVR_SCR_COMPOSITOR_ENTRY;
 
 #ifndef APIENTRY
 #define APIENTRY
+#endif
+
+/** For the pointer hack, bugref:9407. */
+#ifdef IN_GUEST
+# define CRVBOX_HOST_ONLY_PARAM(a_Stuff)
+#else
+# define CRVBOX_HOST_ONLY_PARAM(a_Stuff)    , a_Stuff
 #endif
 
 

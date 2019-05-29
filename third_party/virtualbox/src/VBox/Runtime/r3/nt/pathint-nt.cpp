@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -31,18 +31,21 @@
 #define LOG_GROUP RTLOGGROUP_FS
 #include "internal-r3-nt.h"
 
-#include <iprt/path.h>
-#include <iprt/mem.h>
-#include <iprt/string.h>
-#include <iprt/err.h>
 #include <iprt/assert.h>
+#include <iprt/err.h>
+#include <iprt/mem.h>
+#include <iprt/path.h>
+#include <iprt/string.h>
+#include <iprt/utf16.h>
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-static char const g_szPrefixUnc[] = "\\??\\UNC\\";
-static char const g_szPrefix[]    = "\\??\\";
+static char const g_szPrefixUnc[]      = "\\??\\UNC\\";
+static char const g_szPrefix[]         = "\\??\\";
+static char const g_szPrefixNt3xUnc[]  = "\\DosDevices\\UNC\\";
+static char const g_szPrefixNt3x[]     = "\\DosDevices\\";
 
 
 /**
@@ -63,16 +66,32 @@ static int rtNtPathFromWinUtf8PassThru(struct _UNICODE_STRING *pNtName, PHANDLE 
     {
         if (cwcLen < _32K - 1)
         {
-            pwszPath[0] = '\\';
-            pwszPath[1] = '?';
-            pwszPath[2] = '?';
-            pwszPath[3] = '\\';
-
-            pNtName->Buffer = pwszPath;
-            pNtName->Length = (uint16_t)(cwcLen * sizeof(RTUTF16));
-            pNtName->MaximumLength = pNtName->Length + sizeof(RTUTF16);
             *phRootDir = NULL;
-            return VINF_SUCCESS;
+            if (RT_MAKE_U64(RTNtCurrentPeb()->OSMinorVersion, RTNtCurrentPeb()->OSMajorVersion) >= RT_MAKE_U64(0, 4))
+            {
+                pwszPath[0] = '\\';
+                pwszPath[1] = '?';
+                pwszPath[2] = '?';
+                pwszPath[3] = '\\';
+
+                pNtName->Buffer = pwszPath;
+                pNtName->Length = (uint16_t)(cwcLen * sizeof(RTUTF16));
+                pNtName->MaximumLength = pNtName->Length + sizeof(RTUTF16);
+                return VINF_SUCCESS;
+            }
+
+            rc = RTUtf16Realloc(&pwszPath, cwcLen + sizeof(g_szPrefixNt3x));
+            if (RT_SUCCESS(rc))
+            {
+                memmove(&pwszPath[sizeof(g_szPrefixNt3x) - 1], &pwszPath[4], (cwcLen - 4 + 1) * sizeof(RTUTF16));
+                for (uint32_t i = 0; i < sizeof(g_szPrefixNt3x) - 1; i++)
+                    pwszPath[i] = g_szPrefixNt3x[i];
+
+                pNtName->Buffer = pwszPath;
+                pNtName->Length = (uint16_t)((cwcLen - 4 + sizeof(g_szPrefixNt3x) - 1) * sizeof(RTUTF16));
+                pNtName->MaximumLength = pNtName->Length + sizeof(RTUTF16);
+                return VINF_SUCCESS;
+            }
         }
 
         RTUtf16Free(pwszPath);
@@ -99,20 +118,30 @@ static int rtNtPathFromWinUtf16PassThru(struct _UNICODE_STRING *pNtName, PHANDLE
     int rc;
     if (cwcWinPath < _32K - 1)
     {
-        PRTUTF16 pwszNtPath = (PRTUTF16)RTUtf16Alloc((cwcWinPath + 1) * sizeof(RTUTF16));
+
+        size_t const cwcExtraPrefix =    RT_MAKE_U64(RTNtCurrentPeb()->OSMinorVersion, RTNtCurrentPeb()->OSMajorVersion)
+                                      >= RT_MAKE_U64(0, 4)
+                                    ? 0 : sizeof(g_szPrefixNt3x) - 1 - 4;
+        PRTUTF16 pwszNtPath = (PRTUTF16)RTUtf16Alloc((cwcExtraPrefix + cwcWinPath + 1) * sizeof(RTUTF16));
         if (pwszNtPath)
         {
             /* Intialize the path. */
-            pwszNtPath[0] = '\\';
-            pwszNtPath[1] = '?';
-            pwszNtPath[2] = '?';
-            pwszNtPath[3] = '\\';
-            memcpy(pwszNtPath + 4, pwszWinPath + 4, (cwcWinPath - 4) * sizeof(RTUTF16));
-            pwszNtPath[cwcWinPath] = '\0';
+            if (!cwcExtraPrefix)
+            {
+                pwszNtPath[0] = '\\';
+                pwszNtPath[1] = '?';
+                pwszNtPath[2] = '?';
+                pwszNtPath[3] = '\\';
+            }
+            else
+                for (uint32_t i = 0; i < sizeof(g_szPrefixNt3x) - 1; i++)
+                    pwszNtPath[i] = g_szPrefixNt3x[i];
+            memcpy(pwszNtPath + cwcExtraPrefix + 4, pwszWinPath + 4, (cwcWinPath - 4) * sizeof(RTUTF16));
+            pwszNtPath[cwcExtraPrefix + cwcWinPath] = '\0';
 
             /* Initialize the return values. */
             pNtName->Buffer = pwszNtPath;
-            pNtName->Length = (uint16_t)(cwcWinPath * sizeof(RTUTF16));
+            pNtName->Length = (uint16_t)(cwcExtraPrefix + cwcWinPath * sizeof(RTUTF16));
             pNtName->MaximumLength = pNtName->Length + sizeof(RTUTF16);
             *phRootDir = NULL;
 
@@ -178,25 +207,44 @@ static int rtNtPathToNative(struct _UNICODE_STRING *pNtName, PHANDLE phRootDir, 
     /*
      * Very simple conversion of a win32-like path into an NT path.
      */
-    const char *pszPrefix = g_szPrefix;
-    size_t      cchPrefix = sizeof(g_szPrefix) - 1;
-    size_t      cchSkip   = 0;
+    const char *pszPrefix;
+    size_t      cchPrefix;
+    if (RT_MAKE_U64(RTNtCurrentPeb()->OSMinorVersion, RTNtCurrentPeb()->OSMajorVersion) >= RT_MAKE_U64(0, 4))
+    {
+        pszPrefix = g_szPrefix;
+        cchPrefix = sizeof(g_szPrefix) - 1;
+    }
+    else
+    {
+        pszPrefix = g_szPrefixNt3x;
+        cchPrefix = sizeof(g_szPrefixNt3x) - 1;
+    }
 
+    size_t      cchSkip   = 0;
     if (   RTPATH_IS_SLASH(pszPath[0])
         && RTPATH_IS_SLASH(pszPath[1])
         && !RTPATH_IS_SLASH(pszPath[2])
         && pszPath[2])
     {
+#ifdef IPRT_WITH_NT_PATH_PASSTHRU
+        /*
+         * Special trick: The path starts with RTPATH_NT_PASSTHRU_PREFIX, we will skip past the bang and pass it thru.
+         */
+        if (   pszPath[2] == ':'
+            && pszPath[3] == 'i'
+            && pszPath[4] == 'p'
+            && pszPath[5] == 'r'
+            && pszPath[6] == 't'
+            && pszPath[7] == 'n'
+            && pszPath[8] == 't'
+            && pszPath[9] == ':'
+            && RTPATH_IS_SLASH(pszPath[10]))
+            return rtNtPathUtf8ToUniStr(pNtName, phRootDir, pszPath + 10);
+#endif
+
         if (   pszPath[2] == '?'
             && RTPATH_IS_SLASH(pszPath[3]))
             return rtNtPathFromWinUtf8PassThru(pNtName, phRootDir, pszPath);
-
-#ifdef IPRT_WITH_NT_PATH_PASSTHRU
-        /* Special hack: The path starts with "\\\\!\\", we will skip past the bang and pass it thru. */
-        if (   pszPath[2] == '!'
-            && RTPATH_IS_SLASH(pszPath[3]))
-            return rtNtPathUtf8ToUniStr(pNtName, phRootDir, pszPath + 3);
-#endif
 
         if (   pszPath[2] == '.'
             && RTPATH_IS_SLASH(pszPath[3]))
@@ -210,8 +258,16 @@ static int rtNtPathToNative(struct _UNICODE_STRING *pNtName, PHANDLE phRootDir, 
         else
         {
             /* UNC */
-            pszPrefix = g_szPrefixUnc;
-            cchPrefix = sizeof(g_szPrefixUnc) - 1;
+            if (RT_MAKE_U64(RTNtCurrentPeb()->OSMinorVersion, RTNtCurrentPeb()->OSMajorVersion) >= RT_MAKE_U64(0, 4))
+            {
+                pszPrefix = g_szPrefixUnc;
+                cchPrefix = sizeof(g_szPrefixUnc) - 1;
+            }
+            else
+            {
+                pszPrefix = g_szPrefixNt3xUnc;
+                cchPrefix = sizeof(g_szPrefixNt3xUnc) - 1;
+            }
             cchSkip   = 2;
         }
     }
@@ -219,16 +275,50 @@ static int rtNtPathToNative(struct _UNICODE_STRING *pNtName, PHANDLE phRootDir, 
     /*
      * Straighten out all .. and uncessary . references and convert slashes.
      */
-    char szPath[RTPATH_MAX];
-    int rc = RTPathAbs(pszPath, &szPath[cchPrefix - cchSkip], sizeof(szPath) - (cchPrefix - cchSkip));
-    if (RT_FAILURE(rc))
+    char    szAbsPathBuf[RTPATH_MAX];
+    size_t  cbAbsPath      = sizeof(szAbsPathBuf) - (cchPrefix - cchSkip);
+    char   *pszAbsPath     = szAbsPathBuf;
+    char   *pszAbsPathFree = NULL;
+    int rc = RTPathAbsEx(NULL, pszPath, RTPATH_STR_F_STYLE_DOS, &pszAbsPath[cchPrefix - cchSkip], &cbAbsPath);
+    if (RT_SUCCESS(rc))
+    { /* likely */ }
+    else if (rc == VERR_BUFFER_OVERFLOW)
+    {
+        unsigned cTries       = 8;
+        size_t   cbAbsPathBuf = RTPATH_MAX;
+        for (;;)
+        {
+            cbAbsPathBuf = RT_MAX(RT_ALIGN_Z((cchPrefix - cchSkip) + cbAbsPath + 32, 64), cbAbsPathBuf + 256);
+            if (cTries == 1)
+                cbAbsPathBuf = RT_MAX(cbAbsPathBuf, RTPATH_BIG_MAX * 2);
+            pszAbsPathFree = pszAbsPath = (char *)RTMemTmpAlloc(cbAbsPathBuf);
+            if (!pszAbsPath)
+                return VERR_NO_TMP_MEMORY;
+
+            cbAbsPath = cbAbsPathBuf - (cchPrefix - cchSkip);
+            rc = RTPathAbsEx(NULL, pszPath, RTPATH_STR_F_STYLE_DOS, &pszAbsPath[cchPrefix - cchSkip], &cbAbsPath);
+            if (RT_SUCCESS(rc))
+                break;
+            RTMemTmpFree(pszAbsPathFree);
+            pszAbsPathFree = NULL;
+            if (rc != VERR_BUFFER_OVERFLOW)
+                return rc;
+            if (--cTries == 0)
+                return VERR_FILENAME_TOO_LONG;
+        }
+    }
+    else
         return rc;
 
     /*
      * Add prefix and convert it to UTF16.
      */
-    memcpy(szPath, pszPrefix, cchPrefix);
-    return rtNtPathUtf8ToUniStr(pNtName, phRootDir, szPath);
+    memcpy(pszAbsPath, pszPrefix, cchPrefix);
+    rc = rtNtPathUtf8ToUniStr(pNtName, phRootDir, pszAbsPath);
+
+    if (pszAbsPathFree)
+        RTMemTmpFree(pszAbsPathFree);
+    return rc;
 }
 
 
@@ -284,19 +374,23 @@ RTDECL(int) RTNtPathFromWinUtf16Ex(struct _UNICODE_STRING *pNtName, HANDLE *phRo
         && RTPATH_IS_SLASH(pwszWinPath[1])
         && !RTPATH_IS_SLASH(pwszWinPath[2]) )
     {
-        if (   pwszWinPath[2] == '?'
-            && cwcWinPath >= 4
-            && RTPATH_IS_SLASH(pwszWinPath[3]))
-            return rtNtPathFromWinUtf16PassThru(pNtName, phRootDir, pwszWinPath, cwcWinPath);
-
 #ifdef IPRT_WITH_NT_PATH_PASSTHRU
-        /* Special hack: The path starts with "\\\\!\\", we will skip past the bang and pass it thru. */
-        if (   pwszWinPath[2] == '!'
-            && cwcWinPath >= 4
-            && RTPATH_IS_SLASH(pwszWinPath[3]))
+        /*
+         * Special trick: The path starts with RTPATH_NT_PASSTHRU_PREFIX, we will skip past the bang and pass it thru.
+         */
+        if (   cwcWinPath >= sizeof(RTPATH_NT_PASSTHRU_PREFIX) - 1U
+            && pwszWinPath[2] == ':'
+            && pwszWinPath[3] == 'i'
+            && pwszWinPath[4] == 'p'
+            && pwszWinPath[5] == 'r'
+            && pwszWinPath[6] == 't'
+            && pwszWinPath[7] == 'n'
+            && pwszWinPath[8] == 't'
+            && pwszWinPath[9] == ':'
+            && RTPATH_IS_SLASH(pwszWinPath[10]) )
         {
-            pwszWinPath += 3;
-            cwcWinPath  -= 3;
+            pwszWinPath += 10;
+            cwcWinPath  -= 10;
             if (cwcWinPath < _32K - 1)
             {
                 PRTUTF16 pwszNtPath = RTUtf16Alloc((cwcWinPath + 1) * sizeof(RTUTF16));
@@ -317,6 +411,11 @@ RTDECL(int) RTNtPathFromWinUtf16Ex(struct _UNICODE_STRING *pNtName, HANDLE *phRo
             return rc;
         }
 #endif
+
+        if (   pwszWinPath[2] == '?'
+            && cwcWinPath >= 4
+            && RTPATH_IS_SLASH(pwszWinPath[3]))
+            return rtNtPathFromWinUtf16PassThru(pNtName, phRootDir, pwszWinPath, cwcWinPath);
 
         if (   pwszWinPath[2] == '.'
             && cwcWinPath >= 4
@@ -340,39 +439,97 @@ RTDECL(int) RTNtPathFromWinUtf16Ex(struct _UNICODE_STRING *pNtName, HANDLE *phRo
     /*
      * Straighten out all .. and unnecessary . references and convert slashes.
      */
-    char   szAbsPath[RTPATH_MAX];
+    /* UTF-16 -> UTF-8 (relative path) */
     char   szRelPath[RTPATH_MAX];
+    char  *pszRelPathFree = NULL;
     char  *pszRelPath = szRelPath;
     size_t cchRelPath;
     rc = RTUtf16ToUtf8Ex(pwszWinPath, cwcWinPath, &pszRelPath, sizeof(szRelPath), &cchRelPath);
     if (RT_SUCCESS(rc))
-        rc = RTPathAbs(szRelPath, &szAbsPath[cchPrefix - cchSkip], sizeof(szAbsPath) - (cchPrefix - cchSkip));
+    { /* likely */ }
+    else if (rc == VERR_BUFFER_OVERFLOW)
+    {
+        pszRelPath = NULL;
+        rc = RTUtf16ToUtf8Ex(pwszWinPath, cwcWinPath, &pszRelPath, 0, &cchRelPath);
+        if (RT_SUCCESS(rc))
+            pszRelPathFree = pszRelPath;
+    }
     if (RT_SUCCESS(rc))
     {
-        /*
-         * Add prefix
-         */
-        memcpy(szAbsPath, pszPrefix, cchPrefix);
-
-        /*
-         * Remove trailing '.' that is used to specify no extension in the Win32/DOS world.
-         */
-        size_t cchAbsPath = strlen(szAbsPath);
-        if (   cchAbsPath > 2
-            && szAbsPath[cchAbsPath - 1] == '.')
+        /* Relative -> Absolute. */
+        char   szAbsPathBuf[RTPATH_MAX];
+        char  *pszAbsPathFree = NULL;
+        char  *pszAbsPath     = szAbsPathBuf;
+        size_t cbAbsPath      = sizeof(szAbsPathBuf) - (cchPrefix - cchSkip);
+        rc = RTPathAbsEx(NULL, szRelPath, RTPATH_STR_F_STYLE_DOS, &pszAbsPath[cchPrefix - cchSkip], &cbAbsPath);
+        if (RT_SUCCESS(rc))
+        { /* likely */ }
+        else if (rc == VERR_BUFFER_OVERFLOW)
         {
-            char const ch = szAbsPath[cchAbsPath - 2];
-            if (   ch != '/'
-                && ch != '\\'
-                && ch != ':'
-                && ch != '.')
-                szAbsPath[--cchAbsPath] = '\0';
-        }
+            unsigned cTries = 8;
+            size_t   cbAbsPathBuf = RTPATH_MAX;
+            for (;;)
+            {
+                cbAbsPathBuf = RT_MAX(RT_ALIGN_Z((cchPrefix - cchSkip) + cbAbsPath + 32, 64), cbAbsPathBuf + 256);
+                if (cTries == 1)
+                    cbAbsPathBuf = RT_MAX(cbAbsPathBuf, RTPATH_BIG_MAX * 2);
+                pszAbsPathFree = pszAbsPath = (char *)RTMemTmpAlloc(cbAbsPathBuf);
+                if (!pszAbsPath)
+                {
+                    rc = VERR_NO_TMP_MEMORY;
+                    break;
+                }
 
-        /*
-         * Finally convert to UNICODE_STRING.
-         */
-        return rtNtPathUtf8ToUniStr(pNtName, phRootDir, szAbsPath);
+                cbAbsPath = cbAbsPathBuf - (cchPrefix - cchSkip);
+                rc = RTPathAbsEx(NULL, szRelPath, RTPATH_STR_F_STYLE_DOS, &pszAbsPath[cchPrefix - cchSkip], &cbAbsPath);
+                if (RT_SUCCESS(rc))
+                    break;
+
+                RTMemTmpFree(pszAbsPathFree);
+                pszAbsPathFree = NULL;
+                if (rc != VERR_BUFFER_OVERFLOW)
+                    break;
+                if (--cTries == 0)
+                {
+                    rc = VERR_FILENAME_TOO_LONG;
+                    break;
+                }
+            }
+
+        }
+        if (pszRelPathFree)
+            RTStrFree(pszRelPathFree);
+
+        if (RT_SUCCESS(rc))
+        {
+            /*
+             * Add prefix
+             */
+            memcpy(pszAbsPath, pszPrefix, cchPrefix);
+
+            /*
+             * Remove trailing '.' that is used to specify no extension in the Win32/DOS world.
+             */
+            size_t cchAbsPath = strlen(pszAbsPath);
+            if (   cchAbsPath > 2
+                && pszAbsPath[cchAbsPath - 1] == '.')
+            {
+                char const ch = pszAbsPath[cchAbsPath - 2];
+                if (   ch != '/'
+                    && ch != '\\'
+                    && ch != ':'
+                    && ch != '.')
+                    pszAbsPath[--cchAbsPath] = '\0';
+            }
+
+            /*
+             * Finally convert to UNICODE_STRING.
+             */
+            rc = rtNtPathUtf8ToUniStr(pNtName, phRootDir, pszAbsPath);
+
+            if (pszAbsPathFree)
+                RTMemTmpFree(pszAbsPathFree);
+        }
     }
     return rc;
 }
@@ -819,8 +976,15 @@ RTDECL(int) RTNtPathOpenDir(const char *pszPath, ACCESS_MASK fDesiredAccess, ULO
 #ifdef IPRT_WITH_NT_PATH_PASSTHRU
             if (   !RTPATH_IS_SLASH(pszPath[0])
                 || !RTPATH_IS_SLASH(pszPath[1])
-                || pszPath[2] != '!'
-                || RTPATH_IS_SLASH(pszPath[3]))
+                || pszPath[2] != ':'
+                || pszPath[3] != 'i'
+                || pszPath[4] != 'p'
+                || pszPath[5] != 'r'
+                || pszPath[6] != 't'
+                || pszPath[7] != 'n'
+                || pszPath[8] != 't'
+                || pszPath[9] != ':'
+                || !RTPATH_IS_SLASH(pszPath[10]) )
 #endif
                 pfObjDir = NULL;
         }
@@ -941,15 +1105,20 @@ RTDECL(int) RTNtPathOpenDirEx(HANDLE hRootDir, struct _UNICODE_STRING *pNtName, 
 
         /* Rought conversion of the access flags. */
         ULONG fObjDesiredAccess = 0;
-        if (fDesiredAccess & (GENERIC_ALL | STANDARD_RIGHTS_ALL))
+        if (   (fDesiredAccess & GENERIC_ALL)
+            || (fDesiredAccess & STANDARD_RIGHTS_ALL) == STANDARD_RIGHTS_ALL)
             fObjDesiredAccess = DIRECTORY_ALL_ACCESS;
         else
         {
-            if (fDesiredAccess & (FILE_GENERIC_WRITE | GENERIC_WRITE | STANDARD_RIGHTS_WRITE))
-                fObjDesiredAccess |= DIRECTORY_CREATE_OBJECT | DIRECTORY_CREATE_OBJECT;
-            if (   (fDesiredAccess & (FILE_LIST_DIRECTORY | FILE_GENERIC_READ | GENERIC_READ | STANDARD_RIGHTS_READ))
+            if (fDesiredAccess & (GENERIC_WRITE | STANDARD_RIGHTS_WRITE | FILE_WRITE_DATA))
+                fObjDesiredAccess |= DIRECTORY_CREATE_OBJECT | DIRECTORY_CREATE_OBJECT | DIRECTORY_CREATE_SUBDIRECTORY;
+
+            if (   (fDesiredAccess & (GENERIC_READ | STANDARD_RIGHTS_READ | FILE_LIST_DIRECTORY))
                 || !fObjDesiredAccess)
-                fObjDesiredAccess |= DIRECTORY_QUERY | FILE_LIST_DIRECTORY;
+                fObjDesiredAccess |= DIRECTORY_QUERY;
+
+            if (fDesiredAccess & FILE_TRAVERSE)
+                fObjDesiredAccess |= DIRECTORY_TRAVERSE;
         }
 
         rcNt = NtOpenDirectoryObject(&hFile, fObjDesiredAccess, &ObjAttr);

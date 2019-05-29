@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -278,9 +278,7 @@ VBoxMPFillModesTable(PVBOXMP_DEVEXT pExt, int iDisplay, PVIDEO_MODE_INFORMATION 
 #else
     ULONG vramSize = vboxWddmVramCpuVisibleSegmentSize(pExt);
     vramSize /= pExt->u.primary.commonInfo.cDisplays;
-# ifdef VBOX_WDDM_WIN8
     if (!g_VBoxDisplayOnly)
-# endif
     {
         /* at least two surfaces will be needed: primary & shadow */
         vramSize /= 2;
@@ -357,7 +355,7 @@ VBoxMPFillModesTable(PVBOXMP_DEVEXT pExt, int iDisplay, PVIDEO_MODE_INFORMATION 
                      * For small host display resolutions, host will dislike the mode 1024x768 and above
                      * if the framebuffer window requires scrolling to fit the guest resolution.
                      * So add 1024x768 resolution for win8 guest to allow user switch to it */
-                       (   (VBoxQueryWinVersion() != WIN8 && VBoxQueryWinVersion() != WIN81)
+                       (   (VBoxQueryWinVersion(NULL) != WIN8 && VBoxQueryWinVersion(NULL) != WIN81)
                         || resolutionMatrix[resIndex].xRes != 1024
                         || resolutionMatrix[resIndex].yRes != 768)
                     &&
@@ -606,9 +604,7 @@ VBoxMPValidateVideoModeParams(PVBOXMP_DEVEXT pExt, uint32_t iDisplay, uint32_t &
 #else
     ULONG vramSize = vboxWddmVramCpuVisibleSegmentSize(pExt);
     vramSize /= pExt->u.primary.commonInfo.cDisplays;
-# ifdef VBOX_WDDM_WIN8
     if (!g_VBoxDisplayOnly)
-# endif
     {
         /* at least two surfaces will be needed: primary & shadow */
         vramSize /= 2;

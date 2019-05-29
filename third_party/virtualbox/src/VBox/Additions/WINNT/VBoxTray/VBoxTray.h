@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBOXTRAY_H
-#define ___VBOXTRAY_H
+#ifndef GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTray_h
+#define GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTray_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #       define _InterlockedExchange           _InterlockedExchange_StupidDDKVsCompilerCrap
 #       define _InterlockedExchangeAdd        _InterlockedExchangeAdd_StupidDDKVsCompilerCrap
@@ -187,5 +190,7 @@ extern HWND         g_hwndToolWindow;
 extern HINSTANCE    g_hInstance;
 extern uint32_t     g_fGuestDisplaysChanged;
 
-#endif /* !___VBOXTRAY_H */
+RTEXITCODE VBoxTrayShowError(const char *pszFormat, ...);
+
+#endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTray_h */
 

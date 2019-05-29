@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,8 +23,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___iprt_assertcompile_h
-#define ___iprt_assertcompile_h
+#ifndef IPRT_INCLUDED_assertcompile_h
+#define IPRT_INCLUDED_assertcompile_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/cdefs.h>
 
@@ -104,7 +107,11 @@ RT_C_DECLS_END
  * @param   expr    Expression which should be true.
  */
 #ifdef RTASSERT_HAVE_STATIC_ASSERT
-# define AssertCompile(expr)    static_assert(!!(expr), #expr)
+# ifdef __cplusplus
+#  define AssertCompile(expr)    static_assert(!!(expr), #expr)
+# else
+#  define AssertCompile(expr)    _Static_assert(!!(expr), #expr)
+# endif
 #else
 # define AssertCompile(expr)    AssertCompileNS(expr)
 #endif
@@ -232,5 +239,5 @@ RT_C_DECLS_END
 
 /** @} */
 
-#endif
+#endif /* !IPRT_INCLUDED_assertcompile_h */
 

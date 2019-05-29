@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -129,6 +129,11 @@ typedef struct RTLDRMODELF
     unsigned                cbShStr;
     /** Pointer to section header string table within RTLDRMODELF::pvBits. */
     const char             *pShStr;
+
+    /** The '.eh_frame' section index.  Zero if not searched for, ~0U if not found. */
+    unsigned                iShEhFrame;
+    /** The '.eh_frame_hdr' section index.  Zero if not searched for, ~0U if not found. */
+    unsigned                iShEhFrameHdr;
 } RTLDRMODELF, *PRTLDRMODELF;
 
 
@@ -154,6 +159,32 @@ static int RTLDRELF_NAME(MapBits)(PRTLDRMODELF pModElf, bool fNeedsBits)
         if (pModElf->iStrSh != ~0U)
             pModElf->pStr   =    (const char *)(pu8 + pModElf->paShdrs[pModElf->iStrSh].sh_offset);
         pModElf->pShStr     =    (const char *)(pu8 + pModElf->paShdrs[pModElf->Ehdr.e_shstrndx].sh_offset);
+
+        /*
+         * Verify that the ends of the string tables have a zero terminator
+         * (this avoids duplicating the appropriate checks later in the code accessing the string tables).
+         *
+         * sh_offset and sh_size were verfied in RTLDRELF_NAME(ValidateSectionHeader)() already so they
+         * are safe to use.
+         */
+        AssertMsgStmt(   pModElf->iStrSh == ~0U
+                      || pModElf->pStr[pModElf->paShdrs[pModElf->iStrSh].sh_size - 1] == '\0',
+                      ("The string table is not zero terminated!\n"),
+                      rc = VERR_LDRELF_UNTERMINATED_STRING_TAB);
+        AssertMsgStmt(pModElf->pShStr[pModElf->paShdrs[pModElf->Ehdr.e_shstrndx].sh_size - 1] == '\0',
+                      ("The section header string table is not zero terminated!\n"),
+                      rc = VERR_LDRELF_UNTERMINATED_STRING_TAB);
+
+        if (RT_FAILURE(rc))
+        {
+            /* Unmap. */
+            int rc2 = pModElf->Core.pReader->pfnUnmap(pModElf->Core.pReader, pModElf->pvBits);
+            AssertRC(rc2);
+            pModElf->pvBits = NULL;
+            pModElf->paSyms = NULL;
+            pModElf->pStr   = NULL;
+            pModElf->pShStr = NULL;
+        }
     }
     return rc;
 }
@@ -738,7 +769,13 @@ static DECLCALLBACK(int) RTLDRELF_NAME(EnumSymbols)(PRTLDRMODINTERNAL pMod, unsi
                 AssertMsgFailed(("Arg! paSyms[%u].st_shndx=" FMT_ELF_HALF "\n", iSym, paSyms[iSym].st_shndx));
                 return VERR_BAD_EXE_FORMAT;
             }
+
+            AssertMsgReturn(paSyms[iSym].st_name < pModElf->cbStr,
+                            ("String outside string table! iSym=%d paSyms[iSym].st_name=%#x\n", iSym, paSyms[iSym].st_name),
+                            VERR_LDRELF_INVALID_SYMBOL_NAME_OFFSET);
+
             const char *pszName = ELF_STR(pModElf, paSyms[iSym].st_name);
+            /* String termination was already checked when the string table was mapped. */
             if (    (pszName && *pszName)
                 &&  (   (fFlags & RTLDR_ENUM_SYMBOL_FLAGS_ALL)
                      || ELF_ST_BIND(paSyms[iSym].st_info) == STB_GLOBAL)
@@ -1298,7 +1335,7 @@ static DECLCALLBACK(int) RTLDRELF_NAME(GetImportStubCallback)(RTLDRMOD hLdrMod, 
 }
 
 
-/** @copydoc RTLDROPS::pfnRvaToSegOffset. */
+/** @copydoc RTLDROPS::pfnReadDbgInfo. */
 static DECLCALLBACK(int) RTLDRELF_NAME(ReadDbgInfo)(PRTLDRMODINTERNAL pMod, uint32_t iDbgInfo, RTFOFF off,
                                                     size_t cb, void *pvBuf)
 {
@@ -1314,9 +1351,8 @@ static DECLCALLBACK(int) RTLDRELF_NAME(ReadDbgInfo)(PRTLDRMODINTERNAL pMod, uint
     AssertReturn(pThis->paShdrs[iDbgInfo].sh_type   == SHT_PROGBITS, VERR_INVALID_PARAMETER);
     AssertReturn(pThis->paShdrs[iDbgInfo].sh_offset == (uint64_t)off, VERR_INVALID_PARAMETER);
     AssertReturn(pThis->paShdrs[iDbgInfo].sh_size   == cb, VERR_INVALID_PARAMETER);
-    RTFOFF cbRawImage = pThis->Core.pReader->pfnSize(pThis->Core.pReader);
-    AssertReturn(cbRawImage >= 0, VERR_INVALID_PARAMETER);
-    AssertReturn(off >= 0 && cb <= (uint64_t)cbRawImage && (uint64_t)off + cb <= (uint64_t)cbRawImage, VERR_INVALID_PARAMETER);
+    uint64_t cbRawImage = pThis->Core.pReader->pfnSize(pThis->Core.pReader);
+    AssertReturn(off >= 0 && cb <= cbRawImage && (uint64_t)off + cb <= cbRawImage, VERR_INVALID_PARAMETER);
 
     /*
      * Read it from the file and look for fixup sections.
@@ -1399,6 +1435,86 @@ static DECLCALLBACK(int) RTLDRELF_NAME(ReadDbgInfo)(PRTLDRMODINTERNAL pMod, uint
 }
 
 
+/**
+ * @interface_method_impl{RTLDROPS,pfnUnwindFrame}
+ */
+static DECLCALLBACK(int)
+RTLDRELF_NAME(UnwindFrame)(PRTLDRMODINTERNAL pMod, void const *pvBits, uint32_t iSeg, RTUINTPTR off, PRTDBGUNWINDSTATE pState)
+{
+    PRTLDRMODELF pThis = (PRTLDRMODELF)pMod;
+    LogFlow(("%s: iSeg=%#x off=%RTptr\n", __FUNCTION__, iSeg, off));
+
+    /*
+     * Process the input address, making us both RVA and proper seg:offset out of it.
+     */
+    int rc;
+    RTLDRADDR uRva = off;
+    if (iSeg == UINT32_MAX)
+        rc = RTLDRELF_NAME(RvaToSegOffset)(pMod, uRva, &iSeg, &off);
+    else
+        rc = RTLDRELF_NAME(SegOffsetToRva)(pMod, iSeg, off, &uRva);
+    AssertRCReturn(rc, rc);
+
+    /*
+     * Map the image bits if not already done and setup pointer into it.
+     */
+    RT_NOREF(pvBits); /** @todo Try use passed in pvBits? */
+    rc = RTLDRELF_NAME(MapBits)(pThis, true);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    /*
+     * Do we need to search for .eh_frame and .eh_frame_hdr?
+     */
+    if (pThis->iShEhFrame == 0)
+    {
+        pThis->iShEhFrame = ~0U;
+        pThis->iShEhFrameHdr = ~0U;
+        unsigned cLeft = 2;
+        for (unsigned iShdr = 1; iShdr < pThis->Ehdr.e_shnum; iShdr++)
+        {
+            const char *pszName = ELF_SH_STR(pThis, pThis->paShdrs[iShdr].sh_name);
+            if (   pszName[0] == '.'
+                && pszName[1] == 'e'
+                && pszName[2] == 'h'
+                && pszName[3] == '_'
+                && pszName[4] == 'f'
+                && pszName[5] == 'r'
+                && pszName[6] == 'a'
+                && pszName[7] == 'm'
+                && pszName[8] == 'e')
+            {
+                if (pszName[9] == '\0')
+                    pThis->iShEhFrame = iShdr;
+                else if (   pszName[9] == '_'
+                         && pszName[10] == 'h'
+                         && pszName[11] == 'd'
+                         && pszName[12] == 'r'
+                         && pszName[13] == '\0')
+                    pThis->iShEhFrameHdr = iShdr;
+                else
+                    continue;
+                if (--cLeft == 0)
+                    break;
+            }
+        }
+    }
+
+    /*
+     * Any info present?
+     */
+    unsigned iShdr = pThis->iShEhFrame;
+    if (   iShdr != ~0U
+        && pThis->paShdrs[iShdr].sh_size > 0)
+    {
+        if (pThis->paShdrs[iShdr].sh_flags & SHF_ALLOC)
+            return rtDwarfUnwind_EhData((uint8_t const *)pThis->pvBits + pThis->paShdrs[iShdr].sh_addr,
+                                        pThis->paShdrs[iShdr].sh_size, pThis->paShdrs[iShdr].sh_addr,
+                                        iSeg, off, uRva, pState, pThis->Core.enmArch);
+    }
+    return VERR_DBG_NO_UNWIND_INFO;
+}
+
 
 /**
  * The ELF module operations.
@@ -1430,6 +1546,7 @@ static RTLDROPS RTLDRELF_MID(s_rtldrElf,Ops) =
     NULL /*pfnQueryProp*/,
     NULL /*pfnVerifySignature*/,
     NULL /*pfnHashImage*/,
+    RTLDRELF_NAME(UnwindFrame),
     42
 };
 
@@ -1621,7 +1738,7 @@ const char *RTLDRELF_NAME(GetSHdrName)(PRTLDRMODELF pModElf, Elf_Word offName, c
  * @param   pszLogName  The log name.
  * @param   cbRawImage  The size of the raw image.
  */
-static int RTLDRELF_NAME(ValidateSectionHeader)(PRTLDRMODELF pModElf, unsigned iShdr, const char *pszLogName, RTFOFF cbRawImage)
+static int RTLDRELF_NAME(ValidateSectionHeader)(PRTLDRMODELF pModElf, unsigned iShdr, const char *pszLogName, uint64_t cbRawImage)
 {
     const Elf_Shdr *pShdr = &pModElf->paShdrs[iShdr];
     char szSectionName[80]; NOREF(szSectionName);
@@ -1714,11 +1831,11 @@ static int RTLDRELF_NAME(ValidateSectionHeader)(PRTLDRMODELF pModElf, unsigned i
     if (    pShdr->sh_type != SHT_NOBITS
         &&  pShdr->sh_size)
     {
-        RTFOFF offEnd = pShdr->sh_offset + pShdr->sh_size;
+        uint64_t offEnd = pShdr->sh_offset + pShdr->sh_size;
         if (    offEnd > cbRawImage
-            ||  offEnd < (RTFOFF)pShdr->sh_offset)
+            ||  offEnd < (uint64_t)pShdr->sh_offset)
         {
-            Log(("RTLdrELF: %s: Shdr #%d: sh_offset (" FMT_ELF_OFF ") + sh_size (" FMT_ELF_XWORD " = %RTfoff) is beyond the end of the file (%RTfoff)!\n",
+            Log(("RTLdrELF: %s: Shdr #%d: sh_offset (" FMT_ELF_OFF ") + sh_size (" FMT_ELF_XWORD " = %RX64) is beyond the end of the file (%RX64)!\n",
                  pszLogName, iShdr, pShdr->sh_offset, pShdr->sh_size, offEnd, cbRawImage));
             return VERR_BAD_EXE_FORMAT;
         }
@@ -1747,7 +1864,7 @@ static int RTLDRELF_NAME(ValidateSectionHeader)(PRTLDRMODELF pModElf, unsigned i
 static int RTLDRELF_NAME(Open)(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH enmArch, PRTLDRMOD phLdrMod)
 {
     const char *pszLogName = pReader->pfnLogName(pReader);
-    RTFOFF      cbRawImage = pReader->pfnSize(pReader);
+    uint64_t    cbRawImage = pReader->pfnSize(pReader);
     RT_NOREF_PV(fFlags);
 
     /*
@@ -1781,6 +1898,8 @@ static int RTLDRELF_NAME(Open)(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH 
     //pModElf->pStr           = NULL;
     //pModElf->cbShStr        = 0;
     //pModElf->pShStr         = NULL;
+    //pModElf->iShEhFrame      = 0;
+    //pModElf->iShEhFrameHdr   = 0;
 
     /*
      * Read and validate the ELF header and match up the CPU architecture.
@@ -1837,10 +1956,10 @@ static int RTLDRELF_NAME(Open)(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH 
                         }
                         pModElf->iSymSh = i;
                         pModElf->cSyms  = (unsigned)(paShdrs[i].sh_size / sizeof(Elf_Sym));
-                        AssertReturn(pModElf->cSyms == paShdrs[i].sh_size / sizeof(Elf_Sym), VERR_IMAGE_TOO_BIG);
+                        AssertBreakStmt(pModElf->cSyms == paShdrs[i].sh_size / sizeof(Elf_Sym), rc = VERR_IMAGE_TOO_BIG);
                         pModElf->iStrSh = paShdrs[i].sh_link;
                         pModElf->cbStr  = (unsigned)paShdrs[pModElf->iStrSh].sh_size;
-                        AssertReturn(pModElf->cbStr == paShdrs[pModElf->iStrSh].sh_size, VERR_IMAGE_TOO_BIG);
+                        AssertBreakStmt(pModElf->cbStr == paShdrs[pModElf->iStrSh].sh_size, rc = VERR_IMAGE_TOO_BIG);
                     }
 
                     /* Special checks for the section string table. */
@@ -1890,6 +2009,8 @@ static int RTLDRELF_NAME(Open)(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH 
                         AssertFailed();
                         rc = VERR_LDR_GENERAL_FAILURE;
                     }
+                    if (pModElf->Ehdr.e_type == ET_DYN && pModElf->LinkAddress < 0x1000)
+                        pModElf->LinkAddress = 0;
                 }
 
                 /*
@@ -1909,7 +2030,7 @@ static int RTLDRELF_NAME(Open)(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH 
                             if (pModElf->cbImage < EndAddr)
                             {
                                 pModElf->cbImage = (size_t)EndAddr;
-                                AssertMsgReturn(pModElf->cbImage == EndAddr, (FMT_ELF_ADDR "\n", EndAddr), VERR_IMAGE_TOO_BIG);
+                                AssertMsgBreakStmt(pModElf->cbImage == EndAddr, (FMT_ELF_ADDR "\n", EndAddr), rc = VERR_IMAGE_TOO_BIG);
                             }
                             Log2(("RTLdrElf: %s: Assigned " FMT_ELF_ADDR " to section #%d\n", pszLogName, paShdrs[i].sh_addr, i));
                         }

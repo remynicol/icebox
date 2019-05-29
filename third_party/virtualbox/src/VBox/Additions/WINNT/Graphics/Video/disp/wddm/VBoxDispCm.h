@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxDispCm_h___
-#define ___VBoxDispCm_h___
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispCm_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispCm_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 typedef struct VBOXWDDMDISP_DEVICE *PVBOXWDDMDISP_DEVICE;
 typedef struct VBOXWDDMDISP_CONTEXT *PVBOXWDDMDISP_CONTEXT;
@@ -33,4 +36,4 @@ HRESULT vboxDispCmCmdInterruptWait();
 
 void vboxDispCmLog(LPCSTR pszMsg);
 
-#endif /* #ifdef ___VBoxDispCm_h___ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispCm_h */

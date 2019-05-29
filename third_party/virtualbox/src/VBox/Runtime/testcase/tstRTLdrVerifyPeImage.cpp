@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Oracle Corporation
+ * Copyright (C) 2014-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -28,12 +28,14 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#include <iprt/test.h>
-#include <iprt/mem.h>
 #include <iprt/ldr.h>
+
+#include <iprt/errcore.h>
+#include <iprt/mem.h>
 #include <iprt/path.h>
 #include <iprt/stream.h>
 #include <iprt/string.h>
+#include <iprt/test.h>
 
 
 /*********************************************************************************************************************************
@@ -43,10 +45,11 @@ static int g_iDummy = 0;
 
 static DECLCALLBACK(int) TestCallback(RTLDRMOD hLdrMod, RTLDRSIGNATURETYPE enmSignature,
                                       void const *pvSignature, size_t cbSignature,
+                                      void const *pvExternalData, size_t cbExternalData,
                                       PRTERRINFO pErrInfo, void *pvUser)
 {
     RT_NOREF_PV(hLdrMod); RT_NOREF_PV(enmSignature); RT_NOREF_PV(pvSignature); RT_NOREF_PV(cbSignature);
-    RT_NOREF_PV(pErrInfo); RT_NOREF_PV(pvUser);
+    RT_NOREF_PV(pErrInfo); RT_NOREF_PV(pvUser); RT_NOREF_PV(pvExternalData); RT_NOREF_PV(cbExternalData);
     return VINF_SUCCESS;
 }
 

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -20,10 +20,14 @@
  * to make the service use a file operations structure with function pointers
  * but I'm not sure that would be universally appreciated. */
 
-#ifndef __VBSF_TEST_STUBS__H
-#define __VBSF_TEST_STUBS__H
+#ifndef VBOX_INCLUDED_SRC_SharedFolders_teststubs_h
+#define VBOX_INCLUDED_SRC_SharedFolders_teststubs_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/dir.h>
+#include <iprt/file.h>
 #include <iprt/time.h>
 
 #define RTDirClose           testRTDirClose
@@ -50,12 +54,14 @@ extern int testRTFileDelete(const char *pszFilename);
 extern int testRTFileFlush(RTFILE hFile);
 #define RTFileLock           testRTFileLock
 extern int testRTFileLock(RTFILE hFile, unsigned fLock, int64_t offLock, uint64_t cbLock);
-#define RTFileOpen           testRTFileOpen
-extern int testRTFileOpen(PRTFILE pFile, const char *pszFilename, uint64_t fOpen);
+#define RTFileOpenEx         testRTFileOpenEx
+extern int testRTFileOpenEx(const char *pszFilename, uint64_t fOpen, PRTFILE phFile, PRTFILEACTION penmActionTaken);
 #define RTFileQueryInfo      testRTFileQueryInfo
 extern int testRTFileQueryInfo(RTFILE hFile, PRTFSOBJINFO pObjInfo, RTFSOBJATTRADD enmAdditionalAttribs);
 #define RTFileRead           testRTFileRead
 extern int testRTFileRead(RTFILE hFile, void *pvBuf, size_t cbToRead, size_t *pcbRead);
+#define RTFileReadAt         testRTFileReadAt
+extern int testRTFileReadAt(RTFILE hFile, uint64_t offFile, void *pvBuf, size_t cbToRead, size_t *pcbRead);
 #define RTFileSetMode        testRTFileSetMode
 extern int testRTFileSetMode(RTFILE hFile, RTFMODE fMode);
 #define RTFileSetSize        testRTFileSetSize
@@ -68,6 +74,8 @@ extern int testRTFileSeek(RTFILE hFile, int64_t offSeek, unsigned uMethod, uint6
 extern int testRTFileUnlock(RTFILE hFile, int64_t offLock, uint64_t cbLock);
 #define RTFileWrite          testRTFileWrite
 extern int testRTFileWrite(RTFILE hFile, const void *pvBuf, size_t cbToWrite, size_t *pcbWritten);
+#define RTFileWriteAt        testRTFileWriteAt
+extern int testRTFileWriteAt(RTFILE hFile, uint64_t offFile, const void *pvBuf, size_t cbToWrite, size_t *pcbWritten);
 #define RTFsQueryProperties  testRTFsQueryProperties
 extern int testRTFsQueryProperties(const char *pszFsPath, PRTFSPROPERTIES pProperties);
 #define RTFsQuerySerial      testRTFsQuerySerial
@@ -81,4 +89,4 @@ extern int testRTSymlinkDelete(const char *pszSymlink, uint32_t fDelete);
 #define RTSymlinkRead        testRTSymlinkRead
 extern int testRTSymlinkRead(const char *pszSymlink, char *pszTarget, size_t cbTarget, uint32_t fRead);
 
-#endif /* __VBSF_TEST_STUBS__H */
+#endif /* !VBOX_INCLUDED_SRC_SharedFolders_teststubs_h */

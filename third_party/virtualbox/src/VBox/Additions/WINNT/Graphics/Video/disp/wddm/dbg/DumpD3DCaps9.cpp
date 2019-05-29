@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -751,7 +751,7 @@ static char * strDupSort(const char * pcszStr)
     const char *pPrevCmp = NULL;
     const char * pCmp = "\001";
     const char * pCur;
-    int cLength, cPrevLength;
+    int cLength, cPrevLength = 0;
 
     do
     {
@@ -986,11 +986,9 @@ static D3DCAPS9* selectCaps(D3DCAPS9 *pLocalStorage, D3DCAPS9 *pLocalEmbedded1, 
         default:
         {
             Log(("Unsupported type %d", enmCapsType));
-            return NULL;
         }
     }
 
-    Log(("Should not be here!"));
     return NULL;
 }
 

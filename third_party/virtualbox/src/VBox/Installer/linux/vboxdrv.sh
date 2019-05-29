@@ -3,7 +3,7 @@
 # Linux kernel module init script
 
 #
-# Copyright (C) 2006-2017 Oracle Corporation
+# Copyright (C) 2006-2019 Oracle Corporation
 #
 # This file is part of VirtualBox Open Source Edition (OSE), as
 # available from http://www.virtualbox.org. This file is free software;
@@ -131,7 +131,7 @@ module_build_log()
 {
     setup_log
     echo "${1}" | egrep -v \
-        "^test -e include/generated/autoconf.h|^echo >&2|^/bin/false)$" \
+        "^test -e include/generated/autoconf.h|^echo >&2|^/bin/false\)$" \
         >> "${LOG}"
 }
 
@@ -409,6 +409,7 @@ cleanup()
                   "${i}/misc/vboxnetflt.ko" "${i}/misc/vboxpci.ko"
             version=`expr "${i}" : "/lib/modules/\(.*\)"`
             depmod -a "${version}"
+            sync
         fi
         # Remove the kernel version folder if it was empty except for us.
         test   "`echo ${i}/misc/* ${i}/misc/.?* ${i}/* ${i}/.?*`" \
@@ -460,6 +461,7 @@ setup()
     fi
     rm -f /etc/vbox/module_not_compiled
     depmod -a
+    sync
     succ_msg "VirtualBox kernel modules built"
 }
 

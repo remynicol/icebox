@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -24,8 +24,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___r0drv_alloc_r0drv_h
-#define ___r0drv_alloc_r0drv_h
+#ifndef IPRT_INCLUDED_SRC_r0drv_alloc_r0drv_h
+#define IPRT_INCLUDED_SRC_r0drv_alloc_r0drv_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/cdefs.h>
 #include <iprt/types.h>
@@ -71,6 +74,9 @@ typedef struct RTMEMHDR
 # define RTMEMHDR_FLAG_EXEC_HEAP    RT_BIT(30)
 /** Linux: Allocated by kmalloc() instead of vmalloc(). */
 # define RTMEMHDR_FLAG_KMALLOC      RT_BIT(31)
+#elif defined(RT_OS_WINDOWS)
+/** Windows: Untagged allocation by ExAllocatePool, freed using ExFreePool. */
+# define RTMEMHDR_FLAG_UNTAGGED     RT_BIT(31)
 #endif
 /** @} */
 
@@ -97,5 +103,5 @@ DECLHIDDEN(int)     rtR0MemAllocEx(size_t cb, uint32_t fFlags, PRTMEMHDR *ppHdr)
 DECLHIDDEN(void)    rtR0MemFree(PRTMEMHDR pHdr);
 
 RT_C_DECLS_END
-#endif
+#endif /* !IPRT_INCLUDED_SRC_r0drv_alloc_r0drv_h */
 

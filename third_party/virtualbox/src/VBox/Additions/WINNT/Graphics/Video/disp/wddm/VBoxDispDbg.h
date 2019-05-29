@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxDispDbg_h__
-#define ___VBoxDispDbg_h__
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispDbg_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispDbg_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #define VBOX_VIDEO_LOG_NAME "VBoxD3D"
 #define VBOX_VIDEO_LOG_LOGGER vboxVDbgInternalLogLogger
@@ -29,6 +32,9 @@
 #ifdef DEBUG
 /* debugging configuration flags */
 
+/* Adds vectored exception handler to be able to catch non-debug UM exceptions in kernel debugger. */
+#define VBOXWDDMDISP_DEBUG_VEHANDLER
+
 /* generic debugging facilities & extra data checks */
 # define VBOXWDDMDISP_DEBUG
 # if defined(DEBUG_misha) || defined(DEBUG_leo)
@@ -38,8 +44,6 @@
 //#  define VBOXWDDMDISP_DEBUG_PRINTDRV
 /* use OutputDebugString */
 //#  define VBOXWDDMDISP_DEBUG_PRINT
-/* adds vectored exception handler to be able to catch non-debug UM exceptions in kernel debugger */
-//#  define VBOXWDDMDISP_DEBUG_VEHANDLER
 /* disable shared resource creation with wine */
 //#  define VBOXWDDMDISP_DEBUG_NOSHARED
 
@@ -655,4 +659,4 @@ HRESULT vboxVDbgTimerStop(HANDLE hTimerQueue, HANDLE hTimer);
 #endif
 
 
-#endif /* #ifndef ___VBoxDispDbg_h__ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispDbg_h */

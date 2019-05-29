@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxMPTypes_h___
-#define ___VBoxMPTypes_h___
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_wddm_VBoxMPTypes_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_wddm_VBoxMPTypes_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 typedef struct _VBOXMP_DEVEXT *PVBOXMP_DEVEXT;
 #ifdef VBOX_WITH_CROGL
@@ -44,9 +47,14 @@ typedef struct VBOXWDDM_ALLOCATION *PVBOXWDDM_ALLOCATION;
 #include <iprt/avl.h>
 #endif
 
+#ifndef VBOX_WITH_MESA3D
 /* one page size */
 #define VBOXWDDM_C_DMA_BUFFER_SIZE         0x1000
 #define VBOXWDDM_C_DMA_PRIVATEDATA_SIZE    0x4000
+#else
+#define VBOXWDDM_C_DMA_BUFFER_SIZE         0x10000
+#define VBOXWDDM_C_DMA_PRIVATEDATA_SIZE    0x8000
+#endif
 #define VBOXWDDM_C_ALLOC_LIST_SIZE         0xc00
 #define VBOXWDDM_C_PATH_LOCATION_LIST_SIZE 0xc00
 
@@ -278,6 +286,9 @@ typedef struct VBOXWDDM_CONTEXT
 #endif
     VBOXVIDEOCM_CTX CmContext;
     VBOXVIDEOCM_ALLOC_CONTEXT AllocContext;
+#ifdef VBOX_WITH_MESA3D
+    uint32_t u32Cid;               /* SVGA context id of this context. */
+#endif
 } VBOXWDDM_CONTEXT, *PVBOXWDDM_CONTEXT;
 
 typedef struct VBOXWDDM_DMA_PRIVATEDATA_PRESENTHDR
@@ -359,4 +370,4 @@ typedef struct VBOXWDDM_VMODES
     uint64_t aPendingRemoveCurResolutions[VBOX_VIDEO_MAX_SCREENS];
 } VBOXWDDM_VMODES;
 
-#endif /* #ifndef ___VBoxMPTypes_h___ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_mp_wddm_VBoxMPTypes_h */

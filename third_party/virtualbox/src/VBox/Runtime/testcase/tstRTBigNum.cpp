@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -30,11 +30,15 @@
 *********************************************************************************************************************************/
 #include <iprt/bignum.h>
 #include <iprt/uint128.h>
+#include <iprt/uint64.h>
+#include <iprt/uint32.h>
 
+#include <iprt/err.h>
+#include <iprt/rand.h>
+#include <iprt/string.h>
 #include <iprt/test.h>
 #include <iprt/thread.h>
 #include <iprt/time.h>
-#include <iprt/string.h>
 
 #if 1
 # include <openssl/bn.h>
@@ -856,6 +860,7 @@ static void testModulo(void)
         RTTESTI_CHECK_RC(RTBigNumModulo(&Result, &g_LargeNegative, &g_LargeNegativePluss1), VINF_SUCCESS);
         RTTESTI_CHECK(RTBigNumCompareWithS64(&Result, -1) == 0);
 
+        RTTESTI_CHECK_RC(RTBigNumDestroy(&Tmp), VINF_SUCCESS);
         RTTESTI_CHECK_RC(RTBigNumDestroy(&Result), VINF_SUCCESS);
     }
 }
@@ -1035,6 +1040,7 @@ static void testModExp(void)
     RTTESTI_CHECK_RC_RETV(RTBigNumInitZero(&Result, 0), VINF_SUCCESS);
     RTTESTI_CHECK_RC(RTBigNumModExp(&Result, &g_Signature, &g_PubKeyExp, &g_PubKeyMod), VINF_SUCCESS);
     RTTESTI_CHECK(RTBigNumCompare(&Result, &g_SignatureDecrypted) == 0);
+    RTTESTI_CHECK_RC(RTBigNumDestroy(&Result), VINF_SUCCESS);
 }
 
 
@@ -1173,6 +1179,8 @@ static void testBenchmarks(bool fOnlyModExp)
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
     RTTestIValue("RTBigNumModulo", uElapsed / cRounds, RTTESTUNIT_NS_PER_CALL);
 
+    RTBigNumDestroy(&Decrypted);
+
 #if 1
     /* Compare with OpenSSL BN. */
     BIGNUM *pObnProduct = BN_new();
@@ -1207,6 +1215,8 @@ static void testBenchmarks(bool fOnlyModExp)
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
     RTTestIValue("RTBigNumMultiply", uElapsed / cRounds, RTTESTUNIT_NS_PER_CALL);
 
+    RTBigNumDestroy(&Product);
+
 #if 1
     /* Compare with OpenSSL BN. */
     rc = 1;
@@ -1220,6 +1230,14 @@ static void testBenchmarks(bool fOnlyModExp)
     uElapsed = RTTimeNanoTS() - uStartTS;
     RTTESTI_CHECK_RC(rc, 1);
     RTTestIValue("BN_mul", uElapsed / cRounds, RTTESTUNIT_NS_PER_CALL);
+
+    BN_free(pObnPubKeyExp);
+    BN_free(pObnPubKeyMod);
+    BN_free(pObnSignature);
+    BN_free(pObnSignatureDecrypted);
+    BN_free(pObnResult);
+    BN_free(pObnProduct);
+    BN_CTX_free(pObnCtx);
 #endif
 
 }
@@ -1616,6 +1634,54 @@ static void testUInt128Division(void)
 }
 
 
+static void testUInt64Division(void)
+{
+    /*
+     * Check the results against native code.
+     */
+    RTTestSub(g_hTest, "RTUInt64DivRem");
+    for (uint32_t i = 0; i < _1M / 2; i++)
+    {
+        uint64_t const uDividend  = RTRandU64Ex(0, UINT64_MAX);
+        uint64_t const uDivisor   = RTRandU64Ex(1, UINT64_MAX);
+        uint64_t const uQuotient  = uDividend / uDivisor;
+        uint64_t const uRemainder = uDividend % uDivisor;
+        RTUINT64U Dividend  = { uDividend  };
+        RTUINT64U Divisor   = { uDivisor   };
+        RTUINT64U Quotient  = { UINT64_MAX };
+        RTUINT64U Remainder = { UINT64_MAX };
+        RTTESTI_CHECK(RTUInt64DivRem(&Quotient, &Remainder, &Dividend, &Divisor) == &Quotient);
+        if (uQuotient != Quotient.u || uRemainder != Remainder.u)
+            RTTestIFailed("%RU64 / %RU64 -> %RU64 rem %RU64, expected %RU64 rem %RU64",
+                          uDividend, uDivisor, Quotient.u, Remainder.u, uQuotient, uRemainder);
+    }
+}
+
+
+static void testUInt32Division(void)
+{
+    /*
+     * Check the results against native code.
+     */
+    RTTestSub(g_hTest, "RTUInt32DivRem");
+    for (uint32_t i = 0; i < _1M / 2; i++)
+    {
+        uint32_t const uDividend  = RTRandU32Ex(0, UINT32_MAX);
+        uint32_t const uDivisor   = RTRandU32Ex(1, UINT32_MAX);
+        uint32_t const uQuotient  = uDividend / uDivisor;
+        uint32_t const uRemainder = uDividend % uDivisor;
+        RTUINT32U Dividend  = { uDividend  };
+        RTUINT32U Divisor   = { uDivisor   };
+        RTUINT32U Quotient  = { UINT32_MAX };
+        RTUINT32U Remainder = { UINT32_MAX };
+        RTTESTI_CHECK(RTUInt32DivRem(&Quotient, &Remainder, &Dividend, &Divisor) == &Quotient);
+        if (uQuotient != Quotient.u || uRemainder != Remainder.u)
+            RTTestIFailed("%u / %u -> %u rem %u, expected %u rem %u",
+                          uDividend, uDivisor, Quotient.u, Remainder.u, uQuotient, uRemainder);
+    }
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -1674,6 +1740,10 @@ int main(int argc, char **argv)
             testUInt128Division();
             testUInt128Subtraction();
             testUInt128Addition();
+
+            /* Test UInt32 and UInt64 division as it's used by the watcom support code (BIOS, ValKit, OS/2 GAs). */
+            testUInt32Division();
+            testUInt64Division();
 
             /* Test the RTBigInt operations. */
             testCompare();

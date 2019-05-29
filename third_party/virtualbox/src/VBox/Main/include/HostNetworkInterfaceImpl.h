@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -17,8 +17,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ____H_HOSTNETWORKINTERFACEIMPL
-#define ____H_HOSTNETWORKINTERFACEIMPL
+#ifndef MAIN_INCLUDED_HostNetworkInterfaceImpl_h
+#define MAIN_INCLUDED_HostNetworkInterfaceImpl_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include "HostNetworkInterfaceWrap.h"
 
@@ -46,6 +49,9 @@ public:
 #endif
 
     HRESULT i_setVirtualBox(VirtualBox *pVirtualBox);
+#ifdef RT_OS_WINDOWS
+    HRESULT i_updatePersistentConfig();
+#endif /* RT_OS_WINDOWS */
 
 #ifdef VBOX_WITH_RESOURCE_USAGE_API
     void i_registerMetrics(PerformanceCollector *aCollector, ComPtr<IUnknown> objptr);
@@ -81,6 +87,16 @@ private:
 
     Bstr i_composeNetworkName(const Utf8Str szShortName);
 
+#if defined(RT_OS_WINDOWS)
+    HRESULT eraseAdapterConfigParameter(const char *szParamName);
+    HRESULT saveAdapterConfigParameter(const char *szParamName, const Utf8Str& strValue);
+    HRESULT saveAdapterConfigIPv4Dhcp();
+    HRESULT saveAdapterConfigIPv4(ULONG addr, ULONG mask);
+    HRESULT saveAdapterConfigIPv6(const Utf8Str& addr, ULONG prefix);
+    HRESULT saveAdapterConfig();
+    bool    isInConfigFile();
+#endif /* defined(RT_OS_WINDOWS) */
+
     const Bstr mInterfaceName;
     const Guid mGuid;
     const Bstr mNetworkName;
@@ -115,5 +131,5 @@ private:
 
 typedef std::list<ComObjPtr<HostNetworkInterface> > HostNetworkInterfaceList;
 
-#endif // ____H_H_HOSTNETWORKINTERFACEIMPL
+#endif /* !MAIN_INCLUDED_HostNetworkInterfaceImpl_h */
 /* vi: set tabstop=4 shiftwidth=4 expandtab: */

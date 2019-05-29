@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -29,6 +29,9 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #define LOG_GROUP RTLOGGROUP_FS
+#if !defined(IPRT_NT_MAP_TO_ZW) && defined(IN_RING0)
+# define IPRT_NT_MAP_TO_ZW
+#endif
 #ifdef IN_SUP_HARDENED_R3
 # include <iprt/nt/nt-and-windows.h>
 #else
@@ -36,6 +39,7 @@
 #endif
 
 #include <iprt/mem.h>
+#include <iprt/errcore.h>
 #include <iprt/string.h>
 
 

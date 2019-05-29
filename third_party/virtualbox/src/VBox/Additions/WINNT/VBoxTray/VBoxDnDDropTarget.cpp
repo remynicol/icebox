@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Oracle Corporation
+ * Copyright (C) 2014-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,6 +15,7 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
+#define LOG_GROUP LOG_GROUP_GUEST_DND
 #include <iprt/win/windows.h>
 #include <new> /* For bad_alloc. */
 #include <iprt/win/shlobj.h> /* For DROPFILES and friends. */
@@ -26,10 +27,7 @@
 #include "VBox/GuestHost/DragAndDrop.h"
 #include "VBox/HostServices/DragAndDropSvc.h"
 
-#ifdef LOG_GROUP
-# undef LOG_GROUP
-#endif
-#define LOG_GROUP LOG_GROUP_GUEST_DND
+#include <iprt/utf16.h>
 #include <VBox/log.h>
 
 
@@ -261,7 +259,7 @@ STDMETHODIMP VBoxDnDDropTarget::DragLeave(void)
 #endif
 
     if (mpWndParent)
-        mpWndParent->hide();
+        mpWndParent->Hide();
 
     return S_OK;
 }
@@ -484,7 +482,7 @@ STDMETHODIMP VBoxDnDDropTarget::Drop(IDataObject *pDataObject, DWORD grfKeyState
                                                                   DNDURILIST_FLAGS_ABSOLUTE_PATHS);
                             if (RT_SUCCESS(rc))
                             {
-                                RTCString strRoot = lstURI.RootToString();
+                                RTCString strRoot = lstURI.GetRootEntries();
                                 size_t cbRoot = strRoot.length() + 1; /* Include termination */
 
                                 mpvData = RTMemAlloc(cbRoot);
@@ -548,7 +546,7 @@ STDMETHODIMP VBoxDnDDropTarget::Drop(IDataObject *pDataObject, DWORD grfKeyState
         *pdwEffect = DROPEFFECT_NONE;
 
     if (mpWndParent)
-        mpWndParent->hide();
+        mpWndParent->Hide();
 
     LogFlowFunc(("Returning with hr=%Rhrc (%Rrc), mFormatEtc.cfFormat=%RI16 (%s), *pdwEffect=%RI32\n",
                  hr, rc, mFormatEtc.cfFormat, VBoxDnDDataObject::ClipboardFormatToString(mFormatEtc.cfFormat),

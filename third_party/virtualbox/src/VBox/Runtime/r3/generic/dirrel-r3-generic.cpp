@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -83,7 +83,7 @@ static int rtDirRelBuildFullPath(PRTDIRINTERNAL pThis, char *pszPathDst, size_t 
      *
      * This ASSUMES that pThis->pszPath is an absolute path.
      */
-    int rc = RTPathAbsEx(pThis->pszPath, pszRelPath, pszPathDst, cbPathDst);
+    int rc = RTPathAbsEx(pThis->pszPath, pszRelPath, RTPATH_STR_F_STYLE_HOST, pszPathDst, &cbPathDst);
     if (RT_SUCCESS(rc))
     {
         if (RTPathStartsWith(pszPathDst, pThis->pszPath))

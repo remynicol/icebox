@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2004-2017 Oracle Corporation
+ * Copyright (C) 2004-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -14,6 +14,8 @@
  * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
+
+#define LOG_GROUP LOG_GROUP_MAIN_HOST
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
@@ -41,7 +43,7 @@
 #include "HostVideoInputDeviceImpl.h"
 #include "MachineImpl.h"
 #include "AutoCaller.h"
-#include "Logging.h"
+#include "LoggingNew.h"
 #include "Performance.h"
 
 #include "MediumImpl.h"
@@ -51,9 +53,7 @@
 # include <HostHardwareLinux.h>
 #endif
 
-#if defined(RT_OS_LINUX) || defined(RT_OS_DARWIN) || defined(RT_OS_FREEBSD)
-# include <set>
-#endif
+#include <set>
 
 #ifdef VBOX_WITH_RESOURCE_USAGE_API
 # include "PerformanceImpl.h"
@@ -183,7 +183,8 @@ struct Host::Data
     Data()
         :
           fDVDDrivesListBuilt(false),
-          fFloppyDrivesListBuilt(false)
+          fFloppyDrivesListBuilt(false),
+          fPersistentConfigUpToDate(false)
     {};
 
     VirtualBox              *pParent;
@@ -216,6 +217,8 @@ struct Host::Data
                             fLongModeSupported,
                             fPAESupported,
                             fNestedPagingSupported,
+                            fUnrestrictedGuestSupported,
+                            fNestedHWVirtSupported,
                             fRecheckVTSupported;
 
     /** @}  */
@@ -226,6 +229,9 @@ struct Host::Data
     HostPowerService        *pHostPowerService;
     /** Host's DNS informaton fetching */
     HostDnsMonitorProxy     hostDnsMonitorProxy;
+
+    /** Startup syncing of persistent config in extra data */
+    bool                    fPersistentConfigUpToDate;
 };
 
 
@@ -280,7 +286,7 @@ HRESULT Host::init(VirtualBox *aParent)
     /* Create the list of network interfaces so their metrics get registered. */
     i_updateNetIfList();
 
-    m->hostDnsMonitorProxy.init(HostDnsMonitor::getHostDnsMonitor(m->pParent), m->pParent);
+    m->hostDnsMonitorProxy.init(m->pParent);
 
 #if defined(RT_OS_WINDOWS)
     m->pHostPowerService = new HostPowerServiceWin(m->pParent);
@@ -297,6 +303,8 @@ HRESULT Host::init(VirtualBox *aParent)
     m->fLongModeSupported = false;
     m->fPAESupported = false;
     m->fNestedPagingSupported = false;
+    m->fUnrestrictedGuestSupported = false;
+    m->fNestedHWVirtSupported = false;
     m->fRecheckVTSupported = false;
 
     if (ASMHasCpuId())
@@ -327,14 +335,16 @@ HRESULT Host::init(VirtualBox *aParent)
 
             /* VT-x? */
             if (   ASMIsIntelCpuEx(uVendorEBX, uVendorECX, uVendorEDX)
-                || ASMIsViaCentaurCpuEx(uVendorEBX, uVendorECX, uVendorEDX))
+                || ASMIsViaCentaurCpuEx(uVendorEBX, uVendorECX, uVendorEDX)
+                || ASMIsShanghaiCpuEx(uVendorEBX, uVendorECX, uVendorEDX))
             {
                 if (    (fFeaturesEcx & X86_CPUID_FEATURE_ECX_VMX)
                      && (fFeaturesEdx & X86_CPUID_FEATURE_EDX_MSR)
                      && (fFeaturesEdx & X86_CPUID_FEATURE_EDX_FXSR)
                    )
                 {
-                    int rc = SUPR3QueryVTxSupported();
+                    const char *pszIgn;
+                    int rc = SUPR3QueryVTxSupported(&pszIgn);
                     if (RT_SUCCESS(rc))
                         m->fVTSupported = true;
                 }
@@ -349,6 +359,7 @@ HRESULT Host::init(VirtualBox *aParent)
                    )
                 {
                     m->fVTSupported = true;
+                    m->fUnrestrictedGuestSupported = true;
 
                     /* Query AMD features. */
                     if (uExtMaxId >= 0x8000000a)
@@ -378,17 +389,35 @@ HRESULT Host::init(VirtualBox *aParent)
                     m->fNestedPagingSupported = true;
                 else
                     Assert(m->fNestedPagingSupported == false);
+                if (   (fVTCaps & SUPVTCAPS_AMD_V)
+                    || (fVTCaps & SUPVTCAPS_VTX_UNRESTRICTED_GUEST))
+                    m->fUnrestrictedGuestSupported = true;
+                else
+                    Assert(m->fUnrestrictedGuestSupported == false);
+                /** @todo r=klaus put accurate condition here and update it as
+                 * the feature becomes available with VT-x. */
+                if (   (fVTCaps & SUPVTCAPS_AMD_V)
+                    && m->fNestedPagingSupported)
+                    m->fNestedHWVirtSupported = true;
             }
             else
             {
                 LogRel(("SUPR0QueryVTCaps -> %Rrc\n", rc));
-                m->fVTSupported = m->fNestedPagingSupported = false;
+                m->fVTSupported = m->fNestedPagingSupported = m->fUnrestrictedGuestSupported
+                    = m->fNestedHWVirtSupported = false;
             }
             rc = SUPR3Term(false);
             AssertRC(rc);
         }
         else
             m->fRecheckVTSupported = true; /* Try again later when the driver is loaded. */
+    }
+
+    /* Check for NEM in root paritition (hyper-V / windows). */
+    if (!m->fVTSupported && SUPR3IsNemSupportedWhenNoVtxOrAmdV())
+    {
+        m->fVTSupported = m->fNestedPagingSupported = true;
+        m->fRecheckVTSupported = false;
     }
 
 #ifdef VBOX_WITH_CROGL
@@ -470,6 +499,8 @@ void Host::uninit()
         pNet->uninit();
         m->llNetIfs.pop_front();
     }
+
+    m->hostDnsMonitorProxy.uninit();
 
 #ifdef VBOX_WITH_USB
     /* wait for USB proxy service to terminate before we uninit all USB
@@ -614,6 +645,155 @@ static int vboxNetWinAddComponent(std::list< ComObjPtr<HostNetworkInterface> > *
 }
 #endif /* defined(RT_OS_WINDOWS) && defined(VBOX_WITH_NETFLT) */
 
+#if defined(RT_OS_WINDOWS)
+struct HostOnlyInfo
+{
+    HostOnlyInfo() : fDhcpEnabled(false), uIPv6PrefixLength(0) {};
+
+    Bstr bstrName;
+    bool fDhcpEnabled;
+    Bstr strIPv4Address;
+    Bstr strIPv4NetMask;
+    Bstr strIPv6Address;
+    ULONG uIPv6PrefixLength;
+};
+
+typedef std::map<Utf8Str, HostOnlyInfo*> GUID_TO_HOST_ONLY_INFO;
+
+HRESULT Host::i_updatePersistentConfigForHostOnlyAdapters(void)
+{
+    /* No need to do the sync twice */
+    if (m->fPersistentConfigUpToDate)
+        return S_OK;
+    m->fPersistentConfigUpToDate = true;
+    bool fChangesMade = false;
+
+    /* Extract the list of configured host-only interfaces */
+    GUID_TO_HOST_ONLY_INFO aSavedAdapters;
+    SafeArray<BSTR> aGlobalExtraDataKeys;
+    HRESULT hrc = m->pParent->GetExtraDataKeys(ComSafeArrayAsOutParam(aGlobalExtraDataKeys));
+    AssertMsg(SUCCEEDED(hrc), ("VirtualBox::GetExtraDataKeys failed with %Rhrc\n", hrc));
+    for (size_t i = 0; i < aGlobalExtraDataKeys.size(); ++i)
+    {
+        Utf8Str strKey = aGlobalExtraDataKeys[i];
+
+        if (strKey.startsWith("HostOnly/{"))
+        {
+            Bstr bstrValue;
+            HRESULT hrc = m->pParent->GetExtraData(aGlobalExtraDataKeys[i], bstrValue.asOutParam());
+            if (hrc != S_OK)
+                continue;
+
+            Utf8Str strGuid = strKey.substr(10, 36); /* Skip "HostOnly/{" */
+            if (aSavedAdapters.find(strGuid) == aSavedAdapters.end())
+                aSavedAdapters[strGuid] = new HostOnlyInfo();
+
+            if (strKey.endsWith("}/Name"))
+                aSavedAdapters[strGuid]->bstrName = bstrValue;
+            else if (strKey.endsWith("}/IPAddress"))
+            {
+                if (bstrValue == "DHCP")
+                    aSavedAdapters[strGuid]->fDhcpEnabled = true;
+                else
+                    aSavedAdapters[strGuid]->strIPv4Address = bstrValue;
+            }
+            else if (strKey.endsWith("}/IPNetMask"))
+                aSavedAdapters[strGuid]->strIPv4NetMask = bstrValue;
+            else if (strKey.endsWith("}/IPV6Address"))
+                aSavedAdapters[strGuid]->strIPv6Address = bstrValue;
+            else if (strKey.endsWith("}/IPV6PrefixLen"))
+                aSavedAdapters[strGuid]->uIPv6PrefixLength = Utf8Str(bstrValue).toUInt32();
+        }
+    }
+
+    /* Go over the list of existing adapters and update configs saved in extra data */
+    std::set<Bstr> aKnownNames;
+    for (HostNetworkInterfaceList::iterator it = m->llNetIfs.begin(); it != m->llNetIfs.end(); ++it)
+    {
+        /* Get type */
+        HostNetworkInterfaceType_T t;
+        hrc = (*it)->COMGETTER(InterfaceType)(&t);
+        if (FAILED(hrc) || t != HostNetworkInterfaceType_HostOnly)
+            continue;
+        /* Get id */
+        Bstr bstrGuid;
+        hrc = (*it)->COMGETTER(Id)(bstrGuid.asOutParam());
+        if (FAILED(hrc))
+            continue;
+        /* Get name */
+        Bstr bstrName;
+        hrc = (*it)->COMGETTER(Name)(bstrName.asOutParam());
+        if (FAILED(hrc))
+            continue;
+
+        /* Remove adapter from map as it does not need any further processing */
+        aSavedAdapters.erase(Utf8Str(bstrGuid));
+        /* Add adapter name to the list of known names, so we won't attempt to create adapters with the same name */
+        aKnownNames.insert(bstrName);
+        /* Make sure our extra data contains the latest config */
+        hrc = (*it)->i_updatePersistentConfig();
+        if (hrc != S_OK)
+            break;
+    }
+
+    /* The following loop not only creates missing adapters, it destroys HostOnlyInfo objects contained in the map as well */
+    for (GUID_TO_HOST_ONLY_INFO::iterator it = aSavedAdapters.begin(); it != aSavedAdapters.end(); ++it)
+    {
+        Utf8Str strGuid = (*it).first;
+        HostOnlyInfo *pInfo = (*it).second;
+        /* We create adapters only if we haven't seen one with the same name */
+        if (aKnownNames.find(pInfo->bstrName) == aKnownNames.end())
+        {
+            /* There is no adapter with such name yet, create it */
+            ComPtr<IHostNetworkInterface> hif;
+            ComPtr<IProgress> progress;
+
+            int rc = NetIfCreateHostOnlyNetworkInterface(m->pParent, hif.asOutParam(), progress.asOutParam(), pInfo->bstrName.raw());
+            if (RT_FAILURE(rc))
+            {
+                LogRel(("Failed to create host-only adapter (%d)\n", rc));
+                hrc = E_UNEXPECTED;
+                break;
+            }
+            /* Wait for the adapter to get configured completely, before we modify IP addresses. */
+            progress->WaitForCompletion(-1);
+            fChangesMade = true;
+            if (pInfo->fDhcpEnabled)
+            {
+                hrc = hif->EnableDynamicIPConfig();
+                if (FAILED(hrc))
+                    LogRel(("EnableDynamicIPConfig failed with 0x%x\n", hrc));
+            }
+            else
+            {
+                hrc = hif->EnableStaticIPConfig(pInfo->strIPv4Address.raw(), pInfo->strIPv4NetMask.raw());
+                if (FAILED(hrc))
+                    LogRel(("EnableStaticIpConfig failed with 0x%x\n", hrc));
+            }
+# if 0
+            /* Somehow HostNetworkInterface::EnableStaticIPConfigV6 is not implemented yet. */
+            if (SUCCEEDED(hrc))
+            {
+                hrc = hif->EnableStaticIPConfigV6(pInfo->strIPv6Address.raw(), pInfo->uIPv6PrefixLength);
+                if (FAILED(hrc))
+                    LogRel(("EnableStaticIPConfigV6 failed with 0x%x\n", hrc));
+            }
+# endif
+            /* Now we have seen this name */
+            aKnownNames.insert(pInfo->bstrName);
+            /* Drop the old config as the newly created adapter has different GUID */
+            i_removePersistentConfig(strGuid);
+        }
+        delete pInfo;
+    }
+    /* Update the list again if we have created some adapters */
+    if (SUCCEEDED(hrc) && fChangesMade)
+        hrc = i_updateNetIfList();
+
+    return hrc;
+}
+#endif /* defined(RT_OS_WINDOWS) */
+
 /**
  * Returns a list of host network interfaces.
  *
@@ -630,6 +810,14 @@ HRESULT Host::getNetworkInterfaces(std::vector<ComPtr<IHostNetworkInterface> > &
         Log(("Failed to update host network interface list with rc=%Rhrc\n", rc));
         return rc;
     }
+#if defined(RT_OS_WINDOWS)
+    rc = i_updatePersistentConfigForHostOnlyAdapters();
+    if (FAILED(rc))
+    {
+        LogRel(("Failed to update persistent config for host-only adapters with rc=%Rhrc\n", rc));
+        return rc;
+    }
+#endif /* defined(RT_OS_WINDOWS) */
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -999,6 +1187,8 @@ HRESULT Host::getProcessorFeature(ProcessorFeature_T aFeature, BOOL *aSupported)
         case ProcessorFeature_PAE:
         case ProcessorFeature_LongMode:
         case ProcessorFeature_NestedPaging:
+        case ProcessorFeature_UnrestrictedGuest:
+        case ProcessorFeature_NestedHWVirt:
             break;
         default:
             return setError(E_INVALIDARG, tr("The aFeature value %d (%#x) is out of range."), (int)aFeature, (int)aFeature);
@@ -1013,7 +1203,9 @@ HRESULT Host::getProcessorFeature(ProcessorFeature_T aFeature, BOOL *aSupported)
 
         if (   m->fRecheckVTSupported
             && (   aFeature == ProcessorFeature_HWVirtEx
-                || aFeature == ProcessorFeature_NestedPaging)
+                || aFeature == ProcessorFeature_NestedPaging
+                || aFeature == ProcessorFeature_UnrestrictedGuest
+                || aFeature == ProcessorFeature_NestedHWVirt)
            )
         {
             alock.release();
@@ -1033,11 +1225,22 @@ HRESULT Host::getProcessorFeature(ProcessorFeature_T aFeature, BOOL *aSupported)
                         m->fNestedPagingSupported = true;
                     else
                         Assert(m->fNestedPagingSupported == false);
+                    if (   (fVTCaps & SUPVTCAPS_AMD_V)
+                        || (fVTCaps & SUPVTCAPS_VTX_UNRESTRICTED_GUEST))
+                        m->fUnrestrictedGuestSupported = true;
+                    else
+                        Assert(m->fUnrestrictedGuestSupported == false);
+                    /** @todo r=klaus put accurate condition here and update it as
+                     * the feature becomes available with VT-x. */
+                    if (   (fVTCaps & SUPVTCAPS_AMD_V)
+                        && m->fNestedPagingSupported)
+                        m->fNestedHWVirtSupported = true;
                 }
                 else
                 {
                     LogRel(("SUPR0QueryVTCaps -> %Rrc\n", rc));
-                    m->fVTSupported = m->fNestedPagingSupported = true;
+                    m->fVTSupported = m->fNestedPagingSupported = m->fUnrestrictedGuestSupported
+                        = m->fNestedHWVirtSupported = false;
                 }
                 rc = SUPR3Term(false);
                 AssertRC(rc);
@@ -1063,6 +1266,14 @@ HRESULT Host::getProcessorFeature(ProcessorFeature_T aFeature, BOOL *aSupported)
 
             case ProcessorFeature_NestedPaging:
                 *aSupported = m->fNestedPagingSupported;
+                break;
+
+            case ProcessorFeature_UnrestrictedGuest:
+                *aSupported = m->fUnrestrictedGuestSupported;
+                break;
+
+            case ProcessorFeature_NestedHWVirt:
+                *aSupported = m->fNestedHWVirtSupported;
                 break;
 
             default:
@@ -1281,7 +1492,7 @@ HRESULT Host::createHostOnlyNetworkInterface(ComPtr<IHostNetworkInterface> &aHos
                                                tmpName.raw()).raw(),
                                                tmpMask.raw());
         ComAssertComRCRet(hrc, hrc);
-#endif
+#endif /* !defined(RT_OS_WINDOWS) */
     }
 
     return S_OK;
@@ -1289,6 +1500,19 @@ HRESULT Host::createHostOnlyNetworkInterface(ComPtr<IHostNetworkInterface> &aHos
     return E_NOTIMPL;
 #endif
 }
+
+
+#ifdef RT_OS_WINDOWS
+HRESULT Host::i_removePersistentConfig(const Bstr &bstrGuid)
+{
+    HRESULT hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/{%ls}/Name", bstrGuid.raw()).raw(), NULL);
+    if (SUCCEEDED(hrc)) hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/{%ls}/IPAddress", bstrGuid.raw()).raw(), NULL);
+    if (SUCCEEDED(hrc)) hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/{%ls}/IPNetMask", bstrGuid.raw()).raw(), NULL);
+    if (SUCCEEDED(hrc)) hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/{%ls}/IPV6Address", bstrGuid.raw()).raw(), NULL);
+    if (SUCCEEDED(hrc)) hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/{%ls}/IPV6PrefixLen", bstrGuid.raw()).raw(), NULL);
+    return hrc;
+}
+#endif /* RT_OS_WINDOWS */
 
 HRESULT Host::removeHostOnlyNetworkInterface(const com::Guid &aId,
                                              ComPtr<IProgress> &aProgress)
@@ -1318,10 +1542,16 @@ HRESULT Host::removeHostOnlyNetworkInterface(const com::Guid &aId,
     if (RT_SUCCESS(r))
     {
         /* Drop configuration parameters for removed interface */
+#ifdef RT_OS_WINDOWS
+        rc = i_removePersistentConfig(Utf8StrFmt("%RTuuid", &aId));
+        if (FAILED(rc))
+            LogRel(("i_removePersistentConfig(%RTuuid) failed with 0x%x\n", &aId, rc));
+#else /* !RT_OS_WINDOWS */
         rc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPAddress", name.raw()).raw(), NULL);
         rc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPNetMask", name.raw()).raw(), NULL);
         rc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPV6Address", name.raw()).raw(), NULL);
         rc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPV6NetMask", name.raw()).raw(), NULL);
+#endif /* !RT_OS_WINDOWS */
 
         return S_OK;
     }
@@ -1510,6 +1740,14 @@ HRESULT Host::findHostNetworkInterfaceByName(const com::Utf8Str &aName,
         Log(("Failed to update host network interface list with rc=%Rhrc\n", rc));
         return rc;
     }
+#if defined(RT_OS_WINDOWS)
+    rc = i_updatePersistentConfigForHostOnlyAdapters();
+    if (FAILED(rc))
+    {
+        LogRel(("Failed to update persistent config for host-only adapters with rc=%Rhrc\n", rc));
+        return rc;
+    }
+#endif /* defined(RT_OS_WINDOWS) */
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1545,6 +1783,14 @@ HRESULT Host::findHostNetworkInterfaceById(const com::Guid &aId,
         Log(("Failed to update host network interface list with rc=%Rhrc\n", rc));
         return rc;
     }
+#if defined(RT_OS_WINDOWS)
+    rc = i_updatePersistentConfigForHostOnlyAdapters();
+    if (FAILED(rc))
+    {
+        LogRel(("Failed to update persistent config for host-only adapters with rc=%Rhrc\n", rc));
+        return rc;
+    }
+#endif /* defined(RT_OS_WINDOWS) */
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1575,6 +1821,14 @@ HRESULT Host::findHostNetworkInterfacesOfType(HostNetworkInterfaceType_T aType,
         Log(("Failed to update host network interface list with rc=%Rhrc\n", rc));
         return rc;
     }
+#if defined(RT_OS_WINDOWS)
+    rc = i_updatePersistentConfigForHostOnlyAdapters();
+    if (FAILED(rc))
+    {
+        LogRel(("Failed to update persistent config for host-only adapters with rc=%Rhrc\n", rc));
+        return rc;
+    }
+#endif /* defined(RT_OS_WINDOWS) */
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 

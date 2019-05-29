@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -175,6 +175,11 @@ typedef struct RTLOGGERINTERNAL
     char * volatile         pchRingBufCur;
     /** @} */
 
+    /** Program time base for ring-0 (copy of g_u64ProgramStartNanoTS). */
+    uint64_t                nsR0ProgramStart;
+    /** Thread name for use in ring-0 with RTLOGFLAGS_PREFIX_THREAD. */
+    char                    szR0ThreadName[16];
+
 # ifdef IN_RING3 /* Note! Must be at the end! */
     /** @name File logging bits for the logger.
      * @{ */
@@ -203,7 +208,7 @@ typedef struct RTLOGGERINTERNAL
 } RTLOGGERINTERNAL;
 
 /** The revision of the internal logger structure. */
-# define RTLOGGERINTERNAL_REV    UINT32_C(10)
+# define RTLOGGERINTERNAL_REV    UINT32_C(11)
 
 # ifdef IN_RING3
 /** The size of the RTLOGGERINTERNAL structure in ring-0.  */
@@ -776,8 +781,8 @@ static void rtLogRingBufFlush(PRTLOGGER pLogger)
 }
 
 
-RTDECL(int) RTLogCreateExV(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGroupSettings,
-                           const char *pszEnvVarBase, unsigned cGroups, const char * const *papszGroups,
+RTDECL(int) RTLogCreateExV(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGroupSettings, const char *pszEnvVarBase,
+                           unsigned cGroups, const char * const *papszGroups, uint32_t cMaxEntriesPerGroup,
                            uint32_t fDestFlags, PFNRTLOGPHASE pfnPhase, uint32_t cHistory,
                            uint64_t cbHistoryFileMax, uint32_t cSecsHistoryTimeSlot,
                            PRTERRINFO pErrInfo, const char *pszFilenameFmt, va_list args)
@@ -808,7 +813,7 @@ RTDECL(int) RTLogCreateExV(PRTLOGGER *ppLogger, uint32_t fFlags, const char *psz
     cbLogger = offInternal + sizeof(RTLOGGERINTERNAL);
     if (fFlags & RTLOGFLAGS_RESTRICT_GROUPS)
         cbLogger += cGroups * sizeof(uint32_t);
-    pLogger = (PRTLOGGER)RTMemAllocZVar(cbLogger);
+    pLogger = (PRTLOGGER)RTMemAllocZVarTag(cbLogger, "may-leak:log-instance");
     if (pLogger)
     {
 # if defined(RT_ARCH_X86) && (!defined(LOG_USE_C99) || !defined(RT_WITHOUT_EXEC_ALLOC))
@@ -825,16 +830,17 @@ RTDECL(int) RTLogCreateExV(PRTLOGGER *ppLogger, uint32_t fFlags, const char *psz
         pLogger->pInt->pfnFlush                 = NULL;
         pLogger->pInt->pfnPrefix                = NULL;
         pLogger->pInt->pvPrefixUserArg          = NULL;
-        pLogger->pInt->afPadding1[0]            = false;
-        pLogger->pInt->afPadding1[1]            = false;
+        pLogger->pInt->fPendingPrefix           = true;
         pLogger->pInt->fCreated                 = false;
+        pLogger->pInt->nsR0ProgramStart         = 0;
+        RT_ZERO(pLogger->pInt->szR0ThreadName);
         pLogger->pInt->cMaxGroups               = cGroups;
         pLogger->pInt->papszGroups              = papszGroups;
         if (fFlags & RTLOGFLAGS_RESTRICT_GROUPS)
             pLogger->pInt->pacEntriesPerGroup   = (uint32_t *)(pLogger->pInt + 1);
         else
             pLogger->pInt->pacEntriesPerGroup   = NULL;
-        pLogger->pInt->cMaxEntriesPerGroup      = UINT32_MAX;
+        pLogger->pInt->cMaxEntriesPerGroup      = cMaxEntriesPerGroup ? cMaxEntriesPerGroup : UINT32_MAX;
 # ifdef IN_RING3
         pLogger->pInt->pfnPhase                 = pfnPhase;
         pLogger->pInt->hFile                    = NIL_RTFILE;
@@ -932,6 +938,22 @@ RTDECL(int) RTLogCreateExV(PRTLOGGER *ppLogger, uint32_t fFlags, const char *psz
                 pszValue = RTEnvGet(pszEnvVar);
                 if (pszValue)
                     RTLogGroupSettings(pLogger, pszValue);
+
+                /*
+                 * Group limit.
+                 */
+                strcpy(pszEnvVar + cchEnvVarBase, "_MAX_PER_GROUP");
+                pszValue = RTEnvGet(pszEnvVar);
+                if (pszValue)
+                {
+                    uint32_t cMax;
+                    rc = RTStrToUInt32Full(pszValue, 0, &cMax);
+                    if (RT_SUCCESS(rc))
+                        pLogger->pInt->cMaxEntriesPerGroup = cMax ? cMax : UINT32_MAX;
+                    else
+                        AssertMsgFailed(("Invalid group limit! %s=%s\n", pszEnvVar, pszValue));
+                }
+
             }
 # else  /* !IN_RING3 */
             RT_NOREF_PV(pszEnvVarBase); RT_NOREF_PV(pszFilenameFmt); RT_NOREF_PV(args);
@@ -1010,8 +1032,9 @@ RTDECL(int) RTLogCreate(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGro
     int rc;
 
     va_start(args, pszFilenameFmt);
-    rc = RTLogCreateExV(ppLogger, fFlags, pszGroupSettings, pszEnvVarBase, cGroups, papszGroups,
-                        fDestFlags, NULL /*pfnPhase*/, 0 /*cHistory*/, 0 /*cbHistoryFileMax*/, 0 /*cSecsHistoryTimeSlot*/,
+    rc = RTLogCreateExV(ppLogger, fFlags, pszGroupSettings, pszEnvVarBase,
+                        cGroups, papszGroups, UINT32_MAX /*cMaxEntriesPerGroup*/, fDestFlags,
+                        NULL /*pfnPhase*/, 0 /*cHistory*/, 0 /*cbHistoryFileMax*/, 0 /*cSecsHistoryTimeSlot*/,
                         NULL /*pErrInfo*/, pszFilenameFmt, args);
     va_end(args);
     return rc;
@@ -1019,8 +1042,8 @@ RTDECL(int) RTLogCreate(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGro
 RT_EXPORT_SYMBOL(RTLogCreate);
 
 
-RTDECL(int) RTLogCreateEx(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGroupSettings,
-                          const char *pszEnvVarBase, unsigned cGroups, const char * const * papszGroups,
+RTDECL(int) RTLogCreateEx(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszGroupSettings, const char *pszEnvVarBase,
+                          unsigned cGroups, const char * const *papszGroups, uint32_t cMaxEntriesPerGroup,
                           uint32_t fDestFlags, PFNRTLOGPHASE pfnPhase, uint32_t cHistory,
                           uint64_t cbHistoryFileMax, uint32_t cSecsHistoryTimeSlot,
                           PRTERRINFO pErrInfo, const char *pszFilenameFmt, ...)
@@ -1029,7 +1052,7 @@ RTDECL(int) RTLogCreateEx(PRTLOGGER *ppLogger, uint32_t fFlags, const char *pszG
     int rc;
 
     va_start(args, pszFilenameFmt);
-    rc = RTLogCreateExV(ppLogger, fFlags, pszGroupSettings, pszEnvVarBase, cGroups, papszGroups,
+    rc = RTLogCreateExV(ppLogger, fFlags, pszGroupSettings, pszEnvVarBase, cGroups, papszGroups, cMaxEntriesPerGroup,
                         fDestFlags, pfnPhase, cHistory, cbHistoryFileMax, cSecsHistoryTimeSlot,
                         pErrInfo, pszFilenameFmt, args);
     va_end(args);
@@ -1273,7 +1296,7 @@ RT_EXPORT_SYMBOL(RTLogFlushRC);
 
 RTDECL(int) RTLogCreateForR0(PRTLOGGER pLogger, size_t cbLogger,
                              RTR0PTR pLoggerR0Ptr, RTR0PTR pfnLoggerR0Ptr, RTR0PTR pfnFlushR0Ptr,
-                             uint32_t fFlags, uint32_t fDestFlags)
+                             uint32_t fFlags, uint32_t fDestFlags, char const *pszThreadName)
 {
     /*
      * Validate input.
@@ -1283,6 +1306,8 @@ RTDECL(int) RTLogCreateForR0(PRTLOGGER pLogger, size_t cbLogger,
     AssertReturn(cbLogger >= cbRequired, VERR_BUFFER_OVERFLOW);
     AssertReturn(pLoggerR0Ptr != NIL_RTR0PTR, VERR_INVALID_PARAMETER);
     AssertReturn(pfnLoggerR0Ptr != NIL_RTR0PTR, VERR_INVALID_PARAMETER);
+    size_t const cchThreadName = pszThreadName ? strlen(pszThreadName) : 0;
+    AssertReturn(cchThreadName < sizeof(pLogger->pInt->szR0ThreadName), VERR_INVALID_NAME);
 
     /*
      * Initialize the ring-0 instance.
@@ -1315,7 +1340,7 @@ RTDECL(int) RTLogCreateForR0(PRTLOGGER pLogger, size_t cbLogger,
     pInt->pfnFlush              = (PFNRTLOGFLUSH)pfnFlushR0Ptr;
     pInt->pfnPrefix             = NULL;
     pInt->pvPrefixUserArg       = NULL;
-    pInt->fPendingPrefix        = false;
+    pInt->fPendingPrefix        = true;
     pInt->cMaxGroups            = cMaxGroups;
     pInt->papszGroups           = NULL;
     pInt->cMaxEntriesPerGroup   = UINT32_MAX;
@@ -1326,6 +1351,10 @@ RTDECL(int) RTLogCreateForR0(PRTLOGGER pLogger, size_t cbLogger,
     }
     else
         pInt->pacEntriesPerGroup= NULL;
+    pInt->nsR0ProgramStart      = RTTimeProgramStartNanoTS();
+    RT_ZERO(pInt->szR0ThreadName);
+    if (cchThreadName)
+        memcpy(pInt->szR0ThreadName, pszThreadName, cchThreadName);
 
     pInt->fCreated              = true;
     pLogger->u32Magic           = RTLOGGER_MAGIC;
@@ -1392,24 +1421,6 @@ RTDECL(int) RTLogCopyGroupsAndFlagsForR0(PRTLOGGER pDstLogger, RTR0PTR pDstLogge
 }
 RT_EXPORT_SYMBOL(RTLogCopyGroupsAndFlagsForR0);
 
-
-RTDECL(int) RTLogSetCustomPrefixCallbackForR0(PRTLOGGER pLogger, RTR0PTR pLoggerR0Ptr,
-                                              RTR0PTR pfnCallbackR0Ptr, RTR0PTR pvUserR0Ptr)
-{
-    AssertPtrReturn(pLogger, VERR_INVALID_POINTER);
-    AssertReturn(pLogger->u32Magic == RTLOGGER_MAGIC, VERR_INVALID_MAGIC);
-
-    /*
-     * Do the work.
-     */
-    PRTLOGGERINTERNAL pInt = (PRTLOGGERINTERNAL)((uintptr_t)pLogger->pInt - pLoggerR0Ptr + (uintptr_t)pLogger);
-    AssertReturn(pInt->uRevision == RTLOGGERINTERNAL_REV, VERR_LOG_REVISION_MISMATCH);
-    pInt->pvPrefixUserArg = (void *)pvUserR0Ptr;
-    pInt->pfnPrefix       = (PFNRTLOGPREFIX)pfnCallbackR0Ptr;
-
-    return VINF_SUCCESS;
-}
-RT_EXPORT_SYMBOL(RTLogSetCustomPrefixCallbackForR0);
 
 RTDECL(void) RTLogFlushR0(PRTLOGGER pLogger, PRTLOGGER pLoggerR0)
 {
@@ -2700,7 +2711,7 @@ RTDECL(PRTLOGGER)   RTLogDefaultInstanceEx(uint32_t fFlagsAndGroup)
             if (   iGroup != UINT16_MAX
                  && (   (pLogger->afGroups[iGroup < pLogger->cGroups ? iGroup : 0] & (fFlags | (uint32_t)RTLOGGRPFLAGS_ENABLED))
                      != (fFlags | (uint32_t)RTLOGGRPFLAGS_ENABLED)))
-            pLogger = NULL;
+                pLogger = NULL;
         }
     }
     return pLogger;
@@ -2756,7 +2767,7 @@ RTDECL(PRTLOGGER) RTLogGetDefaultInstanceEx(uint32_t fFlagsAndGroup)
             if (   iGroup != UINT16_MAX
                  && (   (pLogger->afGroups[iGroup < pLogger->cGroups ? iGroup : 0] & (fFlags | RTLOGGRPFLAGS_ENABLED))
                      != (fFlags | RTLOGGRPFLAGS_ENABLED)))
-            pLogger = NULL;
+                pLogger = NULL;
         }
     }
     return pLogger;
@@ -3595,6 +3606,32 @@ DECLINLINE(char *) rtLogStPNCpyPad(char *pszDst, const char *pszSrc, size_t cchS
 }
 
 
+/**
+ * stpncpy implementation for use in rtLogOutputPrefixed w/ padding.
+ *
+ * @returns Pointer to the destination buffer byte following the copied string.
+ * @param   pszDst              The destination buffer.
+ * @param   pszSrc              The source string.
+ * @param   cchSrc              The number of characters to copy from the
+ *                              source.  Equal or less than string length.
+ * @param   cchMinWidth         The minimum field with, padd with spaces to
+ *                              reach this.
+ */
+DECLINLINE(char *) rtLogStPNCpyPad2(char *pszDst, const char *pszSrc, size_t cchSrc, size_t cchMinWidth)
+{
+    Assert(pszSrc);
+    Assert(strlen(pszSrc) >= cchSrc);
+
+    memcpy(pszDst, pszSrc, cchSrc);
+    pszDst += cchSrc;
+    do
+        *pszDst++ = ' ';
+    while (cchSrc++ < cchMinWidth);
+
+    return pszDst;
+}
+
+
 
 /**
  * Callback for RTLogFormatV which writes to the logger instance.
@@ -3715,7 +3752,7 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
 #if defined(IN_RING3) || defined(IN_RC)
                     uint64_t u64 = RTTimeProgramMilliTS();
 #else
-                    uint64_t u64 = 0;
+                    uint64_t u64 = (RTTimeNanoTS() - pLogger->pInt->nsR0ProgramStart) / RT_NS_1MS;
 #endif
                     /* 1E8 milliseconds = 27 hours */
                     psz += RTStrFormatNumber(psz, u64, 10, 9, 0, RTSTR_F_ZEROPAD);
@@ -3749,6 +3786,10 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
 
 #if defined(IN_RING3) || defined(IN_RC)
                     uint64_t u64 = RTTimeProgramMicroTS();
+#else
+                    uint64_t u64 = (RTTimeNanoTS() - pLogger->pInt->nsR0ProgramStart) / RT_NS_1US;
+
+#endif
                     psz += RTStrFormatNumber(psz, (uint32_t)(u64 / RT_US_1HOUR), 10, 2, 0, RTSTR_F_ZEROPAD);
                     *psz++ = ':';
                     uint32_t u32 = (uint32_t)(u64 % RT_US_1HOUR);
@@ -3760,10 +3801,6 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
                     *psz++ = '.';
                     psz += RTStrFormatNumber(psz, u32 % RT_US_1SEC, 10, 6, 0, RTSTR_F_ZEROPAD);
                     *psz++ = ' ';
-#else
-                    memset(psz, ' ', 16);
-                    psz += 16;
-#endif
                 }
 #define CCH_PREFIX_05   CCH_PREFIX_04 + (9+1+2+1+2+1+6+1)
 
@@ -3814,7 +3851,7 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
 #elif defined IN_RC
                     const char *pszName = "EMT-RC";
 #else
-                    const char *pszName = "R0";
+                    const char *pszName = pLogger->pInt->szR0ThreadName[0] ? pLogger->pInt->szR0ThreadName : "R0";
 #endif
                     psz = rtLogStPNCpyPad(psz, pszName, 16, 8);
                 }
@@ -3904,28 +3941,28 @@ static DECLCALLBACK(size_t) rtLogOutputPrefixed(void *pv, const char *pachChars,
                 {
                     const unsigned fGrp = pLogger->afGroups[pArgs->iGroup != ~0U ? pArgs->iGroup : 0];
                     const char *pszGroup;
-                    size_t cch;
+                    size_t cchGroup;
                     switch (pArgs->fFlags & fGrp)
                     {
-                        case 0:                         pszGroup = "--------";  cch = sizeof("--------") - 1; break;
-                        case RTLOGGRPFLAGS_ENABLED:     pszGroup = "enabled" ;  cch = sizeof("enabled" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_1:     pszGroup = "level 1" ;  cch = sizeof("level 1" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_2:     pszGroup = "level 2" ;  cch = sizeof("level 2" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_3:     pszGroup = "level 3" ;  cch = sizeof("level 3" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_4:     pszGroup = "level 4" ;  cch = sizeof("level 4" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_5:     pszGroup = "level 5" ;  cch = sizeof("level 5" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_6:     pszGroup = "level 6" ;  cch = sizeof("level 6" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_7:     pszGroup = "level 7" ;  cch = sizeof("level 7" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_8:     pszGroup = "level 8" ;  cch = sizeof("level 8" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_9:     pszGroup = "level 9" ;  cch = sizeof("level 9" ) - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_10:    pszGroup = "level 10";  cch = sizeof("level 10") - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_11:    pszGroup = "level 11";  cch = sizeof("level 11") - 1; break;
-                        case RTLOGGRPFLAGS_LEVEL_12:    pszGroup = "level 12";  cch = sizeof("level 12") - 1; break;
-                        case RTLOGGRPFLAGS_FLOW:        pszGroup = "flow"    ;  cch = sizeof("flow"    ) - 1; break;
-                        case RTLOGGRPFLAGS_WARN:        pszGroup = "warn"    ;  cch = sizeof("warn"    ) - 1; break;
-                        default:                        pszGroup = "????????";  cch = sizeof("????????") - 1; break;
+                        case 0:                         pszGroup = "--------";  cchGroup = sizeof("--------") - 1; break;
+                        case RTLOGGRPFLAGS_ENABLED:     pszGroup = "enabled" ;  cchGroup = sizeof("enabled" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_1:     pszGroup = "level 1" ;  cchGroup = sizeof("level 1" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_2:     pszGroup = "level 2" ;  cchGroup = sizeof("level 2" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_3:     pszGroup = "level 3" ;  cchGroup = sizeof("level 3" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_4:     pszGroup = "level 4" ;  cchGroup = sizeof("level 4" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_5:     pszGroup = "level 5" ;  cchGroup = sizeof("level 5" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_6:     pszGroup = "level 6" ;  cchGroup = sizeof("level 6" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_7:     pszGroup = "level 7" ;  cchGroup = sizeof("level 7" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_8:     pszGroup = "level 8" ;  cchGroup = sizeof("level 8" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_9:     pszGroup = "level 9" ;  cchGroup = sizeof("level 9" ) - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_10:    pszGroup = "level 10";  cchGroup = sizeof("level 10") - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_11:    pszGroup = "level 11";  cchGroup = sizeof("level 11") - 1; break;
+                        case RTLOGGRPFLAGS_LEVEL_12:    pszGroup = "level 12";  cchGroup = sizeof("level 12") - 1; break;
+                        case RTLOGGRPFLAGS_FLOW:        pszGroup = "flow"    ;  cchGroup = sizeof("flow"    ) - 1; break;
+                        case RTLOGGRPFLAGS_WARN:        pszGroup = "warn"    ;  cchGroup = sizeof("warn"    ) - 1; break;
+                        default:                        pszGroup = "????????";  cchGroup = sizeof("????????") - 1; break;
                     }
-                    psz = rtLogStPNCpyPad(psz, pszGroup, 16, 8);
+                    psz = rtLogStPNCpyPad2(psz, pszGroup, RT_MIN(cchGroup, 16), 8);
                 }
 #define CCH_PREFIX_16   CCH_PREFIX_15 + 17
 

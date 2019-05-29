@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -53,6 +53,10 @@ static DECLCALLBACK(void) pdmR3PicHlp_SetInterruptFF(PPDMDEVINS pDevIns)
     PDMDEV_ASSERT_DEVINS(pDevIns);
     PVM    pVM = pDevIns->Internal.s.pVMR3;
     PVMCPU pVCpu = &pVM->aCpus[0];  /* for PIC we always deliver to CPU 0, MP use APIC */
+
+    /* IRQ state should be loaded as-is by "LoadExec". Changes can be made from LoadDone. */
+    Assert(pVM->enmVMState != VMSTATE_LOADING || pVM->pdm.s.fStateLoaded);
+
     APICLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
 }
 
@@ -63,6 +67,10 @@ static DECLCALLBACK(void) pdmR3PicHlp_ClearInterruptFF(PPDMDEVINS pDevIns)
     PDMDEV_ASSERT_DEVINS(pDevIns);
     PVM pVM = pDevIns->Internal.s.pVMR3;
     PVMCPU pVCpu = &pVM->aCpus[0];  /* for PIC we always deliver to CPU 0, MP use APIC */
+
+    /* IRQ state should be loaded as-is by "LoadExec". Changes can be made from LoadDone. */
+    Assert(pVM->enmVMState != VMSTATE_LOADING || pVM->pdm.s.fStateLoaded);
+
     APICLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
 }
 
@@ -91,7 +99,7 @@ static DECLCALLBACK(PCPDMPICHLPRC) pdmR3PicHlp_GetRCHelpers(PPDMDEVINS pDevIns)
     VM_ASSERT_EMT(pVM);
 
     RTRCPTR pRCHelpers = NIL_RTRCPTR;
-    if (!HMIsEnabled(pVM))
+    if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         int rc = PDMR3LdrGetSymbolRC(pVM, NULL, "g_pdmRCPicHlp", &pRCHelpers);
         AssertReleaseRC(rc);
@@ -181,7 +189,7 @@ static DECLCALLBACK(PCPDMIOAPICHLPRC) pdmR3IoApicHlp_GetRCHelpers(PPDMDEVINS pDe
     VM_ASSERT_EMT(pVM);
 
     RTRCPTR pRCHelpers = NIL_RTRCPTR;
-    if (!HMIsEnabled(pVM))
+    if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         int rc = PDMR3LdrGetSymbolRC(pVM, NULL, "g_pdmRCIoApicHlp", &pRCHelpers);
         AssertReleaseRC(rc);
@@ -294,7 +302,7 @@ static DECLCALLBACK(PCPDMPCIHLPRC) pdmR3PciHlp_GetRCHelpers(PPDMDEVINS pDevIns)
     VM_ASSERT_EMT(pVM);
 
     RTRCPTR pRCHelpers = NIL_RTRCPTR;
-    if (!HMIsEnabled(pVM))
+    if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         int rc = PDMR3LdrGetSymbolRC(pVM, NULL, "g_pdmRCPciHlp", &pRCHelpers);
         AssertReleaseRC(rc);
@@ -423,7 +431,7 @@ static DECLCALLBACK(PCPDMHPETHLPRC) pdmR3HpetHlp_GetRCHelpers(PPDMDEVINS pDevIns
     VM_ASSERT_EMT(pVM);
 
     RTRCPTR pRCHelpers = NIL_RTRCPTR;
-    if (!HMIsEnabled(pVM))
+    if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         int rc = PDMR3LdrGetSymbolRC(pVM, NULL, "g_pdmRCHpetHlp", &pRCHelpers);
         AssertReleaseRC(rc);
@@ -480,7 +488,7 @@ static DECLCALLBACK(PCPDMPCIRAWHLPRC) pdmR3PciRawHlp_GetRCHelpers(PPDMDEVINS pDe
     VM_ASSERT_EMT(pVM);
 
     RTRCPTR pRCHelpers = NIL_RTRCPTR;
-    if (!HMIsEnabled(pVM))
+    if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         int rc = PDMR3LdrGetSymbolRC(pVM, NULL, "g_pdmRCPciRawHlp", &pRCHelpers);
         AssertReleaseRC(rc);

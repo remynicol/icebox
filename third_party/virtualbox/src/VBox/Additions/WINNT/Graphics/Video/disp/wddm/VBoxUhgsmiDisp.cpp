@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -21,7 +21,7 @@
 #define VBOXUHGSMID3D_GET(_p) VBOXUHGSMID3D_GET_PRIVATE(_p, VBOXUHGSMI_PRIVATE_D3D)
 
 #include <iprt/mem.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 
 DECLCALLBACK(int) vboxUhgsmiD3DBufferDestroy(PVBOXUHGSMI_BUFFER pBuf)
 {
@@ -46,7 +46,8 @@ DECLCALLBACK(int) vboxUhgsmiD3DBufferDestroy(PVBOXUHGSMI_BUFFER pBuf)
 }
 
 /* typedef DECLCALLBACK(int) FNVBOXUHGSMI_BUFFER_LOCK(PVBOXUHGSMI_BUFFER pBuf, uint32_t offLock, uint32_t cbLock, VBOXUHGSMI_BUFFER_LOCK_FLAGS fFlags, void**pvLock); */
-DECLCALLBACK(int) vboxUhgsmiD3DBufferLock(PVBOXUHGSMI_BUFFER pBuf, uint32_t offLock, uint32_t cbLock, VBOXUHGSMI_BUFFER_LOCK_FLAGS fFlags, void**pvLock)
+DECLCALLBACK(int) vboxUhgsmiD3DBufferLock(PVBOXUHGSMI_BUFFER pBuf, uint32_t offLock, uint32_t cbLock,
+                                          VBOXUHGSMI_BUFFER_LOCK_FLAGS fFlags, void**pvLock)
 {
     PVBOXUHGSMI_BUFFER_PRIVATE_DX_ALLOC_BASE pBuffer = VBOXUHGSMDXALLOCBASE_GET_BUFFER(pBuf);
     struct VBOXWDDMDISP_DEVICE *pDevice = VBOXUHGSMID3D_GET(pBuffer->BasePrivate.pHgsmi)->pDevice;
@@ -164,6 +165,9 @@ DECLCALLBACK(int) vboxUhgsmiD3DBufferSubmit(PVBOXUHGSMI pHgsmi, PVBOXUHGSMI_BUFF
 {
     PVBOXUHGSMI_PRIVATE_D3D pHg = VBOXUHGSMID3D_GET(pHgsmi);
     PVBOXWDDMDISP_DEVICE pDevice = pHg->pDevice;
+
+    AssertReturn(pDevice->DefaultContext.ContextInfo.hContext, VERR_GENERAL_FAILURE);
+
     UINT cbDmaCmd = pDevice->DefaultContext.ContextInfo.CommandBufferSize;
     int rc = vboxUhgsmiBaseDxDmaFill(aBuffers, cBuffers,
             pDevice->DefaultContext.ContextInfo.pCommandBuffer, &cbDmaCmd,
@@ -208,6 +212,9 @@ static DECLCALLBACK(int) vboxCrHhgsmiDispEscape(struct VBOXUHGSMI_PRIVATE_BASE *
 {
     PVBOXUHGSMI_PRIVATE_D3D pPrivate = VBOXUHGSMID3D_GET(pHgsmi);
     PVBOXWDDMDISP_DEVICE pDevice = pPrivate->pDevice;
+
+    AssertReturn(pDevice->DefaultContext.ContextInfo.hContext, VERR_GENERAL_FAILURE);
+
     D3DDDICB_ESCAPE DdiEscape = {0};
     DdiEscape.hContext = pDevice->DefaultContext.ContextInfo.hContext;
     DdiEscape.hDevice = pDevice->hDevice;

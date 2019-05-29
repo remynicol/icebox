@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Oracle Corporation
+ * Copyright (C) 2008-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -24,7 +24,7 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#define LOG_GROUP LOG_GROUP_MAIN
+#define LOG_GROUP LOG_GROUP_MAIN_HOST
 #include <sys/types.h>
 
 #include <sys/sysctl.h>
@@ -32,6 +32,7 @@
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_types.h>
+#include <net80211/ieee80211_ioctl.h>
 
 #include <net/route.h>
 /*
@@ -53,7 +54,7 @@
 
 #include "HostNetworkInterfaceImpl.h"
 #include "netif.h"
-#include "Logging.h"
+#include "LoggingNew.h"
 
 #define ROUNDUP(a) \
     ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
@@ -311,7 +312,7 @@ int NetIfList(std::list <ComObjPtr<HostNetworkInterface> > &list)
             else
                 enmType = HostNetworkInterfaceType_HostOnly;
 
-            pNew->wireless = isWireless(pNew->szName);
+            pNew->fWireless = isWireless(pNew->szName);
 
             ComObjPtr<HostNetworkInterface> IfObj;
             IfObj.createObject();

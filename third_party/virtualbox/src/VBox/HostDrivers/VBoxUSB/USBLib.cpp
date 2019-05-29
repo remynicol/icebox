@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -45,11 +45,11 @@ USBLIB_DECL(uint64_t) USBLibHashSerial(const char *pszSerial)
     if (!pszSerial)
         pszSerial = "";
 
-    register const uint8_t *pu8 = (const uint8_t *)pszSerial;
-    register uint64_t u64 = UINT64_C(14695981039346656037);
+    const uint8_t *pu8 = (const uint8_t *)pszSerial;
+    uint64_t u64 = UINT64_C(14695981039346656037);
     for (;;)
     {
-        register uint8_t u8 = *pu8;
+        uint8_t u8 = *pu8;
         if (!u8)
             break;
         u64 = (u64 * UINT64_C(1099511628211)) ^ u8;

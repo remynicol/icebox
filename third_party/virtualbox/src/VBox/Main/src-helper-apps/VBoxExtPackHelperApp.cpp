@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Oracle Corporation
+ * Copyright (C) 2010-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -36,6 +36,7 @@
 #include <iprt/sha.h>
 #include <iprt/string.h>
 #include <iprt/stream.h>
+#include <iprt/utf16.h>
 #include <iprt/vfs.h>
 #include <iprt/zip.h>
 #include <iprt/cpp/ministring.h>
@@ -945,7 +946,8 @@ static RTEXITCODE DoUninstall(int argc, char **argv)
     static const RTGETOPTDEF s_aOptions[] =
     {
         { "--base-dir",     'b',   RTGETOPT_REQ_STRING },
-        { "--name",         'n',   RTGETOPT_REQ_STRING }
+        { "--name",         'n',   RTGETOPT_REQ_STRING },
+        { "--forced",       'f',   RTGETOPT_REQ_NOTHING },
     };
     RTGETOPTSTATE   GetState;
     int rc = RTGetOptInit(&GetState, argc, argv, s_aOptions, RT_ELEMENTS(s_aOptions), 0, 0 /*fFlags*/);
@@ -974,6 +976,10 @@ static RTEXITCODE DoUninstall(int argc, char **argv)
                 pszName = ValueUnion.psz;
                 if (!VBoxExtPackIsValidName(pszName))
                     return RTMsgErrorExit(RTEXITCODE_FAILURE, "Invalid extension pack name: '%s'", pszName);
+                break;
+
+            case 'f':
+                /* ignored */
                 break;
 
             case 'h':

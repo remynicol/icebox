@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -24,8 +24,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___internal_fs_h
-#define ___internal_fs_h
+#ifndef IPRT_INCLUDED_INTERNAL_fs_h
+#define IPRT_INCLUDED_INTERNAL_fs_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/types.h>
 #ifndef RT_OS_WINDOWS
@@ -47,7 +50,11 @@ bool    rtFsModeIsValidPermissions(RTFMODE fMode);
 void    rtFsConvertStatToObjInfo(PRTFSOBJINFO pObjInfo, const struct stat *pStat, const char *pszName, unsigned cbName);
 void    rtFsObjInfoAttrSetUnixOwner(PRTFSOBJINFO pObjInfo, RTUID uid);
 void    rtFsObjInfoAttrSetUnixGroup(PRTFSOBJINFO pObjInfo, RTUID gid);
-#endif
+#else  /* RT_OS_WINDOWS */
+# ifdef DECLARE_HANDLE
+int     rtNtQueryFsType(HANDLE hHandle, PRTFSTYPE penmType);
+# endif
+#endif /* RT_OS_WINDOWS */
 
 #ifdef RT_OS_LINUX
 # ifdef __USE_MISC
@@ -59,4 +66,4 @@ void    rtFsObjInfoAttrSetUnixGroup(PRTFSOBJINFO pObjInfo, RTUID gid);
 
 RT_C_DECLS_END
 
-#endif
+#endif /* !IPRT_INCLUDED_INTERNAL_fs_h */

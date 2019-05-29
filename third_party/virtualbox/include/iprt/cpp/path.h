@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2017 Oracle Corporation
+ * Copyright (C) 2017-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,13 +23,16 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___iprt_cpp_path_h
-#define ___iprt_cpp_path_h
+#ifndef IPRT_INCLUDED_cpp_path_h
+#define IPRT_INCLUDED_cpp_path_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
-#include <iprt/types.h>
 #include <iprt/assert.h>
-#include <iprt/cpp/ministring.h>
+#include <iprt/errcore.h>
 #include <iprt/path.h>
+#include <iprt/cpp/ministring.h>
 
 
 /** @defgroup grp_rt_cpp_path    C++ Path Utilities
@@ -41,7 +44,7 @@
  * RTPathAbs() wrapper for working directly on a RTCString instance.
  *
  * @returns IPRT status code.
- * @param   rStrAbs         Reference to the destiation string.
+ * @param   rStrAbs         Reference to the destination string.
  * @param   pszRelative     The relative source string.
  */
 DECLINLINE(int) RTPathAbsCxx(RTCString &rStrAbs, const char *pszRelative)
@@ -50,10 +53,23 @@ DECLINLINE(int) RTPathAbsCxx(RTCString &rStrAbs, const char *pszRelative)
     int rc = rStrAbs.reserveNoThrow(RTPATH_MAX);
     if (RT_SUCCESS(rc))
     {
-        char *pszDst = rStrAbs.mutableRaw();
-        rc = RTPathAbs(pszRelative, pszDst, rStrAbs.capacity());
-        if (RT_FAILURE(rc))
+        unsigned cTries = 8;
+        for (;;)
+        {
+            char *pszDst = rStrAbs.mutableRaw();
+            size_t cbCap = rStrAbs.capacity();
+            rc = RTPathAbsEx(NULL, pszRelative, RTPATH_STR_F_STYLE_HOST, pszDst, &cbCap);
+            if (RT_SUCCESS(rc))
+                break;
             *pszDst = '\0';
+            if (rc != VERR_BUFFER_OVERFLOW)
+                break;
+            if (--cTries == 0)
+                break;
+            rc = rStrAbs.reserveNoThrow(RT_MIN(RT_ALIGN_Z(cbCap, 64), RTPATH_MAX));
+            if (RT_FAILURE(rc))
+                break;
+        }
         rStrAbs.jolt();
     }
     return rc;
@@ -64,7 +80,7 @@ DECLINLINE(int) RTPathAbsCxx(RTCString &rStrAbs, const char *pszRelative)
  * RTPathAbs() wrapper for working directly on a RTCString instance.
  *
  * @returns IPRT status code.
- * @param   rStrAbs         Reference to the destiation string.
+ * @param   rStrAbs         Reference to the destination string.
  * @param   rStrRelative    Reference to the relative source string.
  */
 DECLINLINE(int) RTPathAbsCxx(RTCString &rStrAbs, RTCString const &rStrRelative)
@@ -73,11 +89,69 @@ DECLINLINE(int) RTPathAbsCxx(RTCString &rStrAbs, RTCString const &rStrRelative)
 }
 
 
+
+/**
+ * RTPathAbsEx() wrapper for working directly on a RTCString instance.
+ *
+ * @returns IPRT status code.
+ * @param   rStrAbs         Reference to the destination string.
+ * @param   pszBase         The base path, optional.
+ * @param   pszRelative     The relative source string.
+ * @param   fFlags          RTPATH_STR_F_STYLE_XXX and RTPATHABS_F_XXX flags.
+ */
+DECLINLINE(int) RTPathAbsExCxx(RTCString &rStrAbs, const char *pszBase, const char *pszRelative, uint32_t fFlags = RTPATH_STR_F_STYLE_HOST)
+{
+    Assert(rStrAbs.c_str() != pszRelative);
+    int rc = rStrAbs.reserveNoThrow(RTPATH_MAX);
+    if (RT_SUCCESS(rc))
+    {
+        unsigned cTries = 8;
+        for (;;)
+        {
+            char *pszDst = rStrAbs.mutableRaw();
+            size_t cbCap = rStrAbs.capacity();
+            rc = RTPathAbsEx(pszBase, pszRelative, fFlags, pszDst, &cbCap);
+            if (RT_SUCCESS(rc))
+                break;
+            *pszDst = '\0';
+            if (rc != VERR_BUFFER_OVERFLOW)
+                break;
+            if (--cTries == 0)
+                break;
+            rc = rStrAbs.reserveNoThrow(RT_MIN(RT_ALIGN_Z(cbCap, 64), RTPATH_MAX));
+            if (RT_FAILURE(rc))
+                break;
+        }
+        rStrAbs.jolt();
+    }
+    return rc;
+}
+
+
+DECLINLINE(int) RTPathAbsExCxx(RTCString &rStrAbs, RTCString const &rStrBase, RTCString const &rStrRelative, uint32_t fFlags = RTPATH_STR_F_STYLE_HOST)
+{
+    return RTPathAbsExCxx(rStrAbs, rStrBase.c_str(), rStrRelative.c_str(), fFlags);
+}
+
+
+DECLINLINE(int) RTPathAbsExCxx(RTCString &rStrAbs, const char *pszBase, RTCString const &rStrRelative, uint32_t fFlags = RTPATH_STR_F_STYLE_HOST)
+{
+    return RTPathAbsExCxx(rStrAbs, pszBase, rStrRelative.c_str(), fFlags);
+}
+
+
+DECLINLINE(int) RTPathAbsExCxx(RTCString &rStrAbs, RTCString const &rStrBase, const char *pszRelative, uint32_t fFlags = RTPATH_STR_F_STYLE_HOST)
+{
+    return RTPathAbsExCxx(rStrAbs, rStrBase.c_str(), pszRelative, fFlags);
+}
+
+
+
 /**
  * RTPathAppPrivateNoArch() wrapper for working directly on a RTCString instance.
  *
  * @returns IPRT status code.
- * @param   rStrDst         Reference to the destiation string.
+ * @param   rStrDst         Reference to the destination string.
  */
 DECLINLINE(int) RTPathAppPrivateNoArchCxx(RTCString &rStrDst)
 {
@@ -99,7 +173,7 @@ DECLINLINE(int) RTPathAppPrivateNoArchCxx(RTCString &rStrDst)
  * RTPathAppend() wrapper for working directly on a RTCString instance.
  *
  * @returns IPRT status code.
- * @param   rStrDst         Reference to the destiation string.
+ * @param   rStrDst         Reference to the destination string.
  * @param   pszAppend       One or more components to append to the path already
  *                          present in @a rStrDst.
  */
@@ -131,7 +205,7 @@ DECLINLINE(int) RTPathAppendCxx(RTCString &rStrDst, const char *pszAppend)
  * RTPathAppend() wrapper for working directly on a RTCString instance.
  *
  * @returns IPRT status code.
- * @param   rStrDst         Reference to the destiation string.
+ * @param   rStrDst         Reference to the destination string.
  * @param   rStrAppend      One or more components to append to the path already
  *                          present in @a rStrDst.
  */
@@ -161,5 +235,5 @@ DECLINLINE(int) RTPathAppendCxx(RTCString &rStrDst, RTCString const &rStrAppend)
 
 /** @} */
 
-#endif
+#endif /* !IPRT_INCLUDED_cpp_path_h */
 

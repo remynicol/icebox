@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -1092,6 +1092,9 @@ bool VBoxCmdVbvaPreempt(PVBOXMP_DEVEXT pDevExt, VBOXCMDVBVA *pVbva, uint32_t u32
 
 bool VBoxCmdVbvaCheckCompletedIrq(PVBOXMP_DEVEXT pDevExt, VBOXCMDVBVA *pVbva)
 {
+    if (pVbva->Vbva.pVBVA == NULL)
+        return false;
+
     VBVAEXBUFFERFORWARDITER Iter;
     VBoxVBVAExCFIterInit(&pVbva->Vbva, &Iter);
 

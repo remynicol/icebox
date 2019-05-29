@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -113,7 +113,7 @@ VBoxDrvFindAdapter(IN PVOID HwDeviceExtension, IN PVOID HwContext, IN PWSTR Argu
 
         VideoPortZeroMemory(tmpRanges, sizeof(tmpRanges));
 
-        if (VBoxQueryWinVersion() == WINVERSION_NT4)
+        if (VBoxQueryWinVersion(NULL) == WINVERSION_NT4)
         {
             /* NT crashes if either of 'vendorId, 'deviceId' or 'slot' parameters is NULL,
              * and needs PCI ids for a successful VideoPortGetAccessRanges call.
@@ -132,9 +132,16 @@ VBoxDrvFindAdapter(IN PVOID HwDeviceExtension, IN PVOID HwContext, IN PWSTR Argu
             return rc;
         }
 
-        /* The first range is the framebuffer. We require that information. */
-        phVRAM = tmpRanges[0].RangeStart;
-        ulApertureSize = tmpRanges[0].RangeLength;
+        /* The first non-IO range is the framebuffer. We require that information. */
+        for (int iRange = 0; iRange < RT_ELEMENTS(tmpRanges); ++iRange)
+        {
+            if (!tmpRanges[iRange].RangeInIoSpace)
+            {
+                phVRAM = tmpRanges[iRange].RangeStart;
+                ulApertureSize = tmpRanges[iRange].RangeLength;
+                break;
+            }
+        }
     }
 
     /* Initialize VBoxGuest library, which is used for requests which go through VMMDev. */
@@ -773,7 +780,7 @@ ULONG DriverEntry(IN PVOID Context1, IN PVOID Context2)
      *so we query current version and report the expected size
      *to allow our driver to be loaded.
      */
-    switch (VBoxQueryWinVersion())
+    switch (VBoxQueryWinVersion(NULL))
     {
         case WINVERSION_NT4:
             LOG(("WINVERSION_NT4"));

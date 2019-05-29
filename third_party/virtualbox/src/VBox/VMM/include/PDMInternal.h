@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___PDMInternal_h
-#define ___PDMInternal_h
+#ifndef VMM_INCLUDED_SRC_include_PDMInternal_h
+#define VMM_INCLUDED_SRC_include_PDMInternal_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBox/types.h>
 #include <VBox/param.h>
@@ -56,7 +59,7 @@ RT_C_DECLS_BEGIN
 
 /** @def PDMCRITSECT_STRICT
  * Enables/disables PDM critsect strictness like deadlock detection. */
-#if (defined(RT_LOCK_STRICT) && defined(IN_RING3) && !defined(IEM_VERIFICATION_MODE) && !defined(PDMCRITSECT_STRICT)) \
+#if (defined(RT_LOCK_STRICT) && defined(IN_RING3) && !defined(PDMCRITSECT_STRICT)) \
   || defined(DOXYGEN_RUNNING)
 # define PDMCRITSECT_STRICT
 #endif
@@ -64,7 +67,7 @@ RT_C_DECLS_BEGIN
 /** @def PDMCRITSECT_STRICT
  * Enables/disables PDM read/write critsect strictness like deadlock
  * detection. */
-#if (defined(RT_LOCK_STRICT) && defined(IN_RING3) && !defined(IEM_VERIFICATION_MODE) && !defined(PDMCRITSECTRW_STRICT)) \
+#if (defined(RT_LOCK_STRICT) && defined(IN_RING3) && !defined(PDMCRITSECTRW_STRICT)) \
   || defined(DOXYGEN_RUNNING)
 # define PDMCRITSECTRW_STRICT
 #endif
@@ -1076,8 +1079,11 @@ typedef struct PDM
 
     /** Pending reset flags (PDMVMRESET_F_XXX). */
     uint32_t volatile               fResetFlags;
+
+    /** Set by pdmR3LoadExec for use in assertions. */
+    bool                            fStateLoaded;
     /** Alignment padding. */
-    uint32_t volatile               u32Padding;
+    bool                            afPadding[3];
 
     /** The tracing ID of the next device instance.
      *
@@ -1313,5 +1319,5 @@ void        pdmCritSectRwLeaveExclQueued(PPDMCRITSECTRW pThis);
 
 RT_C_DECLS_END
 
-#endif
+#endif /* !VMM_INCLUDED_SRC_include_PDMInternal_h */
 

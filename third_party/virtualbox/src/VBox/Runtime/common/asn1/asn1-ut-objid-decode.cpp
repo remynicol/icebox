@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -346,6 +346,8 @@ RTDECL(int) RTAsn1ObjId_DecodeAsn1(PRTASN1CURSOR pCursor, uint32_t fFlags, PRTAS
                             }
                         }
                     }
+                    RTAsn1MemFree(&pThis->Allocation, (void *)pThis->pauComponents);
+                    pThis->pauComponents = NULL;
                 }
             }
         }

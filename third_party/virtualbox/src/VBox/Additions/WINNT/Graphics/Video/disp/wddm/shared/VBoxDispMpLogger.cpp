@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Oracle Corporation
+ * Copyright (C) 2012-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -19,33 +19,11 @@
  * can not do CreateFile/Read/Write by default
  * this is why we use miniport escape functionality to issue backdoor log string to the miniport
  * and submit it to host via standard r0 backdoor logging api accordingly */
-#if (_MSC_VER >= 1400) && !defined(VBOX_WITH_PATCHED_DDK)
-# define _InterlockedExchange           _InterlockedExchange_StupidDDKVsCompilerCrap
-# define _InterlockedExchangeAdd        _InterlockedExchangeAdd_StupidDDKVsCompilerCrap
-# define _InterlockedCompareExchange    _InterlockedCompareExchange_StupidDDKVsCompilerCrap
-# define _InterlockedAddLargeStatistic  _InterlockedAddLargeStatistic_StupidDDKVsCompilerCrap
-# define _interlockedbittestandset      _interlockedbittestandset_StupidDDKVsCompilerCrap
-# define _interlockedbittestandreset    _interlockedbittestandreset_StupidDDKVsCompilerCrap
-# define _interlockedbittestandset64    _interlockedbittestandset64_StupidDDKVsCompilerCrap
-# define _interlockedbittestandreset64  _interlockedbittestandreset64_StupidDDKVsCompilerCrap
-# pragma warning(disable : 4163)
-# include <iprt/win/windows.h>
-# pragma warning(default : 4163)
-# undef  _InterlockedExchange
-# undef  _InterlockedExchangeAdd
-# undef  _InterlockedCompareExchange
-# undef  _InterlockedAddLargeStatistic
-# undef  _interlockedbittestandset
-# undef  _interlockedbittestandreset
-# undef  _interlockedbittestandset64
-# undef  _interlockedbittestandreset64
-#else
-# include <iprt/win/windows.h>
-#endif
+
 #include <VBoxDispMpLogger.h>
-#include <d3d9types.h>
-#include <D3dumddi.h>
-#include <d3dhal.h>
+#include <iprt/win/windows.h>
+#include <iprt/win/d3d9.h>
+#include <d3dumddi.h>
 #include <../../../common/wddm/VBoxMPIf.h>
 #include <VBoxDispKmt.h>
 
@@ -54,7 +32,7 @@
 
 #include <iprt/asm.h>
 #include <iprt/assert.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 #include <iprt/mem.h>
 
 #include <stdio.h>

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef VBOXMOUSELOG_H
-#define VBOXMOUSELOG_H
+#ifndef GA_INCLUDED_SRC_WINNT_Mouse_common_VBoxMouseLog_h
+#define GA_INCLUDED_SRC_WINNT_Mouse_common_VBoxMouseLog_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBox/log.h>
 #include <iprt/assert.h>
@@ -66,5 +69,5 @@
 #define LOGF_ENTER() LOGF(("ENTER"))
 #define LOGF_LEAVE() LOGF(("LEAVE"))
 
-#endif /* !VBOXMOUSELOG_H */
+#endif /* !GA_INCLUDED_SRC_WINNT_Mouse_common_VBoxMouseLog_h */
 

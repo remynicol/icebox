@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -24,8 +24,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___the_linux_kernel_h
-#define ___the_linux_kernel_h
+#ifndef IPRT_INCLUDED_SRC_r0drv_linux_the_linux_kernel_h
+#define IPRT_INCLUDED_SRC_r0drv_linux_the_linux_kernel_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 /*
  * Include iprt/types.h to install the bool wrappers.
@@ -100,6 +103,12 @@
 #include <linux/slab.h>
 #include <linux/time.h>
 #include <linux/sched.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 23) && \
+    LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 31)
+#include  <linux/splice.h>
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
 # include <linux/sched/rt.h>
 #endif
@@ -118,6 +127,9 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 71)
 # include <linux/cpu.h>
 # include <linux/notifier.h>
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+# include <uapi/linux/mman.h>
 #endif
 /* For the basic additions module */
 #include <linux/pci.h>
@@ -150,7 +162,7 @@
 # include <linux/tqueue.h>
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 4)
 # include <linux/kthread.h>
 #endif
 
@@ -421,7 +433,7 @@ DECLINLINE(unsigned long) msecs_to_jiffies(unsigned int cMillies)
 /*
  * There are some conflicting defines in iprt/param.h, sort them out here.
  */
-#ifndef ___iprt_param_h
+#ifndef IPRT_INCLUDED_param_h
 # undef PAGE_SIZE
 # undef PAGE_OFFSET_MASK
 # include <iprt/param.h>
@@ -448,5 +460,10 @@ typedef struct tq_struct    RTR0LNXWORKQUEUEITEM;
 DECLHIDDEN(void) rtR0LnxWorkqueuePush(RTR0LNXWORKQUEUEITEM *pWork, void (*pfnWorker)(RTR0LNXWORKQUEUEITEM *));
 DECLHIDDEN(void) rtR0LnxWorkqueueFlush(void);
 
+/*
+ * Memory hacks from memobj-r0drv-linux.c that shared folders need.
+ */
+RTDECL(struct page *) rtR0MemObjLinuxVirtToPage(void *pv);
 
-#endif
+
+#endif /* !IPRT_INCLUDED_SRC_r0drv_linux_the_linux_kernel_h */

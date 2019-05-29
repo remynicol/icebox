@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Oracle Corporation
+ * Copyright (C) 2008-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -20,11 +20,11 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#define LOG_GROUP LOG_GROUP_MAIN
+#define LOG_GROUP LOG_GROUP_MAIN_HOST
 
 #define NETIF_WITHOUT_NETCFG
 
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 #include <list>
 
 #define _WIN32_DCOM
@@ -41,7 +41,7 @@
 #include <iprt/win/iphlpapi.h>
 #include <iprt/win/ntddndis.h>
 
-#include "Logging.h"
+#include "LoggingNew.h"
 #include "HostNetworkInterfaceImpl.h"
 #include "ProgressImpl.h"
 #include "VirtualBoxImpl.h"
@@ -294,8 +294,8 @@ static HRESULT netIfNetworkInterfaceHelperClient(SVCHlpClient *aClient,
             /* write message and parameters */
             vrc = aClient->write(d->msgCode);
             if (RT_FAILURE(vrc)) break;
-//            vrc = aClient->write(Utf8Str(d->name));
-//            if (RT_FAILURE(vrc)) break;
+            vrc = aClient->write(Utf8Str(d->name));
+            if (RT_FAILURE(vrc)) break;
 
             /* wait for a reply */
             bool endLoop = false;
@@ -329,6 +329,8 @@ static HRESULT netIfNetworkInterfaceHelperClient(SVCHlpClient *aClient,
                             if (SUCCEEDED(rc))
                             {
                                 rc = d->iface->updateConfig();
+                                if (SUCCEEDED(rc))
+                                    rc = d->iface->i_updatePersistentConfig();
                             }
                         }
                         endLoop = true;
@@ -670,9 +672,9 @@ int netIfNetworkInterfaceHelperServer(SVCHlpClient *aClient,
         {
             LogFlowFunc(("CreateHostOnlyNetworkInterface:\n"));
 
-//            Utf8Str name;
-//            vrc = aClient->read(name);
-//            if (RT_FAILURE(vrc)) break;
+            Utf8Str desiredName;
+            vrc = aClient->read(desiredName);
+            if (RT_FAILURE(vrc)) break;
 
             Guid guid;
             Utf8Str errMsg;
@@ -681,10 +683,10 @@ int netIfNetworkInterfaceHelperServer(SVCHlpClient *aClient,
 
 #ifdef VBOXNETCFG_DELAYEDRENAME
             Bstr devId;
-            hrc = VBoxNetCfgWinCreateHostOnlyNetworkInterface(NULL, false, guid.asOutParam(), devId.asOutParam(),
+            hrc = VBoxNetCfgWinCreateHostOnlyNetworkInterface(NULL, false, Bstr(desiredName).raw(), guid.asOutParam(), devId.asOutParam(),
                                                               bstrErr.asOutParam());
 #else /* !VBOXNETCFG_DELAYEDRENAME */
-            hrc = VBoxNetCfgWinCreateHostOnlyNetworkInterface(NULL, false, guid.asOutParam(), name.asOutParam(),
+            hrc = VBoxNetCfgWinCreateHostOnlyNetworkInterface(NULL, false, Bstr(desiredName).raw(), guid.asOutParam(), name.asOutParam(),
                                                               bstrErr.asOutParam());
 #endif /* !VBOXNETCFG_DELAYEDRENAME */
 
@@ -1138,9 +1140,8 @@ int NetIfGetLinkSpeed(const char *pcszIfName, uint32_t *puMbits)
 int NetIfCreateHostOnlyNetworkInterface(VirtualBox *pVirtualBox,
                                         IHostNetworkInterface **aHostNetworkInterface,
                                         IProgress **aProgress,
-                                        const char *pszName)
+                                        IN_BSTR aName)
 {
-    RT_NOREF(pszName);
 #ifndef VBOX_WITH_NETFLT
     return VERR_NOT_IMPLEMENTED;
 #else
@@ -1169,7 +1170,7 @@ int NetIfCreateHostOnlyNetworkInterface(VirtualBox *pVirtualBox,
             NetworkInterfaceHelperClientData* d = new NetworkInterfaceHelperClientData();
 
             d->msgCode = SVCHlpMsg::CreateHostOnlyNetworkInterface;
-//            d->name = aName;
+            d->name = aName;
             d->iface = iface;
             d->vBox = pVirtualBox;
 

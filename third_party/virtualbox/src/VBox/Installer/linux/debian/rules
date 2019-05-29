@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (C) 2006-2017 Oracle Corporation
+# Copyright (C) 2006-2019 Oracle Corporation
 #
 # This file is part of VirtualBox Open Source Edition (OSE), as
 # available from http://www.virtualbox.org. This file is free software;
@@ -50,7 +50,7 @@ export DH_COMPAT=5
 # STAGEDISO are set.
 
 package  := virtualbox
-verpkg   := virtualbox-5.2
+verpkg   := virtualbox-6.0
 current  := $(shell pwd)
 vboxroot := $(shell cd ../../../..; pwd)
 pkgdir   := $(if $(PKGDIR),$(PKGDIR),$(shell cd ../../../../..; pwd))
@@ -288,6 +288,8 @@ endif
 	dh_link \
 	    $(if $(NOQT),,usr/bin/VBox          usr/bin/VirtualBox) \
 	    $(if $(NOQT),,usr/bin/VBox          usr/bin/virtualbox) \
+	    $(if $(NOQT),,usr/bin/VBox          usr/bin/VirtualBoxVM) \
+	    $(if $(NOQT),,usr/bin/VBox          usr/bin/virtualboxvm) \
 	    usr/bin/VBox                        usr/bin/VBoxManage \
 	    usr/bin/VBox                        usr/bin/vboxmanage \
 	    $(if $(HEADLESS),,usr/bin/VBox      usr/bin/VBoxSDL) \

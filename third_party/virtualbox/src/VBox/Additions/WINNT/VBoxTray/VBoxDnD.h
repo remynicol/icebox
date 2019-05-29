@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Oracle Corporation
+ * Copyright (C) 2013-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef __VBOXTRAYDND__H
-#define __VBOXTRAYDND__H
+#ifndef GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDnD_h
+#define GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDnD_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/critsect.h>
 
@@ -81,7 +84,7 @@ protected:
     ULONG       mcFormats;
     LPFORMATETC mpFormatEtc;
     LPSTGMEDIUM mpStgMedium;
-    RTSEMEVENT  mSemEvent;
+    RTSEMEVENT  mEventDropped;
     RTCString   mstrFormat;
     void       *mpvData;
     uint32_t    mcbData;
@@ -96,7 +99,7 @@ public:
 
 public:
 
-    uint32_t GetCurrentAction(void) { return muCurAction; }
+    VBOXDNDACTION GetCurrentAction(void) { return mDnDActionCurrent; }
 
 public: /* IUnknown methods. */
 
@@ -118,7 +121,7 @@ protected:
     /** Current drag effect. */
     DWORD                 mdwCurEffect;
     /** Current action to perform on the host. */
-    uint32_t              muCurAction;
+    VBOXDNDACTION         mDnDActionCurrent;
 };
 
 class VBoxDnDDropTarget : public IDropTarget
@@ -216,8 +219,8 @@ class VBoxDnDWnd;
  */
 typedef struct VBOXDNDEVENT
 {
-    /** The actual event data. */
-    VBGLR3DNDHGCMEVENT Event;
+    /** The actual DnD HGCM event data. */
+    PVBGLR3DNDEVENT pVbglR3Event;
 
 } VBOXDNDEVENT, *PVBOXDNDEVENT;
 
@@ -228,6 +231,8 @@ typedef struct VBOXDNDCONTEXT
 {
     /** Pointer to the service environment. */
     const VBOXSERVICEENV      *pEnv;
+    /** Started indicator. */
+    bool                       fStarted;
     /** Shutdown indicator. */
     bool                       fShutdown;
     /** The registered window class. */
@@ -329,26 +334,27 @@ public:
     int OnCreate(void);
     void OnDestroy(void);
 
-    /* H->G */
-    int OnHgEnter(const RTCList<RTCString> &formats, uint32_t uAllActions);
-    int OnHgMove(uint32_t u32xPos, uint32_t u32yPos, uint32_t uAllActions);
+    int Abort(void);
+
+    /* Host -> Guest */
+    int OnHgEnter(const RTCList<RTCString> &formats, VBOXDNDACTIONLIST dndLstActionsAllowed);
+    int OnHgMove(uint32_t u32xPos, uint32_t u32yPos, VBOXDNDACTION dndAction);
     int OnHgDrop(void);
     int OnHgLeave(void);
-    int OnHgDataReceived(const void *pvData, uint32_t cData);
+    int OnHgDataReceive(PVBGLR3GUESTDNDMETADATA pMeta);
     int OnHgCancel(void);
 
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH
-    /* G->H */
-    int OnGhIsDnDPending(uint32_t uScreenID);
-    int OnGhDropped(const char *pszFormat, uint32_t cbFormats, uint32_t uDefAction);
+    /* Guest -> Host */
+    int OnGhIsDnDPending(void);
+    int OnGhDrop(const RTCString &strFormat, VBOXDNDACTION dndActionDefault);
 #endif
 
     void PostMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
     int ProcessEvent(PVBOXDNDEVENT pEvent);
 
-public:
-
-    int hide(void);
+    int Hide(void);
+    void Reset(void);
 
 protected:
 
@@ -356,7 +362,6 @@ protected:
     int makeFullscreen(void);
     int mouseMove(int x, int y, DWORD dwMouseInputFlags);
     int mouseRelease(void);
-    void reset(void);
     int setMode(Mode enmMode);
 
 public: /** @todo Make protected! */
@@ -379,9 +384,8 @@ public: /** @todo Make protected! */
     /** List of formats for the current
      *  drag'n drop operation. */
     RTCList<RTCString>         lstFmtActive;
-    /** Flags of all current drag'n drop
-     *  actions allowed. */
-    uint32_t                   uAllActions;
+    /** List of all current drag'n drop actions allowed. */
+    VBOXDNDACTIONLIST          dndLstActionsAllowed;
     /** The startup information required
      *  for the actual DoDragDrop() call. */
     VBOXDNDSTARTUPINFO         startupInfo;
@@ -407,5 +411,5 @@ public: /** @todo Make protected! */
     RTCString                  mFormatRequested;
 };
 
-#endif /* !__VBOXTRAYDND__H */
+#endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDnD_h */
 

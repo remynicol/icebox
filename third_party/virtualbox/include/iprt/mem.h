@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,13 +23,19 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___iprt_mem_h
-#define ___iprt_mem_h
+#ifndef IPRT_INCLUDED_mem_h
+#define IPRT_INCLUDED_mem_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 
 #include <iprt/cdefs.h>
 #include <iprt/types.h>
 
+#ifdef IPRT_WITH_GCC_SANITIZER
+# include <sanitizer/lsan_interface.h>
+#endif
 
 #ifdef IN_RC
 # error "There are no RTMem APIs available Guest Context!"
@@ -423,7 +429,7 @@ RTR0DECL(int) RTR0MemExecDonate(void *pvMemory, size_t cb) RT_NO_THROW_PROTO;
  *
  * @returns Pointer to the allocated memory.
  * @returns NULL if we're out of memory.
- * @param   cb  Size of the memory block. Will be rounded up to page size.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
  */
 #define RTMemPageAlloc(cb)              RTMemPageAllocTag((cb), RTMEM_TAG)
 
@@ -432,7 +438,7 @@ RTR0DECL(int) RTR0MemExecDonate(void *pvMemory, size_t cb) RT_NO_THROW_PROTO;
  *
  * @returns Pointer to the allocated memory.
  * @returns NULL if we're out of memory.
- * @param   cb  Size of the memory block. Will be rounded up to page size.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
  * @param   pszTag  Allocation tag used for statistics and such.
  */
 RTDECL(void *) RTMemPageAllocTag(size_t cb, const char *pszTag) RT_NO_THROW_PROTO;
@@ -442,7 +448,7 @@ RTDECL(void *) RTMemPageAllocTag(size_t cb, const char *pszTag) RT_NO_THROW_PROT
  *
  * @returns Pointer to the allocated memory.
  * @returns NULL if we're out of memory.
- * @param   cb  Size of the memory block. Will be rounded up to page size.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
  */
 #define RTMemPageAllocZ(cb)             RTMemPageAllocZTag((cb), RTMEM_TAG)
 
@@ -451,10 +457,43 @@ RTDECL(void *) RTMemPageAllocTag(size_t cb, const char *pszTag) RT_NO_THROW_PROT
  *
  * @returns Pointer to the allocated memory.
  * @returns NULL if we're out of memory.
- * @param   cb  Size of the memory block. Will be rounded up to page size.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
  * @param   pszTag  Allocation tag used for statistics and such.
  */
 RTDECL(void *) RTMemPageAllocZTag(size_t cb, const char *pszTag) RT_NO_THROW_PROTO;
+
+/**
+ * Allocate page aligned memory with default tag, extended version.
+ *
+ * @returns Pointer to the allocated memory.
+ * @returns NULL if we're out of memory.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
+ * @param   fFlags  RTMEMPAGEALLOC_F_XXX.
+ */
+#define RTMemPageAllocEx(cb, fFlags)    RTMemPageAllocExTag((cb), (fFlags), RTMEM_TAG)
+
+/**
+ * Allocate page aligned memory with custom tag, extended version.
+ *
+ * @returns Pointer to the allocated memory.
+ * @returns NULL if we're out of memory.
+ * @param   cb      Size of the memory block. Will be rounded up to page size.
+ * @param   fFlags  RTMEMPAGEALLOC_F_XXX.
+ * @param   pszTag  Allocation tag used for statistics and such.
+ */
+RTDECL(void *) RTMemPageAllocExTag(size_t cb, uint32_t fFlags, const char *pszTag) RT_NO_THROW_PROTO;
+
+/** @name RTMEMPAGEALLOC_F_XXX - flags for RTMemPageAllocEx() and RTMemPageAllocExTag()
+ * @{ */
+/** Zero the allocation. */
+#define RTMEMPAGEALLOC_F_ZERO           RT_BIT_32(0)
+/** Try lock the allocation (failure ignored). */
+#define RTMEMPAGEALLOC_F_ADVISE_LOCKED  RT_BIT_32(1)
+/** Try prevent the memory from ending up in a dump/core. */
+#define RTMEMPAGEALLOC_F_ADVISE_NO_DUMP RT_BIT_32(2)
+/** Valid bit mask. */
+#define RTMEMPAGEALLOC_F_VALID_MASK     UINT32_C(0x00000007)
+/** @} */
 
 /**
  * Free a memory block allocated with RTMemPageAlloc() or RTMemPageAllocZ().
@@ -498,6 +537,30 @@ RTDECL(int) RTMemProtect(void *pv, size_t cb, unsigned fProtect) RT_NO_THROW_PRO
  * @param   cMinPasses  The minimum number of passes to make.
  */
 RTDECL(void) RTMemWipeThoroughly(void *pv, size_t cb, size_t cMinPasses) RT_NO_THROW_PROTO;
+
+
+/** @def RTMEM_WILL_LEAK
+ * Macro for hinting that a memory allocation @a a_pv will leak.
+ *
+ * @note This shall only be used in code that doesn't allocate the object.
+ *       Code allocating memory knowing it will leak shall start the allocation
+ *       tag string with 'will-leak:'.
+ */
+/** @def RTMEM_MAY_LEAK
+ * Macro for hinting that a memory allocation @a a_pv may leak.
+ *
+ * @note This shall only be used in code that doesn't allocate the object.
+ *       Code allocating memory knowing it may leak shall start the allocation
+ *       tag string with 'may-leak:'.
+ */
+#ifdef IPRT_WITH_GCC_SANITIZER
+# define RTMEM_WILL_LEAK(a_pv)   __lsan_ignore_object(a_pv)
+# define RTMEM_MAY_LEAK(a_pv)    __lsan_ignore_object(a_pv)
+#else
+# define RTMEM_WILL_LEAK(a_pv)   do { } while (0)
+# define RTMEM_MAY_LEAK(a_pv)    do { } while (0)
+#endif
+
 
 #ifdef IN_RING0
 
@@ -983,5 +1046,5 @@ RT_C_DECLS_END
 /** @} */
 
 
-#endif
+#endif /* !IPRT_INCLUDED_mem_h */
 

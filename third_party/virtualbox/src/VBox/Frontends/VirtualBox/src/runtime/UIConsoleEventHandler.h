@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Oracle Corporation
+ * Copyright (C) 2010-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___UIConsoleEventHandler_h___
-#define ___UIConsoleEventHandler_h___
+#ifndef FEQT_INCLUDED_SRC_runtime_UIConsoleEventHandler_h
+#define FEQT_INCLUDED_SRC_runtime_UIConsoleEventHandler_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 /* Qt includes: */
 #include <QObject>
@@ -45,6 +48,9 @@ signals:
     void sigMousePointerShapeChange(bool fVisible, bool fAlpha, QPoint hotCorner, QSize size, QVector<uint8_t> shape);
     /** Notifies about mouse capability change to @a fSupportsAbsolute, @a fSupportsRelative, @a fSupportsMultiTouch and @a fNeedsHostCursor. */
     void sigMouseCapabilityChange(bool fSupportsAbsolute, bool fSupportsRelative, bool fSupportsMultiTouch, bool fNeedsHostCursor);
+    /** Notifies about guest request to change the cursor position to @a uX * @a uY.
+      * @param  fContainsData  Brings whether the @a uX and @a uY values are valid and could be used by the GUI now. */
+    void sigCursorPositionChange(bool fContainsData, unsigned long uX, unsigned long uY);
     /** Notifies about keyboard LEDs change for @a fNumLock, @a fCapsLock and @a fScrollLock. */
     void sigKeyboardLedsChangeEvent(bool fNumLock, bool fCapsLock, bool fScrollLock);
     /** Notifies about machine @a state change. */
@@ -59,8 +65,8 @@ signals:
     void sigMediumChange(CMediumAttachment attachment);
     /** Notifies about VRDE device state change. */
     void sigVRDEChange();
-    /** Notifies about Video Capture device state change. */
-    void sigVideoCaptureChange();
+    /** Notifies about recording state change. */
+    void sigRecordingChange();
     /** Notifies about USB controller state change. */
     void sigUSBControllerChange();
     /** Notifies about USB @a device state change to @a fAttached, holding additional @a error information. */
@@ -114,5 +120,5 @@ private:
 /** Defines the globally known name for the console event handler instance. */
 #define gConsoleEvents UIConsoleEventHandler::instance()
 
-#endif /* !___UIConsoleEventHandler_h___ */
+#endif /* !FEQT_INCLUDED_SRC_runtime_UIConsoleEventHandler_h */
 

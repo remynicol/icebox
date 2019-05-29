@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -67,7 +67,7 @@
 DECLINLINE(int) pdmR3DevGetSymbolRCLazy(PPDMDEVINS pDevIns, const char *pszSymbol, PRTRCPTR ppvValue)
 {
     PVM pVM = pDevIns->Internal.s.pVMR3;
-    if (HMIsEnabled(pVM))
+    if (!VM_IS_RAW_MODE_ENABLED(pVM))
     {
         *ppvValue = NIL_RTRCPTR;
         return VINF_SUCCESS;
@@ -139,7 +139,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_IOPortRegisterRC(PPDMDEVINS pDevIns, RTIOPO
     int rc = VINF_SUCCESS;
     if (   pDevIns->pReg->szRCMod[0]
         && (pDevIns->pReg->fFlags & PDM_DEVREG_FLAGS_RC)
-        && !HMIsEnabled(pVM))
+        && VM_IS_RAW_MODE_ENABLED(pVM))
     {
         RTRCPTR RCPtrIn = NIL_RTRCPTR;
         if (pszIn)
@@ -180,7 +180,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_IOPortRegisterRC(PPDMDEVINS pDevIns, RTIOPO
             rc = IOMR3IOPortRegisterRC(pVM, pDevIns, Port, cPorts, pvUser, RCPtrOut, RCPtrIn, RCPtrOutStr, RCPtrInStr, pszDesc);
         }
     }
-    else if (!HMIsEnabled(pVM))
+    else if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         AssertMsgFailed(("No RC module for this driver!\n"));
         rc = VERR_INVALID_PARAMETER;
@@ -317,7 +317,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_MMIORegisterRC(PPDMDEVINS pDevIns, RTGCPHYS
     int rc = VINF_SUCCESS;
     if (   pDevIns->pReg->szRCMod[0]
         && (pDevIns->pReg->fFlags & PDM_DEVREG_FLAGS_RC)
-        && !HMIsEnabled(pVM))
+        && VM_IS_RAW_MODE_ENABLED(pVM))
     {
         RTRCPTR RCPtrWrite = NIL_RTRCPTR;
         if (pszWrite)
@@ -346,7 +346,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_MMIORegisterRC(PPDMDEVINS pDevIns, RTGCPHYS
                 rc = rc3;
         }
     }
-    else if (!HMIsEnabled(pVM))
+    else if (VM_IS_RAW_MODE_ENABLED(pVM))
     {
         AssertMsgFailed(("No RC module for this driver!\n"));
         rc = VERR_INVALID_PARAMETER;
@@ -666,6 +666,26 @@ static DECLCALLBACK(int) pdmR3DevHlp_MMIO2MapKernel(PPDMDEVINS pDevIns, PPDMPCID
 }
 
 
+/**
+ * @copydoc PDMDEVHLPR3::pfnMMIOExChangeRegionNo
+ */
+static DECLCALLBACK(int) pdmR3DevHlp_MMIOExChangeRegionNo(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev, uint32_t iRegion,
+                                                          uint32_t iNewRegion)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    PVM pVM = pDevIns->Internal.s.pVMR3;
+    VM_ASSERT_EMT(pVM);
+    LogFlow(("pdmR3DevHlp_MMIOExChangeRegionNo: caller='%s'/%d: pPciDev=%p:{%#x} iRegion=%#x iNewRegion=%#x\n",
+             pDevIns->pReg->szName, pDevIns->iInstance, pPciDev, pPciDev ? pPciDev->uDevFn : UINT32_MAX, iRegion, iNewRegion));
+    AssertReturn(!pPciDev || pPciDev->Int.s.pDevInsR3 == pDevIns, VERR_INVALID_PARAMETER);
+
+    int rc = PGMR3PhysMMIOExChangeRegionNo(pVM, pDevIns, pPciDev ? pPciDev->Int.s.idxDevCfg : 254, iRegion, iNewRegion);
+
+    LogFlow(("pdmR3DevHlp_MMIOExChangeRegionNo: caller='%s'/%d: returns %Rrc\n", pDevIns->pReg->szName, pDevIns->iInstance, rc));
+    return rc;
+}
+
+
 /** @interface_method_impl{PDMDEVHLPR3,pfnROMRegister} */
 static DECLCALLBACK(int) pdmR3DevHlp_ROMRegister(PPDMDEVINS pDevIns, RTGCPHYS GCPhysStart, uint32_t cbRange,
                                                  const void *pvBinary, uint32_t cbBinary, uint32_t fFlags, const char *pszDesc)
@@ -960,6 +980,75 @@ static DECLCALLBACK(void) pdmR3DevHlp_PhysReleasePageMappingLock(PPDMDEVINS pDev
     PGMPhysReleasePageMappingLock(pVM, pLock);
 
     Log(("pdmR3DevHlp_PhysReleasePageMappingLock: caller='%s'/%d: returns void\n", pDevIns->pReg->szName, pDevIns->iInstance));
+}
+
+
+/** @interface_method_impl{PDMDEVHLPR3,pfnPhysBulkGCPhys2CCPtr} */
+static DECLCALLBACK(int) pdmR3DevHlp_PhysBulkGCPhys2CCPtr(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                                          uint32_t fFlags, void **papvPages, PPGMPAGEMAPLOCK paLocks)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    PVM pVM = pDevIns->Internal.s.pVMR3;
+    LogFlow(("pdmR3DevHlp_PhysBulkGCPhys2CCPtr: caller='%s'/%d: cPages=%#x paGCPhysPages=%p (%RGp,..) fFlags=%#x papvPages=%p paLocks=%p\n",
+             pDevIns->pReg->szName, pDevIns->iInstance, cPages, paGCPhysPages, paGCPhysPages[0], fFlags, papvPages, paLocks));
+    AssertReturn(!fFlags, VERR_INVALID_PARAMETER);
+    AssertReturn(cPages > 0, VERR_INVALID_PARAMETER);
+
+#if defined(VBOX_STRICT) && defined(PDM_DEVHLP_DEADLOCK_DETECTION)
+    if (!VM_IS_EMT(pVM))
+    {
+        char szNames[128];
+        uint32_t cLocks = PDMR3CritSectCountOwned(pVM, szNames, sizeof(szNames));
+        AssertMsg(cLocks == 0, ("cLocks=%u %s\n", cLocks, szNames));
+    }
+#endif
+
+    int rc = PGMR3PhysBulkGCPhys2CCPtrExternal(pVM, cPages, paGCPhysPages, papvPages, paLocks);
+
+    Log(("pdmR3DevHlp_PhysBulkGCPhys2CCPtr: caller='%s'/%d: returns %Rrc\n", pDevIns->pReg->szName, pDevIns->iInstance, rc));
+    return rc;
+}
+
+
+/** @interface_method_impl{PDMDEVHLPR3,pfnPhysBulkGCPhys2CCPtrReadOnly} */
+static DECLCALLBACK(int) pdmR3DevHlp_PhysBulkGCPhys2CCPtrReadOnly(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                                                  uint32_t fFlags, const void **papvPages, PPGMPAGEMAPLOCK paLocks)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    PVM pVM = pDevIns->Internal.s.pVMR3;
+    LogFlow(("pdmR3DevHlp_PhysBulkGCPhys2CCPtrReadOnly: caller='%s'/%d: cPages=%#x paGCPhysPages=%p (%RGp,...) fFlags=%#x papvPages=%p paLocks=%p\n",
+             pDevIns->pReg->szName, pDevIns->iInstance, cPages, paGCPhysPages, paGCPhysPages[0], fFlags, papvPages, paLocks));
+    AssertReturn(!fFlags, VERR_INVALID_PARAMETER);
+    AssertReturn(cPages > 0, VERR_INVALID_PARAMETER);
+
+#if defined(VBOX_STRICT) && defined(PDM_DEVHLP_DEADLOCK_DETECTION)
+    if (!VM_IS_EMT(pVM))
+    {
+        char szNames[128];
+        uint32_t cLocks = PDMR3CritSectCountOwned(pVM, szNames, sizeof(szNames));
+        AssertMsg(cLocks == 0, ("cLocks=%u %s\n", cLocks, szNames));
+    }
+#endif
+
+    int rc = PGMR3PhysBulkGCPhys2CCPtrReadOnlyExternal(pVM, cPages, paGCPhysPages, papvPages, paLocks);
+
+    Log(("pdmR3DevHlp_PhysBulkGCPhys2CCPtrReadOnly: caller='%s'/%d: returns %Rrc\n", pDevIns->pReg->szName, pDevIns->iInstance, rc));
+    return rc;
+}
+
+
+/** @interface_method_impl{PDMDEVHLPR3,pfnPhysBulkReleasePageMappingLocks} */
+static DECLCALLBACK(void) pdmR3DevHlp_PhysBulkReleasePageMappingLocks(PPDMDEVINS pDevIns, uint32_t cPages, PPGMPAGEMAPLOCK paLocks)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    PVM pVM = pDevIns->Internal.s.pVMR3;
+    LogFlow(("pdmR3DevHlp_PhysBulkReleasePageMappingLocks: caller='%s'/%d: cPages=%#x paLocks=%p\n",
+             pDevIns->pReg->szName, pDevIns->iInstance, cPages, paLocks));
+    Assert(cPages > 0);
+
+    PGMPhysBulkReleasePageMappingLocks(pVM, cPages, paLocks);
+
+    Log(("pdmR3DevHlp_PhysBulkReleasePageMappingLocks: caller='%s'/%d: returns void\n", pDevIns->pReg->szName, pDevIns->iInstance));
 }
 
 
@@ -3725,10 +3814,10 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTrusted =
     pdmR3DevHlp_CallR0,
     pdmR3DevHlp_VMGetSuspendReason,
     pdmR3DevHlp_VMGetResumeReason,
-    0,
-    0,
-    0,
-    0,
+    pdmR3DevHlp_PhysBulkGCPhys2CCPtr,
+    pdmR3DevHlp_PhysBulkGCPhys2CCPtrReadOnly,
+    pdmR3DevHlp_PhysBulkReleasePageMappingLocks,
+    pdmR3DevHlp_MMIOExChangeRegionNo,
     0,
     0,
     0,
@@ -3995,10 +4084,10 @@ const PDMDEVHLPR3 g_pdmR3DevHlpUnTrusted =
     pdmR3DevHlp_CallR0,
     pdmR3DevHlp_VMGetSuspendReason,
     pdmR3DevHlp_VMGetResumeReason,
-    0,
-    0,
-    0,
-    0,
+    pdmR3DevHlp_PhysBulkGCPhys2CCPtr,
+    pdmR3DevHlp_PhysBulkGCPhys2CCPtrReadOnly,
+    pdmR3DevHlp_PhysBulkReleasePageMappingLocks,
+    pdmR3DevHlp_MMIOExChangeRegionNo,
     0,
     0,
     0,

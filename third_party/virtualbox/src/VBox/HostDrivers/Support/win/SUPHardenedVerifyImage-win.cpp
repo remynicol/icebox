@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -29,7 +29,9 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #ifdef IN_RING0
-# define IPRT_NT_MAP_TO_ZW
+# ifndef IPRT_NT_MAP_TO_ZW
+#  define IPRT_NT_MAP_TO_ZW
+# endif
 # include <iprt/nt/nt.h>
 # include <ntimage.h>
 #else
@@ -49,6 +51,7 @@
 #include <iprt/log.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
+#include <iprt/utf16.h>
 #include <iprt/crypto/pkcs7.h>
 #include <iprt/crypto/store.h>
 
@@ -298,7 +301,7 @@ static DECLCALLBACK(RTFOFF) supHardNtViRdrTell(PRTLDRREADER pReader)
 
 
 /** @copydoc RTLDRREADER::pfnSize */
-static DECLCALLBACK(RTFOFF) supHardNtViRdrSize(PRTLDRREADER pReader)
+static DECLCALLBACK(uint64_t) supHardNtViRdrSize(PRTLDRREADER pReader)
 {
     PSUPHNTVIRDR pNtViRdr = (PSUPHNTVIRDR)pReader;
     Assert(pNtViRdr->Core.uMagic == RTLDRREADER_MAGIC);
@@ -436,7 +439,7 @@ DECLHIDDEN(int) supHardNtViRdrCreate(HANDLE hFile, PCRTUTF16 pwszName, uint32_t 
     pNtViRdr->hFile           = hFile;
     pNtViRdr->hEvent          = hEvent;
     pNtViRdr->off             = 0;
-    pNtViRdr->cbFile          = StdInfo.EndOfFile.QuadPart;
+    pNtViRdr->cbFile          = (uint64_t)StdInfo.EndOfFile.QuadPart;
     pNtViRdr->fFlags          = fFlags;
     *ppNtViRdr = pNtViRdr;
     return VINF_SUCCESS;
@@ -1052,9 +1055,10 @@ static DECLCALLBACK(int) supHardNtViCertVerifyCallback(PCRTCRX509CERTIFICATE pCe
 
 static DECLCALLBACK(int) supHardNtViCallback(RTLDRMOD hLdrMod, RTLDRSIGNATURETYPE enmSignature,
                                              void const *pvSignature, size_t cbSignature,
+                                             void const *pvExternalData, size_t cbExternalData,
                                              PRTERRINFO pErrInfo, void *pvUser)
 {
-    RT_NOREF2(hLdrMod, enmSignature);
+    RT_NOREF(hLdrMod, enmSignature, pvExternalData, cbExternalData);
 
     /*
      * Check out the input.
@@ -1068,6 +1072,8 @@ static DECLCALLBACK(int) supHardNtViCallback(RTLDRMOD hLdrMod, RTLDRSIGNATURETYP
     AssertReturn(pContentInfo->u.pSignedData->SignerInfos.cItems == 1, VERR_INTERNAL_ERROR_5);
     PCRTCRPKCS7SIGNERINFO pSignerInfo = pContentInfo->u.pSignedData->SignerInfos.papItems[0];
 
+    AssertReturn(!pvExternalData, VERR_INTERNAL_ERROR_5);
+
     /*
      * If special certificate requirements, check them out before validating
      * the signature.
@@ -1077,7 +1083,12 @@ static DECLCALLBACK(int) supHardNtViCallback(RTLDRMOD hLdrMod, RTLDRSIGNATURETYP
         if (!RTCrX509Certificate_MatchIssuerAndSerialNumber(&g_BuildX509Cert,
                                                             &pSignerInfo->IssuerAndSerialNumber.Name,
                                                             &pSignerInfo->IssuerAndSerialNumber.SerialNumber))
-            return RTErrInfoSet(pErrInfo, VERR_SUP_VP_NOT_SIGNED_WITH_BUILD_CERT, "Not signed with the build certificate.");
+            return RTErrInfoSetF(pErrInfo, VERR_SUP_VP_NOT_SIGNED_WITH_BUILD_CERT,
+                                 "Not signed with the build certificate (serial %.*Rhxs, expected %.*Rhxs)",
+                                 pSignerInfo->IssuerAndSerialNumber.SerialNumber.Asn1Core.cb,
+                                 pSignerInfo->IssuerAndSerialNumber.SerialNumber.Asn1Core.uData.pv,
+                                 g_BuildX509Cert.TbsCertificate.SerialNumber.Asn1Core.cb,
+                                 g_BuildX509Cert.TbsCertificate.SerialNumber.Asn1Core.uData.pv);
     }
 
     /*
@@ -2590,7 +2601,7 @@ l_fresh_context:
                                 ULONG ulErr = RtlGetLastWin32Error();
                                 fNoSignedCatalogFound = ulErr == ERROR_NOT_FOUND && fNoSignedCatalogFound != 0;
                                 if (iCat == 0)
-                                    SUP_DPRINTF(("supR3HardNtViCallWinVerifyTrustCatFile: CryptCATAdminEnumCatalogFromHash failed ERRROR_NOT_FOUND (%u)\n", ulErr));
+                                    SUP_DPRINTF(("supR3HardNtViCallWinVerifyTrustCatFile: CryptCATAdminEnumCatalogFromHash failed ERROR_NOT_FOUND (%u)\n", ulErr));
                                 else if (iCat == 0)
                                     SUP_DPRINTF(("supR3HardNtViCallWinVerifyTrustCatFile: CryptCATAdminEnumCatalogFromHash failed %u\n", ulErr));
                                 break;

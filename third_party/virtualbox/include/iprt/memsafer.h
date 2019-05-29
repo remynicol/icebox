@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,8 +23,11 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___iprt_memsafer_h
-#define ___iprt_memsafer_h
+#ifndef IPRT_INCLUDED_memsafer_h
+#define IPRT_INCLUDED_memsafer_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/mem.h> /* RTMEM_TAG */
 
@@ -237,8 +240,21 @@ RTDECL(void *) RTMemSaferReallocZTag(size_t cbOld, void *pvOld, size_t cbNew, co
  */
 RTDECL(void) RTMemSaferFree(void *pv, size_t cb) RT_NO_THROW_PROTO;
 
+/**
+ * Gets the amount of memory allocated at @a pv.
+ *
+ * This can be used to check if the allocation was made using an RTMemSafer API.
+ *
+ * @returns Allocation size in bytes, 0 if not a RTMemSafer allocation.
+ * @param   pv          The alleged RTMemSafer allocation.
+ *
+ * @note    Not supported in all contexts and implementations of the API.
+ */
+RTDECL(size_t) RTMemSaferGetSize(void *pv) RT_NO_THROW_PROTO;
+
+
 /** @}  */
 RT_C_DECLS_END
 
-#endif
+#endif /* !IPRT_INCLUDED_memsafer_h */
 

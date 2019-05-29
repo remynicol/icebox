@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Oracle Corporation
+ * Copyright (C) 2008-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -300,6 +300,7 @@ RTDECL(int) RTMpPokeCpu(RTCPUID idCpu)
     if (g_pfnR0DarwinCpuInterrupt == NULL)
         return VERR_NOT_SUPPORTED;
     IPRT_DARWIN_SAVE_EFL_AC(); /* paranoia */
+    /// @todo use mp_cpus_kick() when available (since 10.10)?  It's probably slower (locks, mask iteration, checks), though...
     g_pfnR0DarwinCpuInterrupt(idCpu);
     IPRT_DARWIN_RESTORE_EFL_AC();
     return VINF_SUCCESS;

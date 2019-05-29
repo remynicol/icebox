@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef VBOXDISPVRDPBMP_H
-#define VBOXDISPVRDPBMP_H
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_xpdm_VBoxDispVrdpBmp_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_xpdm_VBoxDispVrdpBmp_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 /* RDP cache holds about 350 tiles 64x64. Therefore
  * the driver does not have to cache more then the
@@ -78,4 +81,4 @@ typedef struct _VRDPBC
 void vrdpbmpReset (VRDPBC *pCache);
 int vrdpbmpCacheSurface (VRDPBC *pCache, const SURFOBJ *pso, VRDPBCHASH *phash, VRDPBCHASH *phashDeleted, BOOL bForce);
 
-#endif /* !VBOXDISPVRDPBMP_H */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_xpdm_VBoxDispVrdpBmp_h */

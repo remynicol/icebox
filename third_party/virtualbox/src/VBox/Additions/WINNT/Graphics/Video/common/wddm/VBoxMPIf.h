@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -22,8 +22,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxMPIf_h___
-#define ___VBoxMPIf_h___
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_common_wddm_VBoxMPIf_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_common_wddm_VBoxMPIf_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBoxVideo.h>
 #include "../../../../include/VBoxDisplay.h"
@@ -32,7 +35,16 @@
 #include <VBox/VBoxGuestCoreTypes.h> /* for VBGLIOCHGCMCALL */
 
 /* One would increase this whenever definitions in this file are changed */
-#define VBOXVIDEOIF_VERSION 20
+#define VBOXVIDEOIF_VERSION 21
+
+/** @todo VBOXVIDEO_HWTYPE probably needs to be in VBoxVideo.h */
+typedef enum VBOXVIDEO_HWTYPE
+{
+    VBOXVIDEO_HWTYPE_VBOX   = 0,
+    VBOXVIDEO_HWTYPE_VMSVGA = 1,
+    VBOXVIDEO_HWTYPE_32BIT  = 0x7fffffff
+} VBOXVIDEO_HWTYPE;
+AssertCompileSize(VBOXVIDEO_HWTYPE, 4);
 
 #define VBOXWDDM_NODE_ID_SYSTEM             0
 #define VBOXWDDM_NODE_ID_3D                 (VBOXWDDM_NODE_ID_SYSTEM)
@@ -253,21 +265,38 @@ typedef enum
     VBOXWDDM_CONTEXT_TYPE_CUSTOM_DISPIF_RESIZE,
     /* context created by VBoxTray to handle seamless operations */
     VBOXWDDM_CONTEXT_TYPE_CUSTOM_DISPIF_SEAMLESS
+#ifdef VBOX_WITH_MESA3D
+    /* Gallium driver context. */
+    , VBOXWDDM_CONTEXT_TYPE_GA_3D
+#endif
 } VBOXWDDM_CONTEXT_TYPE;
 
 typedef struct VBOXWDDM_CREATECONTEXT_INFO
 {
     /* interface version, i.e. 9 for d3d9, 8 for d3d8, etc. */
     uint32_t u32IfVersion;
-    /* true if d3d false if ddraw */
+    /* What kind of context to create. */
     VBOXWDDM_CONTEXT_TYPE enmType;
-    uint32_t crVersionMajor;
-    uint32_t crVersionMinor;
-    /* we use uint64_t instead of HANDLE to ensure structure def is the same for both 32-bit and 64-bit
-     * since x64 kernel driver can be called by 32-bit UMD */
-    uint64_t hUmEvent;
-    /* info to be passed to UMD notification to identify the context */
-    uint64_t u64UmInfo;
+    union
+    {
+        struct
+        {
+            uint32_t crVersionMajor;
+            uint32_t crVersionMinor;
+            /* we use uint64_t instead of HANDLE to ensure structure def is the same for both 32-bit and 64-bit
+             * since x64 kernel driver can be called by 32-bit UMD */
+            uint64_t hUmEvent;
+            /* info to be passed to UMD notification to identify the context */
+            uint64_t u64UmInfo;
+        } vbox;
+#ifdef VBOX_WITH_MESA3D
+        struct
+        {
+            /* VBOXWDDM_F_GA_CONTEXT_* */
+            uint32_t u32Flags;
+        } vmsvga;
+#endif
+    } u;
 } VBOXWDDM_CREATECONTEXT_INFO, *PVBOXWDDM_CREATECONTEXT_INFO;
 
 typedef uint64_t VBOXDISP_UMHANDLE;
@@ -490,14 +519,170 @@ typedef struct VBOXDISPIFESCAPE_CRHGSMICTLCON_CALL
     VBGLIOCHGCMCALL CallInfo;
 } VBOXDISPIFESCAPE_CRHGSMICTLCON_CALL, *PVBOXDISPIFESCAPE_CRHGSMICTLCON_CALL;
 
-/* query info func */
-typedef struct VBOXWDDM_QI
+#ifdef VBOX_WITH_MESA3D
+
+#define VBOXWDDM_F_GA_CONTEXT_EXTENDED 0x00000001
+#define VBOXWDDM_F_GA_CONTEXT_VGPU10   0x00000002
+
+#define VBOXESC_GAGETCID            0xA0000002
+#define VBOXESC_GAREGION            0xA0000003
+#define VBOXESC_GAPRESENT           0xA0000004
+#define VBOXESC_GASURFACEDEFINE     0xA0000005
+#define VBOXESC_GASURFACEDESTROY    0xA0000006
+#define VBOXESC_GASHAREDSID         0xA0000008
+#define VBOXESC_GAFENCECREATE       0xA0000020
+#define VBOXESC_GAFENCEQUERY        0xA0000021
+#define VBOXESC_GAFENCEWAIT         0xA0000022
+#define VBOXESC_GAFENCEUNREF        0xA0000023
+
+/* Get Gallium context id (cid) of the WDDM context. */
+typedef struct VBOXDISPIFESCAPE_GAGETCID
 {
-    uint32_t u32Version;
-    uint32_t u32VBox3DCaps;
-    uint32_t cInfos;
-    VBOXVHWA_INFO aInfos[VBOX_VIDEO_MAX_SCREENS];
-} VBOXWDDM_QI;
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Cid;
+} VBOXDISPIFESCAPE_GAGETCID;
+
+/* Create or delete a Guest Memory Region (GMR). */
+#define GA_REGION_CMD_CREATE  0
+#define GA_REGION_CMD_DESTROY 1
+typedef struct VBOXDISPIFESCAPE_GAREGION
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Command;
+    uint32_t u32GmrId;
+    uint32_t u32NumPages;
+    uint32_t u32Reserved;
+    uint64_t u64UserAddress;
+} VBOXDISPIFESCAPE_GAREGION;
+
+/* Debug helper. Present the specified surface by copying to the guest screen VRAM. */
+typedef struct VBOXDISPIFESCAPE_GAPRESENT
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Sid;
+    uint32_t u32Width;
+    uint32_t u32Height;
+} VBOXDISPIFESCAPE_GAPRESENT;
+
+/* Create a host surface. */
+typedef struct VBOXDISPIFESCAPE_GASURFACEDEFINE
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Sid; /* Returned surface id. */
+    uint32_t cbReq;  /* Size of data after cSizes field. */
+    uint32_t cSizes; /* Number of GASURFSIZE structures. */
+    /* GASURFCREATE */
+    /* GASURFSIZE[cSizes] */
+} VBOXDISPIFESCAPE_GASURFACEDEFINE;
+
+/* Delete a host surface. */
+typedef struct VBOXDISPIFESCAPE_GASURFACEDESTROY
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Sid;
+} VBOXDISPIFESCAPE_GASURFACEDESTROY;
+
+/* Inform the miniport that 'u32Sid' actually maps to 'u32SharedSid'.
+ * If 'u32SharedSid' is ~0, then remove the mapping.
+ */
+typedef struct VBOXDISPIFESCAPE_GASHAREDSID
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+    uint32_t u32Sid;
+    uint32_t u32SharedSid;
+} VBOXDISPIFESCAPE_GASHAREDSID;
+
+/* Create a user mode fence object. */
+typedef struct VBOXDISPIFESCAPE_GAFENCECREATE
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+
+    /* IN: The miniport's handle of the fence.
+     * Assigned by the miniport. Not DXGK fence id!
+     */
+    uint32_t u32FenceHandle;
+} VBOXDISPIFESCAPE_GAFENCECREATE;
+
+/* Query a user mode fence object state. */
+#define GA_FENCE_STATUS_NULL      0 /* Fence not found */
+#define GA_FENCE_STATUS_IDLE      1
+#define GA_FENCE_STATUS_SUBMITTED 2
+#define GA_FENCE_STATUS_SIGNALED  3
+typedef struct VBOXDISPIFESCAPE_GAFENCEQUERY
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+
+    /* IN: The miniport's handle of the fence.
+     * Assigned by the miniport. Not DXGK fence id!
+     */
+    uint32_t u32FenceHandle;
+
+    /* OUT: The miniport's sequence number associated with the command buffer.
+     */
+    uint32_t u32SubmittedSeqNo;
+
+    /* OUT: The miniport's sequence number associated with the last command buffer completed on host.
+     */
+    uint32_t u32ProcessedSeqNo;
+
+    /* OUT: GA_FENCE_STATUS_*. */
+    uint32_t u32FenceStatus;
+} VBOXDISPIFESCAPE_GAFENCEQUERY;
+
+/* Wait on a user mode fence object. */
+typedef struct VBOXDISPIFESCAPE_GAFENCEWAIT
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+
+    /* IN: The miniport's handle of the fence.
+     * Assigned by the miniport. Not DXGK fence id!
+     */
+    uint32_t u32FenceHandle;
+
+    /* IN: Timeout in microseconds.
+     */
+    uint32_t u32TimeoutUS;
+} VBOXDISPIFESCAPE_GAFENCEWAIT;
+
+/* Delete a user mode fence object. */
+typedef struct VBOXDISPIFESCAPE_GAFENCEUNREF
+{
+    VBOXDISPIFESCAPE EscapeHdr;
+
+    /* IN: The miniport's handle of the fence.
+     * Assigned by the miniport. Not DXGK fence id!
+     */
+    uint32_t u32FenceHandle;
+} VBOXDISPIFESCAPE_GAFENCEUNREF;
+
+#include <VBoxGaHWInfo.h>
+#endif /* VBOX_WITH_MESA3D */
+
+/* D3DDDICB_QUERYADAPTERINFO::pPrivateDriverData */
+typedef struct VBOXWDDM_QAI
+{
+    uint32_t            u32Version;      /* VBOXVIDEOIF_VERSION */
+    uint32_t            u32Reserved;     /* Must be 0. */
+    VBOXVIDEO_HWTYPE    enmHwType;       /* Hardware type. Determines what kind of data is returned. */
+    uint32_t            cInfos;          /* Number of initialized elements in aInfos (equal to number of guest
+                                          * displays). 0 if VBOX_WITH_VIDEOHWACCEL is not defined. */
+    VBOXVHWA_INFO       aInfos[VBOX_VIDEO_MAX_SCREENS]; /* cInfos elements are initialized. */
+    union
+    {
+        struct
+        {
+            /* VBOXVIDEO_HWTYPE_VBOX */
+            uint32_t    u32VBox3DCaps;   /* CR_VBOX_CAP_* */
+        } vbox;
+#ifdef VBOX_WITH_MESA3D
+        struct
+        {
+            /* VBOXVIDEO_HWTYPE_VMSVGA */
+            VBOXGAHWINFO HWInfo;
+        } vmsvga;
+#endif
+    } u;
+} VBOXWDDM_QAI;
 
 /** Convert a given FourCC code to a D3DDDIFORMAT enum. */
 #define VBOXWDDM_D3DDDIFORMAT_FROM_FOURCC(_a, _b, _c, _d) \
@@ -603,8 +788,12 @@ DECLINLINE(UINT) vboxWddmCalcBitsPerPixel(D3DDDIFORMAT enmFormat)
             return 8;
         case D3DDDIFMT_R32F:
             return 32;
+        case D3DDDIFMT_G32R32F:
+            return 64;
         case D3DDDIFMT_R16F:
             return 16;
+        case D3DDDIFMT_G16R16F:
+            return 32;
         case D3DDDIFMT_YUY2: /* 4 bytes per 2 pixels. */
         case VBOXWDDM_D3DDDIFORMAT_FROM_FOURCC('Y', 'V', '1', '2'):
             return 16;
@@ -651,7 +840,7 @@ DECLINLINE(UINT) vboxWddmCalcOffXru(UINT w, D3DDDIFORMAT enmFormat)
         case D3DDDIFMT_DXT5:
         {
             UINT Pitch = (w + 3) / 4; /* <- pitch size in blocks */
-            Pitch *= 8;               /* <- pitch size in bytes */
+            Pitch *= 16;              /* <- pitch size in bytes */
             return Pitch;
         }
         default:
@@ -796,4 +985,4 @@ DECLINLINE(UINT) vboxWddmCalcOffXYrd(UINT x, UINT y, UINT pitch, D3DDDIFORMAT en
 #define VBOXWDDM_ARRAY_MAXELEMENTSU32(_t) ((uint32_t)((UINT32_MAX) / sizeof (_t)))
 #define VBOXWDDM_TRAILARRAY_MAXELEMENTSU32(_t, _af) ((uint32_t)(((~(0UL)) - (uint32_t)RT_OFFSETOF(_t, _af[0])) / RT_SIZEOFMEMB(_t, _af[0])))
 
-#endif /* #ifndef ___VBoxMPIf_h___ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_common_wddm_VBoxMPIf_h */

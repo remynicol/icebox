@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,6 +15,10 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>       /* For exit */
@@ -40,10 +44,15 @@
 #include <iprt/string.h>
 #include <iprt/types.h>
 #include <VBox/VBoxGuestLib.h>
+#include <VBox/err.h>
 #include <VBox/log.h>
 
 #include "VBoxClient.h"
 
+
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
 /*static int (*gpfnOldIOErrorHandler)(Display *) = NULL; - unused */
 
 /** Object representing the service we are running.  This has to be global
@@ -62,6 +71,8 @@ static RTFILE g_hPidFile;
 RTCRITSECT g_critSect;
 /** Counter of how often our deamon has been respawned. */
 unsigned cRespawn = 0;
+
+
 
 /**
  * Exit with a fatal error.
@@ -189,7 +200,8 @@ static void vboxClientUsage(const char *pcszFileName)
              "--checkhostversion|"
 #endif
              "--seamless|check3d|"
-             "--vmsvga [-d|--nodaemon]\n", pcszFileName);
+             "--vmsvga|--vmsvga-x11"
+             "[-d|--nodaemon]\n", pcszFileName);
     RTPrintf("Starts the VirtualBox DRM/X Window System guest services.\n\n");
     RTPrintf("Options:\n");
     RTPrintf("  --clipboard        starts the shared clipboard service\n");
@@ -202,7 +214,8 @@ static void vboxClientUsage(const char *pcszFileName)
 #endif
     RTPrintf("  --check3d          tests whether 3D pass-through is enabled\n");
     RTPrintf("  --seamless         starts the seamless windows service\n");
-    RTPrintf("  --vmsvga           starts VMSVGA dynamic resizing for DRM or for X11\n");
+    RTPrintf("  --vmsvga           starts VMSVGA dynamic resizing for DRM\n");
+    RTPrintf("  --vmsvga-x11       starts VMSVGA dynamic resizing for X11\n");
     RTPrintf("  -f, --foreground   run in the foreground (no daemonizing)\n");
     RTPrintf("  -d, --nodaemon     continues running as a system service\n");
     RTPrintf("  -h, --help         shows this help text\n");
@@ -317,6 +330,12 @@ int main(int argc, char *argv[])
             if (g_pService)
                 return vbclSyntaxOnlyOneService();
             g_pService = VBClDisplaySVGAService();
+        }
+        else if (!strcmp(argv[i], "--vmsvga-x11"))
+        {
+            if (g_pService)
+                break;
+            g_pService = VBClDisplaySVGAX11Service();
         }
         /* bird: this is just a quick hack to get something out of the LogRel statements in the code. */
         else if (!strcmp(argv[i], "--init-vbgl-user"))

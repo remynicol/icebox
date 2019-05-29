@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -60,6 +60,7 @@
 #ifdef VBOX_WITH_REM
 # include <VBox/vmm/rem.h>
 #endif
+#include <VBox/vmm/nem.h>
 #include <VBox/vmm/apic.h>
 #include <VBox/vmm/tm.h>
 #include <VBox/vmm/stam.h>
@@ -105,9 +106,6 @@ static int                  vmR3InitRing0(PVM pVM);
 static int                  vmR3InitRC(PVM pVM);
 #endif
 static int                  vmR3InitDoCompleted(PVM pVM, VMINITCOMPLETED enmWhat);
-#ifdef LOG_ENABLED
-static DECLCALLBACK(size_t) vmR3LogPrefixCallback(PRTLOGGER pLogger, char *pchBuf, size_t cchBuf, void *pvUser);
-#endif
 static void                 vmR3DestroyUVM(PUVM pUVM, uint32_t cMilliesEMTWait);
 static bool                 vmR3ValidateStateTransition(VMSTATE enmStateOld, VMSTATE enmStateNew);
 static void                 vmR3DoAtState(PVM pVM, PUVM pUVM, VMSTATE enmStateNew, VMSTATE enmStateOld);
@@ -274,8 +272,10 @@ VMMR3DECL(int)   VMR3Create(uint32_t cCpus, PCVMM2USERMETHODS pVmm2UserMethods,
 #ifdef RT_OS_LINUX
                 case VERR_SUPDRV_COMPONENT_NOT_FOUND:
                     pszError = N_("One of the kernel modules was not successfully loaded. Make sure "
-                                  "that no kernel modules from an older version of VirtualBox exist. "
-                                  "Then try to recompile and reload the kernel modules by executing "
+                                  "that VirtualBox is correctly installed, and if you are using EFI "
+                                  "Secure Boot that the modules are signed if necessary in the right "
+                                  "way for your host system.  Then try to recompile and reload the "
+                                  "kernel modules by executing "
                                   "'/sbin/vboxconfig' as root");
                     break;
 #endif
@@ -340,8 +340,10 @@ VMMR3DECL(int)   VMR3Create(uint32_t cCpus, PCVMM2USERMETHODS pVmm2UserMethods,
                 case VERR_VM_DRIVER_LOAD_ERROR:
 #ifdef RT_OS_LINUX
                     pszError = N_("VirtualBox kernel driver not loaded. The vboxdrv kernel module "
-                                  "was either not loaded or /dev/vboxdrv is not set up properly. "
-                                  "Re-setup the kernel module by executing "
+                                  "was either not loaded, /dev/vboxdrv is not set up properly, "
+                                  "or you are using EFI Secure Boot and the module is not signed "
+                                  "in the right way for your system.  If necessary, try setting up "
+                                  "the kernel module again by executing "
                                   "'/sbin/vboxconfig' as root");
 #else
                     pszError = N_("VirtualBox kernel driver not loaded");
@@ -381,9 +383,11 @@ VMMR3DECL(int)   VMR3Create(uint32_t cCpus, PCVMM2USERMETHODS pVmm2UserMethods,
                 case VERR_INVALID_HANDLE: /** @todo track down and fix this error. */
                 case VERR_VM_DRIVER_NOT_INSTALLED:
 #ifdef RT_OS_LINUX
-                    pszError = N_("VirtualBox kernel driver not installed. The vboxdrv kernel module "
-                                  "was either not loaded or /dev/vboxdrv was not created for some "
-                                  "reason. Re-setup the kernel module by executing "
+                    pszError = N_("VirtualBox kernel driver not Installed. The vboxdrv kernel module "
+                                  "was either not loaded, /dev/vboxdrv is not set up properly, "
+                                  "or you are using EFI Secure Boot and the module is not signed "
+                                  "in the right way for your system.  If necessary, try setting up "
+                                  "the kernel module again by executing "
                                   "'/sbin/vboxconfig' as root");
 #else
                     pszError = N_("VirtualBox kernel driver not installed");
@@ -674,10 +678,6 @@ static int vmR3CreateU(PUVM pUVM, uint32_t cCpus, PFNCFGMCONSTRUCTOR pfnCFGMCons
                                          * Set the state and we're done.
                                          */
                                         vmR3SetState(pVM, VMSTATE_CREATED, VMSTATE_CREATING);
-
-#ifdef LOG_ENABLED
-                                        RTLogSetCustomPrefixCallback(NULL, vmR3LogPrefixCallback, pUVM);
-#endif
                                         return VINF_SUCCESS;
                                     }
                                 }
@@ -766,13 +766,15 @@ static int vmR3ReadBaseConfig(PVM pVM, PUVM pUVM, uint32_t cCpus)
     /*
      * Base EM and HM config properties.
      */
+    /** @todo We don't need to read any of this here.  The relevant modules reads
+     *        them again and will be in a better position to set them correctly. */
     Assert(pVM->fRecompileUser == false); /* ASSUMES all zeros at this point */
-#ifdef VBOX_WITH_RAW_MODE
     bool        fEnabled;
     rc = CFGMR3QueryBoolDef(pRoot, "RawR3Enabled", &fEnabled, false); AssertRCReturn(rc, rc);
     pVM->fRecompileUser       = !fEnabled;
     rc = CFGMR3QueryBoolDef(pRoot, "RawR0Enabled", &fEnabled, false); AssertRCReturn(rc, rc);
     pVM->fRecompileSupervisor = !fEnabled;
+#ifdef VBOX_WITH_RAW_MODE
 # ifdef VBOX_WITH_RAW_RING1
     rc = CFGMR3QueryBoolDef(pRoot, "RawR1Enabled", &pVM->fRawRing1Enabled, false);
 # endif
@@ -782,12 +784,10 @@ static int vmR3ReadBaseConfig(PVM pVM, PUVM pUVM, uint32_t cCpus)
 #else
     pVM->fHMEnabled = true;
 #endif
-    Assert(!pVM->fHMEnabledFixed);
     LogRel(("VM: fHMEnabled=%RTbool (configured) fRecompileUser=%RTbool fRecompileSupervisor=%RTbool\n"
             "VM: fRawRing1Enabled=%RTbool CSAM=%RTbool PATM=%RTbool\n",
             pVM->fHMEnabled, pVM->fRecompileUser, pVM->fRecompileSupervisor,
             pVM->fRawRing1Enabled, pVM->fCSAMEnabled, pVM->fPATMEnabled));
-
 
     /*
      * Make sure the CPU count in the config data matches.
@@ -903,18 +903,32 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
 
     /*
      * Init all R3 components, the order here might be important.
-     * HM shall be initialized first!
+     * NEM and HM shall be initialized first!
      */
-    rc = HMR3Init(pVM);
+    Assert(pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NOT_SET);
+    rc = NEMR3InitConfig(pVM);
+    if (RT_SUCCESS(rc))
+        rc = HMR3Init(pVM);
     if (RT_SUCCESS(rc))
     {
+        ASMCompilerBarrier(); /* HMR3Init will have modified bMainExecutionEngine */
+#ifdef VBOX_WITH_RAW_MODE
+        Assert(   pVM->bMainExecutionEngine == VM_EXEC_ENGINE_HW_VIRT
+               || pVM->bMainExecutionEngine == VM_EXEC_ENGINE_RAW_MODE
+               || pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NATIVE_API);
+#else
+        Assert(   pVM->bMainExecutionEngine == VM_EXEC_ENGINE_HW_VIRT
+               || pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NATIVE_API);
+#endif
         rc = MMR3Init(pVM);
         if (RT_SUCCESS(rc))
         {
             rc = CPUMR3Init(pVM);
             if (RT_SUCCESS(rc))
             {
-                rc = PGMR3Init(pVM);
+                rc = NEMR3InitAfterCPUM(pVM);
+                if (RT_SUCCESS(rc))
+                    rc = PGMR3Init(pVM);
                 if (RT_SUCCESS(rc))
                 {
 #ifdef VBOX_WITH_REM
@@ -1054,7 +1068,7 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
         int rc2 = HMR3Term(pVM);
         AssertRC(rc2);
     }
-
+    NEMR3Term(pVM);
 
     LogFlow(("vmR3InitRing3: returns %Rrc\n", rc));
     return rc;
@@ -1062,7 +1076,7 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
 
 
 /**
- * Initializes all R0 components of the VM
+ * Initializes all R0 components of the VM.
  */
 static int vmR3InitRing0(PVM pVM)
 {
@@ -1090,10 +1104,6 @@ static int vmR3InitRing0(PVM pVM)
         rc = vmR3InitDoCompleted(pVM, VMINITCOMPLETED_RING0);
     if (RT_SUCCESS(rc))
         rc = vmR3InitDoCompleted(pVM, VMINITCOMPLETED_HM);
-
-    /** @todo Move this to the VMINITCOMPLETED_HM notification handler. */
-    if (RT_SUCCESS(rc))
-        CPUMR3SetHWVirtEx(pVM, HMIsEnabled(pVM));
 
     LogFlow(("vmR3InitRing0: returns %Rrc\n", rc));
     return rc;
@@ -1147,9 +1157,13 @@ static int vmR3InitDoCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
     if (RT_SUCCESS(rc))
         rc = HMR3InitCompleted(pVM, enmWhat);
     if (RT_SUCCESS(rc))
+        rc = NEMR3InitCompleted(pVM, enmWhat);
+    if (RT_SUCCESS(rc))
         rc = PGMR3InitCompleted(pVM, enmWhat);
     if (RT_SUCCESS(rc))
         rc = CPUMR3InitCompleted(pVM, enmWhat);
+    if (RT_SUCCESS(rc))
+        rc = EMR3InitCompleted(pVM, enmWhat);
     if (enmWhat == VMINITCOMPLETED_RING3)
     {
 #ifndef VBOX_WITH_RAW_MODE
@@ -1167,40 +1181,6 @@ static int vmR3InitDoCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
         rc = PDMR3InitCompleted(pVM, enmWhat);
     return rc;
 }
-
-
-#ifdef LOG_ENABLED
-/**
- * Logger callback for inserting a custom prefix.
- *
- * @returns Number of chars written.
- * @param   pLogger             The logger.
- * @param   pchBuf              The output buffer.
- * @param   cchBuf              The output buffer size.
- * @param   pvUser              Pointer to the UVM structure.
- */
-static DECLCALLBACK(size_t) vmR3LogPrefixCallback(PRTLOGGER pLogger, char *pchBuf, size_t cchBuf, void *pvUser)
-{
-    AssertReturn(cchBuf >= 2, 0);
-    PUVM        pUVM   = (PUVM)pvUser;
-    PUVMCPU     pUVCpu = (PUVMCPU)RTTlsGet(pUVM->vm.s.idxTLS);
-    if (pUVCpu)
-    {
-        static const char s_szHex[17] = "0123456789abcdef";
-        VMCPUID const     idCpu       = pUVCpu->idCpu;
-        pchBuf[1] = s_szHex[ idCpu       & 15];
-        pchBuf[0] = s_szHex[(idCpu >> 4) & 15];
-    }
-    else
-    {
-        pchBuf[0] = 'x';
-        pchBuf[1] = 'y';
-    }
-
-    NOREF(pLogger);
-    return 2;
-}
-#endif /* LOG_ENABLED */
 
 
 /**
@@ -2494,6 +2474,8 @@ DECLCALLBACK(int) vmR3Destroy(PVM pVM)
 #endif
         rc = HMR3Term(pVM);
         AssertRC(rc);
+        rc = NEMR3Term(pVM);
+        AssertRC(rc);
         rc = PGMR3Term(pVM);
         AssertRC(rc);
         rc = VMMR3Term(pVM); /* Terminates the ring-0 code! */
@@ -2698,9 +2680,6 @@ static void vmR3DestroyUVM(PUVM pUVM, uint32_t cMilliesEMTWait)
     /*
      * Clean up and flush logs.
      */
-#ifdef LOG_ENABLED
-    RTLogSetCustomPrefixCallback(NULL, NULL, NULL);
-#endif
     RTLogFlush(NULL);
 }
 
@@ -2747,6 +2726,8 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3SoftReset(PVM pVM, PVMCPU pVCpu, void *pvU
                                  VMSTATE_SOFT_RESETTING_LS,  VMSTATE_RUNNING_LS);
         if (RT_FAILURE(rc))
             return rc;
+        pVM->vm.s.cResets++;
+        pVM->vm.s.cSoftResets++;
     }
 
     /*
@@ -2782,6 +2763,7 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3SoftReset(PVM pVM, PVMCPU pVCpu, void *pvU
         CPUMR3Reset(pVM);               /* This must come *after* PDM (due to APIC base MSR caching). */
         EMR3Reset(pVM);
         HMR3Reset(pVM);                 /* This must come *after* PATM, CSAM, CPUM, SELM and TRPM. */
+        NEMR3Reset(pVM);
 
         /*
          * Since EMT(0) is the last to go thru here, it will advance the state.
@@ -2836,6 +2818,8 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3HardReset(PVM pVM, PVMCPU pVCpu, void *pvU
                                  VMSTATE_RESETTING_LS,  VMSTATE_RUNNING_LS);
         if (RT_FAILURE(rc))
             return rc;
+        pVM->vm.s.cResets++;
+        pVM->vm.s.cHardResets++;
     }
 
     /*
@@ -2861,7 +2845,7 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3HardReset(PVM pVM, PVMCPU pVCpu, void *pvU
     VMCPU_ASSERT_STATE(pVCpu, VMCPUSTATE_STARTED);
 
     /* Clear all pending forced actions. */
-    VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_ALL_MASK & ~VMCPU_FF_REQUEST);
+    VMCPU_FF_CLEAR_MASK(pVCpu, VMCPU_FF_ALL_MASK & ~VMCPU_FF_REQUEST);
 
     /*
      * Reset the VM components.
@@ -2885,6 +2869,7 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3HardReset(PVM pVM, PVMCPU pVCpu, void *pvU
         TMR3Reset(pVM);
         EMR3Reset(pVM);
         HMR3Reset(pVM);                 /* This must come *after* PATM, CSAM, CPUM, SELM and TRPM. */
+        NEMR3Reset(pVM);
 
         /*
          * Do memory setup.
@@ -4479,21 +4464,35 @@ VMMR3_INT_DECL(RTCPUID) VMR3GetVMCPUId(PVM pVM)
 
 /**
  * Checks if the VM is long-mode (64-bit) capable or not.
- * @returns true if VM can operate in long-mode, false
- *        otherwise.
  *
+ * @returns true if VM can operate in long-mode, false otherwise.
  * @param   pVM             The cross context VM structure.
  */
 VMMR3_INT_DECL(bool) VMR3IsLongModeAllowed(PVM pVM)
 {
-    if (HMIsEnabled(pVM))
-        return HMIsLongModeAllowed(pVM);
-    return false;
+    switch (pVM->bMainExecutionEngine)
+    {
+        case VM_EXEC_ENGINE_HW_VIRT:
+            return HMIsLongModeAllowed(pVM);
+
+        case VM_EXEC_ENGINE_NATIVE_API:
+#ifndef IN_RC
+            return NEMHCIsLongModeAllowed(pVM);
+#else
+            return false;
+#endif
+
+        case VM_EXEC_ENGINE_NOT_SET:
+            AssertFailed();
+            RT_FALL_THRU();
+        default:
+            return false;
+    }
 }
 
 
 /**
- * Returns the native handle of the current EMT VMCPU thread.
+ * Returns the native ID of the current EMT VMCPU thread.
  *
  * @returns Handle if this is an EMT thread; NIL_RTNATIVETHREAD otherwise
  * @param   pVM             The cross context VM structure.
@@ -4511,7 +4510,7 @@ VMMR3DECL(RTNATIVETHREAD) VMR3GetVMCPUNativeThread(PVM pVM)
 
 
 /**
- * Returns the native handle of the current EMT VMCPU thread.
+ * Returns the native ID of the current EMT VMCPU thread.
  *
  * @returns Handle if this is an EMT thread; NIL_RTNATIVETHREAD otherwise
  * @param   pUVM        The user mode VM structure.
@@ -4542,6 +4541,19 @@ VMMR3DECL(RTTHREAD) VMR3GetVMCPUThread(PUVM pUVM)
     if (!pUVCpu)
         return NIL_RTTHREAD;
 
+    return pUVCpu->vm.s.ThreadEMT;
+}
+
+
+/**
+ * Returns the handle of the current EMT VMCPU thread.
+ *
+ * @returns The IPRT thread handle.
+ * @param   pUVCpu          The user mode CPU handle.
+ * @thread  EMT
+ */
+VMMR3_INT_DECL(RTTHREAD) VMR3GetThreadHandle(PUVMCPU pUVCpu)
+{
     return pUVCpu->vm.s.ThreadEMT;
 }
 
@@ -4610,6 +4622,7 @@ static DECLCALLBACK(int) vmR3HotUnplugCpu(PVM pVM, VMCPUID idCpu)
     CPUMR3ResetCpu(pVM, pVCpu);
     EMR3ResetCpu(pVCpu);
     HMR3ResetCpu(pVCpu);
+    NEMR3ResetCpu(pVCpu, false /*fInitIpi*/);
     return VINF_EM_WAIT_SIPI;
 }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -375,10 +375,10 @@ HRESULT vboxDispKmtCreateContext(PVBOXDISPKMT_DEVICE pDevice, PVBOXDISPKMT_CONTE
     VBOXWDDM_CREATECONTEXT_INFO Info = {0};
     Info.u32IfVersion = 9;
     Info.enmType = enmType;
-    Info.crVersionMajor = crVersionMajor;
-    Info.crVersionMinor = crVersionMinor;
-    Info.hUmEvent = (uintptr_t)hEvent;
-    Info.u64UmInfo = u64UmInfo;
+    Info.u.vbox.crVersionMajor = crVersionMajor;
+    Info.u.vbox.crVersionMinor = crVersionMinor;
+    Info.u.vbox.hUmEvent = (uintptr_t)hEvent;
+    Info.u.vbox.u64UmInfo = u64UmInfo;
     D3DKMT_CREATECONTEXT ContextData = {0};
     ContextData.hDevice = pDevice->hDevice;
     ContextData.NodeOrdinal = VBOXWDDM_NODE_ID_3D_KMT;

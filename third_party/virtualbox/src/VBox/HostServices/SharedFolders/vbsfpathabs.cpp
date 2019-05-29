@@ -1,10 +1,10 @@
 /* $Id: vbsfpathabs.cpp $ */
 /** @file
- * Shared Folders - guest/host path convertion and verification.
+ * Shared Folders Service - guest/host path convertion and verification.
  */
 
 /*
- * Copyright (C) 2017 Oracle Corporation
+ * Copyright (C) 2017-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,15 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
+#define LOG_GROUP LOG_GROUP_SHARED_FOLDERS
+#include <iprt/err.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
+
 
 #if defined(RT_OS_WINDOWS)
 static void vbsfPathResolveRelative(char *pszPathBegin)
@@ -89,6 +96,8 @@ static void vbsfPathResolveRelative(char *pszPathBegin)
 int vbsfPathAbs(const char *pszRoot, const char *pszPath, char *pszAbsPath, size_t cbAbsPath)
 {
 #if defined(RT_OS_WINDOWS)
+    /** @todo This code is not needed in 6.0 and later as IPRT translates paths
+     *        to \\.\ format if they're too long.  */
     const char *pszPathStart = pszRoot? pszRoot: pszPath;
 
     /* Windows extended-length paths. */
@@ -174,5 +183,8 @@ int vbsfPathAbs(const char *pszRoot, const char *pszPath, char *pszAbsPath, size
 #endif /* RT_OS_WINDOWS */
 
     /* Fallback for the common paths. */
-    return RTPathAbsEx(pszRoot, pszPath, pszAbsPath, cbAbsPath);
+
+    if (*pszPath != '\0')
+        return RTPathAbsEx(pszRoot, pszPath, RTPATH_STR_F_STYLE_HOST, pszAbsPath, &cbAbsPath);
+    return RTPathAbsEx(NULL, pszRoot, RTPATH_STR_F_STYLE_HOST, pszAbsPath, &cbAbsPath);
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -669,7 +669,7 @@ VMMR3DECL(int) VMR3ReqAlloc(PUVM pUVM, PVMREQ *ppReq, VMREQTYPE enmType, VMCPUID
             Assert(pReq->enmType == VMREQTYPE_INVALID);
             Assert(pReq->enmState == VMREQSTATE_FREE);
             Assert(pReq->pUVM == pUVM);
-            ASMAtomicXchgSize(&pReq->pNext, NULL);
+            ASMAtomicWriteNullPtr(&pReq->pNext);
             pReq->enmState = VMREQSTATE_ALLOCATED;
             pReq->iStatus  = VERR_VM_REQUEST_STATUS_STILL_PENDING;
             pReq->fFlags   = VMREQFLAGS_VBOX_STATUS;

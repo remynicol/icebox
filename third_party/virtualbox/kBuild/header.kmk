@@ -1,10 +1,10 @@
-# $Id: header.kmk 3111 2017-10-22 11:38:15Z bird $
+# $Id: header.kmk 3253 2019-01-02 00:23:15Z bird $
 ## @file
 # kBuild - File included at top of a makefile.
 #
 
 #
-# Copyright (c) 2004-2015 knut st. osmundsen <bird-kBuild-spam-xiv@anduin.net>
+# Copyright (c) 2004-2017 knut st. osmundsen <bird-kBuild-spam-xviiv@anduin.net>
 #
 # This file is part of kBuild.
 #
@@ -79,7 +79,7 @@ endif
 # The revision in which this file was last modified.
 # This can be useful when using development versions of kBuild.
 #
-KMK_REVISION := $(patsubst %:,,  $Rev: 3111 $  )
+KMK_REVISION := $(patsubst %:,,  $Rev: 3253 $  )
 
 
 #
@@ -970,6 +970,11 @@ endif
 # Somewhat simple solution for automatic command dependencies.
 #
 
+## Temporary for the compile rule below.
+if "$(KBUILD_KMK_REVISION)" >= 3134
+ KBUILD_HAVE_OPTIMIZED_APPEND := 1
+endif
+
 ##
 # Advanced version of KB_FN_AUTO_CMD_DEPS_COMMANDS_EX where you set
 # the dependency file name yourself.
@@ -977,12 +982,21 @@ endif
 # After or before the recipe do $(call KB_FN_AUTO_CMD_DEPS_EX,<recipe-target>,<dep-file>).
 #
 # @param 1    dep file.
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+define KB_FN_AUTO_CMD_DEPS_COMMANDS_EX
+	%$(QUIET2)$(APPEND) -tin "$1" \
+		'define AUTO_CMD_DEP_$(translate $@,:,_)_PREV_CMDS' \
+       	'--insert-command=$@' \
+       	'endef'
+endef
+else
 define KB_FN_AUTO_CMD_DEPS_COMMANDS_EX
 	%$(QUIET2)$(RM) -f -- "$1"
-       %$(QUIET2)$(APPEND) "$1" 'define AUTO_CMD_DEP_$(translate $@,:,_)_PREV_CMDS'
-       %$(QUIET2)$(APPEND) -c "$1"  '$@'
-       %$(QUIET2)$(APPEND) "$1" 'endef'
+	%$(QUIET2)$(APPEND) "$1" 'define AUTO_CMD_DEP_$(translate $@,:,_)_PREV_CMDS'
+	%$(QUIET2)$(APPEND) -c "$1"  '$@'
+	%$(QUIET2)$(APPEND) "$1" 'endef'
 endef
+endif
 
 ##
 # Advanced version of KB_FN_AUTO_CMD_DEPS
@@ -995,12 +1009,21 @@ KB_FN_AUTO_CMD_DEPS_EX = $(eval includedep $2)$(eval _DEPFILES_INCLUDED += $2)$1
 # $(call KB_FN_AUTO_CMD_DEPS_COMMANDS) as the first command in a recipe to
 # automatically generate command dependencies.
 # After or before the recipe do $(call KB_FN_AUTO_CMD_DEPS,<recipe-target>).
+ifdef KBUILD_HAVE_OPTIMIZED_APPEND
+define KB_FN_AUTO_CMD_DEPS_COMMANDS
+	%$(QUIET2)$(APPEND) -tni "$@.auto-dep" \
+		'define AUTO_CMD_DEP_$(translate $@,:,_)_PREV_CMDS' \
+		'--insert-command=$@' \
+		'endef'
+endef
+else
 define KB_FN_AUTO_CMD_DEPS_COMMANDS
 	%$(QUIET2)$(RM) -f -- "$@.auto-dep"
        %$(QUIET2)$(APPEND) "$@.auto-dep" 'define AUTO_CMD_DEP_$(translate $@,:,_)_PREV_CMDS'
        %$(QUIET2)$(APPEND) -c "$@.auto-dep"  '$@'
        %$(QUIET2)$(APPEND) "$@.auto-dep" 'endef'
 endef
+endif
 
 ##
 # Call before or after defining a recipe that you want automatic command
@@ -1066,15 +1089,15 @@ KBUILD_SRC_HANDLERS := \
 
 ## PROPS_TOOLS
 # This is a subset of PROPS_SINGLE.
-PROPS_TOOLS := TOOL CTOOL CXXTOOL OBJCTOOL OBJCXXTOOL ASTOOL RCTOOL ARTOOL LDTOOL FETCHTOOL UNPACKTOOL PATCHTOOL
+PROPS_TOOLS := TOOL CTOOL CXXTOOL PCHTOOL OBJCTOOL OBJCXXTOOL ASTOOL RCTOOL ARTOOL LDTOOL FETCHTOOL UNPACKTOOL PATCHTOOL
 
 ## PROPS_SINGLE
 # The list of non-accumulative target properties.
 # A Config.kmk file can add it's own properties to this list and kBuild
 # will do the necessary inheritance for templates, sdks, tools and targets.
 PROPS_SINGLE := $(PROPS_TOOLS) TEMPLATE INSTTYPE INST STAGE NOINST BLD_TYPE BLD_TRG BLD_TRG_ARCH BLD_TRG_CPU FETCHDIR \
-	OBJSUFF COBJSUFF CXXOBJSUFF OBJCOBJSUFF OBJCXXOBJSUFF ASOBJSUFF RCOBJSUFF SYSSUFF BINSUFF EXESUFF DLLSUFF LIBSUFF ARLIBSUFF \
-	MODE UID GID LD_DEBUG DEBUG_INSTTYPE DEBUG_INST DEBUG_STAGE
+	OBJSUFF COBJSUFF CXXOBJSUFF PCHOBJSUFF OBJCOBJSUFF OBJCXXOBJSUFF ASOBJSUFF RCOBJSUFF SYSSUFF BINSUFF EXESUFF DLLSUFF LIBSUFF ARLIBSUFF \
+	MODE UID GID LD_DEBUG DEBUG_INSTTYPE DEBUG_INST DEBUG_STAGE PCH_HDR
 ## PROPS_SINGLE_LNK
 # Subset of PROPS_SINGLE which applies to all linkable targets.
 PROPS_SINGLE_LNK := $(filter-out FETCHTOOL UNPACKTOOL PATCHTOOL FETCHDIR, $(PROPS_SINGLE))
@@ -1096,6 +1119,7 @@ PROPS_ACCUMULATE_R := \
 	ARFLAGS \
 	CFLAGS CDEFS \
 	CXXFLAGS CXXDEFS \
+	PCHFLAGS PCHDEFS \
 	OBJCFLAGS OBJCDEFS \
 	OBJCXXFLAGS OBJCXXDEFS \
 	ASFLAGS ASDEFS \
@@ -1114,7 +1138,7 @@ PROPS_ACCUMULATE_R_LNK := $(filter-out ARFLAGS LDFLAGS EXEC_IFFLAGS FETCHFLAGS U
 # will do the necessary inheritance from templates to targets.
 PROPS_ACCUMULATE_L := \
 	SDKS USES SOURCES EXEC_SOURCES SRC_HANDLERS INTERMEDIATES \
-	INCS CINCS CXXINCS OBJCINCS OBJCXXINCS ASINCS RCINCS \
+	INCS CINCS CXXINCS PCHINCS OBJCINCS OBJCXXINCS ASINCS RCINCS \
 	LIBS LIBPATH \
 	DIRS BLDDIRS CLEAN
 ## PROPS_ACCUMULATE_L_LNK
@@ -1184,7 +1208,7 @@ PROPS_FETCHES_ACCUMULATE_L   := SOURCES CLEAN
 
 ## KBUILD_COMPILE_CATEGTORIES
 # Tools categories for compiling.
-KBUILD_COMPILE_CATEGTORIES   := AS C CXX OBJC OBJCXX RC
+KBUILD_COMPILE_CATEGTORIES   := AS C CXX PCH OBJC OBJCXX RC
 
 ## KBUILD_GENERIC_CATEGORIES
 # Generic tool categories.

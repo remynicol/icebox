@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -1181,6 +1181,13 @@ NTSTATUS VBoxVdmaChromiumParameteriCRSubmit(PVBOXMP_DEVEXT pDevExt, uint32_t tar
 
 static NTSTATUS vboxVdmaCrCtlGetDefaultClientId(PVBOXMP_DEVEXT pDevExt, uint32_t *pu32ClienID)
 {
+    if (pDevExt->enmHwType != VBOXVIDEO_HWTYPE_VBOX)
+    {
+        /* Should not be called at all in this case. */
+        AssertFailed();
+        return STATUS_UNSUCCESSFUL;
+    }
+
     if (!pDevExt->u32CrConDefaultClientID)
     {
         if (!pDevExt->f3DEnabled)
@@ -1328,6 +1335,12 @@ static NTSTATUS vboxVdmaProcessVReg(PVBOXMP_DEVEXT pDevExt,
 
 NTSTATUS vboxVdmaTexPresentSetAlloc(PVBOXMP_DEVEXT pDevExt, const VBOXWDDM_ALLOC_DATA *pAllocData)
 {
+    if (pDevExt->enmHwType != VBOXVIDEO_HWTYPE_VBOX)
+    {
+        /* Not used in this case. */
+        return STATUS_SUCCESS;
+    }
+
     uint32_t u32CrConClientID;
     NTSTATUS Status = vboxVdmaCrCtlGetDefaultClientId(pDevExt, &u32CrConClientID);
     if (!NT_SUCCESS(Status))

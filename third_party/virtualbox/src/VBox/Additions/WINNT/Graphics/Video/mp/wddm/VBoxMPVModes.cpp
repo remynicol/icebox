@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Oracle Corporation
+ * Copyright (C) 2014-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -220,9 +220,7 @@ int vboxWddmVModesAdd(PVBOXMP_DEVEXT pExt, VBOXWDDM_VMODES *pModes, uint32_t u32
 
     ULONG vramSize = vboxWddmVramCpuVisibleSegmentSize(pExt);
     vramSize /= pExt->u.primary.commonInfo.cDisplays;
-# ifdef VBOX_WDDM_WIN8
     if (!g_VBoxDisplayOnly)
-# endif
     {
         /* at least two surfaces will be needed: primary & shadow */
         vramSize /= 2;

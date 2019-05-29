@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2017 Oracle Corporation
+ * Copyright (C) 2009-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -42,7 +42,7 @@ void crUnpackExtendShaderSource(void)
     GLsizei i, j, jUpTo;
     int pos, pos_check;
 
-    if (count >= UINT32_MAX / sizeof(char *) / 4)
+    if (count <= 0 || count >= INT32_MAX / sizeof(GLint) / 8)
     {
         crError("crUnpackExtendShaderSource: count %u is out of range", count);
         return;
@@ -50,29 +50,41 @@ void crUnpackExtendShaderSource(void)
 
     pos = 20 + count * sizeof(*pLocalLength);
 
+    if (!DATA_POINTER_CHECK(pos))
+    {
+        crError("crUnpackExtendShaderSource: pos %d is out of range", pos);
+        return;
+    }
+
     if (hasNonLocalLen > 0)
     {
         length = DATA_POINTER(pos, GLint);
         pos += count * sizeof(*length);
     }
 
-    pos_check = pos; 
-
-    if (!DATA_POINTER_CHECK(pos_check))
+    if (!DATA_POINTER_CHECK(pos))
     {
-        crError("crUnpackExtendShaderSource: pos %d is out of range", pos_check);
+        crError("crUnpackExtendShaderSource: pos %d is out of range", pos);
         return;
     }
 
+    pos_check = pos;
+
     for (i = 0; i < count; ++i)
     {
-        if (pLocalLength[i] <= 0 || pos_check >= INT32_MAX - pLocalLength[i] || !DATA_POINTER_CHECK(pos_check))
+        if (pLocalLength[i] <= 0 || pos_check >= INT32_MAX - pLocalLength[i])
         {
             crError("crUnpackExtendShaderSource: pos %d is out of range", pos_check);
             return;
         }
 
         pos_check += pLocalLength[i];
+
+        if (!DATA_POINTER_CHECK(pos_check))
+        {
+            crError("crUnpackExtendShaderSource: pos %d is out of range", pos_check);
+            return;
+        }
     }
 
     ppStrings = crAlloc(count * sizeof(char*));
@@ -338,6 +350,13 @@ void crUnpackExtendGetAttribLocation(void)
     int packet_length = READ_DATA(0, int);
     GLuint program = READ_DATA(8, GLuint);
     const char *name = DATA_POINTER(12, const char);
+
+    if (!DATA_POINTER_CHECK(packet_length))
+    {
+        crError("crUnpackExtendGetAttribLocation: packet_length is out of range");
+        return;
+    }
+
     SET_RETURN_PTR(packet_length-16);
     SET_WRITEBACK_PTR(packet_length-8);
     cr_unpackDispatch.GetAttribLocation(program, name);
@@ -348,6 +367,13 @@ void crUnpackExtendGetUniformLocation(void)
     int packet_length = READ_DATA(0, int);
     GLuint program = READ_DATA(8, GLuint);
     const char *name = DATA_POINTER(12, const char);
+
+    if (!DATA_POINTER_CHECK(packet_length))
+    {
+        crError("crUnpackExtendGetUniformLocation: packet_length is out of range");
+        return;
+    }
+
     SET_RETURN_PTR(packet_length-16);
     SET_WRITEBACK_PTR(packet_length-8);
     cr_unpackDispatch.GetUniformLocation(program, name);

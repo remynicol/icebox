@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -36,10 +36,10 @@
 #include <iprt/errno.h>
 
 
-RTDECL(int)  RTErrConvertFromErrno(unsigned uNativeCode)
+RTDECL(int)  RTErrConvertFromErrno(int iNativeCode)
 {
     /* very fast check for no error. */
-    if (uNativeCode == 0)
+    if (iNativeCode == 0)
         return VINF_SUCCESS;
 
     /*
@@ -51,7 +51,7 @@ RTDECL(int)  RTErrConvertFromErrno(unsigned uNativeCode)
      * This switch is arranged like the Linux i386 errno.h! This switch is mirrored
      * by RTErrConvertToErrno.
      */
-    switch (uNativeCode)
+    switch (iNativeCode)
     {                                                                           /* Linux number */
 #ifdef EPERM
         case EPERM:             return VERR_ACCESS_DENIED;                      /*   1 */
@@ -389,10 +389,14 @@ RTDECL(int)  RTErrConvertFromErrno(unsigned uNativeCode)
         case EHOSTUNREACH:      return VERR_NET_HOST_UNREACHABLE;
 #endif
 #ifdef EALREADY
+# if !defined(ENOLCK) || (EALREADY != ENOLCK)
         case EALREADY:          return VERR_NET_ALREADY_IN_PROGRESS;
+# endif
 #endif
 #ifdef EINPROGRESS
+# if !defined(ENODEV) || (EINPROGRESS != ENODEV)
         case EINPROGRESS:       return VERR_NET_IN_PROGRESS;
+# endif
 #endif
 #ifdef ESTALE
         //case ESTALE           116     /* Stale NFS file handle */
@@ -445,7 +449,7 @@ RTDECL(int)  RTErrConvertFromErrno(unsigned uNativeCode)
 # endif
 #endif
         default:
-            AssertLogRelMsgFailed(("Unhandled error code %d\n", uNativeCode));
+            AssertLogRelMsgFailed(("Unhandled error code %d\n", iNativeCode));
             return VERR_UNRESOLVED_ERROR;
     }
 }

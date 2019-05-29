@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -32,6 +32,10 @@
 #include <VBoxVideoVBE.h>
 #include <VBox/Version.h>
 
+#ifdef VBOX_WITH_MESA3D
+#include "gallium/VBoxMPGaWddm.h"
+#endif
+
 #include <stdio.h>
 
 /* Uncomment this in order to enable dumping regions guest wants to display on DxgkDdiPresentNew(). */
@@ -39,19 +43,19 @@
 
 #define VBOXWDDM_DUMMY_DMABUFFER_SIZE (sizeof(VBOXCMDVBVA_HDR) / 2)
 
+#ifdef DEBUG
+DWORD g_VBoxLogUm = VBOXWDDM_CFG_LOG_UM_BACKDOOR;
+#else
 DWORD g_VBoxLogUm = 0;
-#ifdef VBOX_WDDM_WIN8
-DWORD g_VBoxDisplayOnly = 0;
 #endif
+
+/* Whether the driver is display-only (no 3D) for Windows 8 or newer guests. */
+DWORD g_VBoxDisplayOnly = 0;
 
 #define VBOXWDDM_MEMTAG 'MDBV'
 PVOID vboxWddmMemAlloc(IN SIZE_T cbSize)
 {
-#ifdef VBOX_WDDM_WIN8
-    POOL_TYPE enmPoolType = NonPagedPoolNx;
-#else
-    POOL_TYPE enmPoolType = NonPagedPool;
-#endif
+    POOL_TYPE enmPoolType = (VBoxQueryWinVersion(NULL) >= WINVERSION_8) ? NonPagedPoolNx : NonPagedPool;
     return ExAllocatePoolWithTag(enmPoolType, cbSize, VBOXWDDM_MEMTAG);
 }
 
@@ -721,13 +725,6 @@ VBOXWDDM_HGSMICMD_TYPE vboxWddmHgsmiGetCmdTypeFromOffset(PVBOXMP_DEVEXT pDevExt,
     return VBOXWDDM_HGSMICMD_TYPE_UNDEFINED;
 }
 
-typedef struct VBOXWDDM_HWRESOURCES
-{
-    PHYSICAL_ADDRESS phVRAM;
-    ULONG cbVRAM;
-    ULONG ulApertureSize;
-} VBOXWDDM_HWRESOURCES, *PVBOXWDDM_HWRESOURCES;
-
 NTSTATUS vboxWddmPickResources(PVBOXMP_DEVEXT pDevExt, PDXGK_DEVICE_INFO pDeviceInfo, PVBOXWDDM_HWRESOURCES pHwResources)
 {
     RT_NOREF(pDevExt);
@@ -765,12 +762,27 @@ NTSTATUS vboxWddmPickResources(PVBOXMP_DEVEXT pDevExt, PDXGK_DEVICE_INFO pDevice
                    switch (pPRc->Type)
                    {
                        case CmResourceTypePort:
+#ifdef VBOX_WITH_MESA3D
+                           AssertBreak(pHwResources->phIO.QuadPart == 0);
+                           pHwResources->phIO = pPRc->u.Port.Start;
+                           pHwResources->cbIO = pPRc->u.Port.Length;
+#endif
                            break;
                        case CmResourceTypeInterrupt:
                            break;
                        case CmResourceTypeMemory:
+#ifdef VBOX_WITH_MESA3D
+                           if (pHwResources->phVRAM.QuadPart)
+                           {
+                               AssertBreak(pHwResources->phFIFO.QuadPart == 0);
+                               pHwResources->phFIFO = pPRc->u.Memory.Start;
+                               pHwResources->cbFIFO = pPRc->u.Memory.Length;
+                               break;
+                           }
+#else
                            /* we assume there is one memory segment */
                            AssertBreak(pHwResources->phVRAM.QuadPart == 0);
+#endif
                            pHwResources->phVRAM = pPRc->u.Memory.Start;
                            Assert(pHwResources->phVRAM.QuadPart != 0);
                            pHwResources->ulApertureSize = pPRc->u.Memory.Length;
@@ -815,6 +827,33 @@ static void vboxWddmDevExtZeroinit(PVBOXMP_DEVEXT pDevExt, CONST PDEVICE_OBJECT 
     VBoxVidPnSourcesInit(pDevExt->aSources, RT_ELEMENTS(pDevExt->aSources), 0);
 
     VBoxVidPnTargetsInit(pDevExt->aTargets, RT_ELEMENTS(pDevExt->aTargets), 0);
+
+    BOOLEAN f3DSupported = FALSE;
+    uint32_t u32 = 0;
+    if (VBoxVGACfgAvailable())
+    {
+        VBoxVGACfgQuery(VBE_DISPI_CFG_ID_3D, &u32, 0);
+        f3DSupported = RT_BOOL(u32);
+
+        VBoxVGACfgQuery(VBE_DISPI_CFG_ID_VMSVGA, &u32, 0);
+    }
+
+    pDevExt->enmHwType = u32 ? VBOXVIDEO_HWTYPE_VMSVGA : VBOXVIDEO_HWTYPE_VBOX;
+
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
+    {
+        pDevExt->f3DEnabled = VBoxMpCrCtlConIs3DSupported();
+    }
+    else if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        pDevExt->f3DEnabled = f3DSupported;
+    }
+    else
+    {
+        /* No supported 3D hardware, Fallback to VBox 2D only. */
+        pDevExt->enmHwType = VBOXVIDEO_HWTYPE_VBOX;
+        pDevExt->f3DEnabled = FALSE;
+    }
 }
 
 static void vboxWddmSetupDisplaysLegacy(PVBOXMP_DEVEXT pDevExt)
@@ -1134,37 +1173,50 @@ NTSTATUS DxgkDdiStartDevice(
         Status = pDevExt->u.primary.DxgkInterface.DxgkCbGetDeviceInformation (pDevExt->u.primary.DxgkInterface.DeviceHandle, &DeviceInfo);
         if (Status == STATUS_SUCCESS)
         {
-            VBOXWDDM_HWRESOURCES HwRc;
-            Status = vboxWddmPickResources(pDevExt, &DeviceInfo, &HwRc);
+            Status = vboxWddmPickResources(pDevExt, &DeviceInfo, &pDevExt->HwResources);
             if (Status == STATUS_SUCCESS)
             {
-#ifdef VBOX_WITH_CROGL
-                pDevExt->f3DEnabled = VBoxMpCrCtlConIs3DSupported();
+                /* Figure out the host capabilities. Start with nothing. */
+                pDevExt->fTexPresentEnabled = FALSE;
+                pDevExt->fCmdVbvaEnabled = FALSE;
+                pDevExt->fComplexTopologiesEnabled = TRUE;
 
-                if (pDevExt->f3DEnabled)
+                if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
                 {
-                    pDevExt->fTexPresentEnabled = !!(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_TEX_PRESENT);
-                    pDevExt->fCmdVbvaEnabled = !!(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_CMDVBVA);
-# if 0
-                    pDevExt->fComplexTopologiesEnabled = pDevExt->fCmdVbvaEnabled;
-# else
-                    pDevExt->fComplexTopologiesEnabled = FALSE;
-# endif
+#ifdef VBOX_WITH_CROGL
+                    if (pDevExt->f3DEnabled)
+                    {
+                        pDevExt->fTexPresentEnabled = !!(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_TEX_PRESENT);
+                        pDevExt->fCmdVbvaEnabled = !!(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_CMDVBVA);
+                    }
+#else
+                    pDevExt->f3DEnabled = FALSE;
+#endif
                 }
+#ifdef VBOX_WITH_MESA3D
+                else if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                {
+                    if (pDevExt->f3DEnabled)
+                    {
+                        pDevExt->fTexPresentEnabled = TRUE;
+                        pDevExt->fCmdVbvaEnabled = TRUE;
+                        pDevExt->fComplexTopologiesEnabled = FALSE; /** @todo Enable after implementing multimonitor support. */
+                    }
+                }
+#endif /* VBOX_WITH_MESA3D */
                 else
                 {
-                    pDevExt->fTexPresentEnabled = FALSE;
-                    pDevExt->fCmdVbvaEnabled = FALSE;
-                    pDevExt->fComplexTopologiesEnabled = FALSE;
+                    pDevExt->f3DEnabled = FALSE;
                 }
-#endif
+
+                LOGREL(("Handling complex topologies %s", pDevExt->fComplexTopologiesEnabled ? "enabled" : "disabled"));
 
                 /* Guest supports only HGSMI, the old VBVA via VMMDev is not supported.
                  * The host will however support both old and new interface to keep compatibility
                  * with old guest additions.
                  */
                 VBoxSetupDisplaysHGSMI(VBoxCommonFromDeviceExt(pDevExt),
-                                       HwRc.phVRAM, HwRc.ulApertureSize, HwRc.cbVRAM,
+                                       pDevExt->HwResources.phVRAM, pDevExt->HwResources.ulApertureSize, pDevExt->HwResources.cbVRAM,
                                        VBVACAPS_COMPLETEGCMD_BY_IOREAD | VBVACAPS_IRQ);
                 if (VBoxCommonFromDeviceExt(pDevExt)->bHGSMI)
                 {
@@ -1271,46 +1323,64 @@ NTSTATUS DxgkDdiStartDevice(
                     }
 
                     Status = STATUS_SUCCESS;
-#ifdef VBOX_WDDM_WIN8
-                    DXGK_DISPLAY_INFORMATION DisplayInfo;
-                    Status = pDevExt->u.primary.DxgkInterface.DxgkCbAcquirePostDisplayOwnership(pDevExt->u.primary.DxgkInterface.DeviceHandle,
-                            &DisplayInfo);
-                    if (NT_SUCCESS(Status))
+
+                    if (VBoxQueryWinVersion(NULL) >= WINVERSION_8)
                     {
-                        PVBOXWDDM_SOURCE pSource = &pDevExt->aSources[0];
-                        PHYSICAL_ADDRESS PhAddr;
-                        /* display info may sometimes not be valid, e.g. on from-full-graphics wddm driver update
-                         * ensure we have something meaningful here */
-                        if (!DisplayInfo.Width)
+                        DXGK_DISPLAY_INFORMATION DisplayInfo;
+                        Status = pDevExt->u.primary.DxgkInterface.DxgkCbAcquirePostDisplayOwnership(pDevExt->u.primary.DxgkInterface.DeviceHandle,
+                                &DisplayInfo);
+                        if (NT_SUCCESS(Status))
                         {
-                            PhAddr = VBoxCommonFromDeviceExt(pDevExt)->phVRAM;
-                            vboxWddmDiInitDefault(&DisplayInfo, PhAddr, 0);
+                            PVBOXWDDM_SOURCE pSource = &pDevExt->aSources[0];
+                            PHYSICAL_ADDRESS PhAddr;
+                            /* display info may sometimes not be valid, e.g. on from-full-graphics wddm driver update
+                             * ensure we have something meaningful here */
+                            if (!DisplayInfo.Width)
+                            {
+                                PhAddr = VBoxCommonFromDeviceExt(pDevExt)->phVRAM;
+                                vboxWddmDiInitDefault(&DisplayInfo, PhAddr, 0);
+                            }
+                            else
+                            {
+                                PhAddr = DisplayInfo.PhysicAddress;
+                                DisplayInfo.TargetId = 0;
+                            }
+
+                            vboxWddmDiToAllocData(pDevExt, &DisplayInfo, &pSource->AllocData);
+
+                            /* init the rest source infos with some default values */
+                            for (UINT i = 1; i < (UINT)VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+                            {
+                                PhAddr.QuadPart += pSource->AllocData.SurfDesc.cbSize;
+                                PhAddr.QuadPart = ROUND_TO_PAGES(PhAddr.QuadPart);
+                                vboxWddmDiInitDefault(&DisplayInfo, PhAddr, i);
+                                pSource = &pDevExt->aSources[i];
+                                vboxWddmDiToAllocData(pDevExt, &DisplayInfo, &pSource->AllocData);
+                            }
                         }
                         else
                         {
-                            PhAddr = DisplayInfo.PhysicAddress;
-                            DisplayInfo.TargetId = 0;
-                        }
-
-                        vboxWddmDiToAllocData(pDevExt, &DisplayInfo, &pSource->AllocData);
-
-                        /* init the rest source infos with some default values */
-                        for (UINT i = 1; i < (UINT)VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
-                        {
-                            PhAddr.QuadPart += pSource->AllocData.SurfDesc.cbSize;
-                            PhAddr.QuadPart = ROUND_TO_PAGES(PhAddr.QuadPart);
-                            vboxWddmDiInitDefault(&DisplayInfo, PhAddr, i);
-                            pSource = &pDevExt->aSources[i];
-                            vboxWddmDiToAllocData(pDevExt, &DisplayInfo, &pSource->AllocData);
+                            WARN(("DxgkCbAcquirePostDisplayOwnership failed, Status 0x%x", Status));
                         }
                     }
-                    else
-                    {
-                        WARN(("DxgkCbAcquirePostDisplayOwnership failed, Status 0x%x", Status));
-                    }
-#endif
 
                     VBoxWddmVModesInit(pDevExt);
+
+#ifdef VBOX_WITH_MESA3D
+                    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                    {
+                        LOGREL(("WDDM: VRAM %#RX64/%#RX32, FIFO %#RX64/%#RX32, IO %#RX64/%#RX32",
+                                pDevExt->HwResources.phVRAM.QuadPart, pDevExt->HwResources.cbVRAM,
+                                pDevExt->HwResources.phFIFO.QuadPart, pDevExt->HwResources.cbFIFO,
+                                pDevExt->HwResources.phIO.QuadPart, pDevExt->HwResources.cbIO));
+
+                        Status = GaAdapterStart(pDevExt);
+                        if (Status == STATUS_SUCCESS)
+                        { /* likely */ }
+                        else
+                            LOGREL(("WDDM: GaAdapterStart failed Status(0x%x)", Status));
+                    }
+#endif
                 }
                 else
                 {
@@ -1356,8 +1426,15 @@ NTSTATUS DxgkDdiStopDevice(
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)MiniportDeviceContext;
     NTSTATUS Status = STATUS_SUCCESS;
 
+#ifdef VBOX_WITH_MESA3D
+     if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+     {
+         GaAdapterStop(pDevExt);
+     }
+#endif
+
 #ifdef VBOX_WITH_CROGL
-    if (pDevExt->u32CrConDefaultClientID)
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX && pDevExt->u32CrConDefaultClientID)
         VBoxMpCrCtlConDisconnect(pDevExt, &pDevExt->CrCtlCon, pDevExt->u32CrConDefaultClientID);
 
     VBoxMpCrShgsmiTransportTerm(&pDevExt->CrHgsmiTransport);
@@ -1502,11 +1579,22 @@ BOOLEAN DxgkDdiInterruptRoutineNew(
 
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)MiniportDeviceContext;
     BOOLEAN bOur = FALSE;
+#ifdef VBOX_WITH_MESA3D
+    BOOLEAN bSvga = FALSE;
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        bSvga = GaDxgkDdiInterruptRoutine(MiniportDeviceContext, MessageNumber);
+    }
+#endif
     bool bNeedDpc = FALSE;
     if (!VBoxCommonFromDeviceExt(pDevExt)->hostCtx.pfHostFlags) /* If HGSMI is enabled at all. */
     {
         WARN(("ISR called with hgsmi disabled!"));
+#ifdef VBOX_WITH_MESA3D
+        return bSvga;
+#else
         return FALSE;
+#endif
     }
 
     VBOXVTLIST CtlList;
@@ -1517,7 +1605,7 @@ BOOLEAN DxgkDdiInterruptRoutineNew(
 #endif
 
     uint32_t flags = VBoxCommonFromDeviceExt(pDevExt)->hostCtx.pfHostFlags->u32HostFlags;
-    bOur = (flags & HGSMIHOSTFLAGS_IRQ);
+    bOur = RT_BOOL(flags & HGSMIHOSTFLAGS_IRQ);
 
     if (bOur)
         VBoxHGSMIClearIrq(&VBoxCommonFromDeviceExt(pDevExt)->hostCtx);
@@ -1629,7 +1717,11 @@ BOOLEAN DxgkDdiInterruptRoutineNew(
     if (bNeedDpc)
         pDevExt->u.primary.DxgkInterface.DxgkCbQueueDpc(pDevExt->u.primary.DxgkInterface.DeviceHandle);
 
+#ifdef VBOX_WITH_MESA3D
+    return bSvga || bOur;
+#else
     return bOur;
+#endif
 }
 #endif
 
@@ -1878,6 +1970,13 @@ static VOID DxgkDdiDpcRoutineNew(
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)MiniportDeviceContext;
 
     pDevExt->u.primary.DxgkInterface.DxgkCbNotifyDpc(pDevExt->u.primary.DxgkInterface.DeviceHandle);
+
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        GaDxgkDdiDpcRoutine(MiniportDeviceContext);
+    }
+#endif
 
     if (ASMAtomicReadU32(&pDevExt->fCompletingCommands))
     {
@@ -2195,10 +2294,8 @@ NTSTATUS APIENTRY DxgkDdiQueryAdapterInfo(
         case DXGKQAITYPE_DRIVERCAPS:
         {
             DXGK_DRIVERCAPS *pCaps = (DXGK_DRIVERCAPS*)pQueryAdapterInfo->pOutputData;
-
-#ifdef VBOX_WDDM_WIN8
             memset(pCaps, 0, sizeof (*pCaps));
-#endif
+
             pCaps->HighestAcceptableAddress.LowPart = ~0UL;
 #ifdef RT_ARCH_AMD64
             /* driver talks to host in terms of page numbers when reffering to RAM
@@ -2209,155 +2306,167 @@ NTSTATUS APIENTRY DxgkDdiQueryAdapterInfo(
             pCaps->MaxPointerWidth  = VBOXWDDM_C_POINTER_MAX_WIDTH;
             pCaps->MaxPointerHeight = VBOXWDDM_C_POINTER_MAX_HEIGHT;
             pCaps->PointerCaps.Value = 3; /* Monochrome , Color*/ /* MaskedColor == Value | 4, disable for now */
-#ifdef VBOX_WDDM_WIN8
             if (!g_VBoxDisplayOnly)
-#endif
             {
-            pCaps->MaxAllocationListSlotId = 16;
-            pCaps->ApertureSegmentCommitLimit = 0;
-            pCaps->InterruptMessageNumber = 0;
-            pCaps->NumberOfSwizzlingRanges = 0;
-            pCaps->MaxOverlays = 0;
+                pCaps->MaxAllocationListSlotId = 16;
+                pCaps->ApertureSegmentCommitLimit = 0;
+                pCaps->InterruptMessageNumber = 0;
+                pCaps->NumberOfSwizzlingRanges = 0;
+                pCaps->MaxOverlays = 0;
 #ifdef VBOX_WITH_VIDEOHWACCEL
-            for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
-            {
-                if ( pDevExt->aSources[i].Vhwa.Settings.fFlags & VBOXVHWA_F_ENABLED)
-                    pCaps->MaxOverlays += pDevExt->aSources[i].Vhwa.Settings.cOverlaysSupported;
-            }
+                for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+                {
+                    if ( pDevExt->aSources[i].Vhwa.Settings.fFlags & VBOXVHWA_F_ENABLED)
+                        pCaps->MaxOverlays += pDevExt->aSources[i].Vhwa.Settings.cOverlaysSupported;
+                }
 #endif
-            pCaps->GammaRampCaps.Value = 0;
-            pCaps->PresentationCaps.Value = 0;
-            pCaps->PresentationCaps.NoScreenToScreenBlt = 1;
-            pCaps->PresentationCaps.NoOverlapScreenBlt = 1;
-            pCaps->MaxQueuedFlipOnVSync = 0; /* do we need it? */
-            pCaps->FlipCaps.Value = 0;
-            /* ? pCaps->FlipCaps.FlipOnVSyncWithNoWait = 1; */
-            pCaps->SchedulingCaps.Value = 0;
-            /* we might need it for Aero.
-             * Setting this flag means we support DeviceContext, i.e.
-             *  DxgkDdiCreateContext and DxgkDdiDestroyContext
-             */
-            pCaps->SchedulingCaps.MultiEngineAware = 1;
-            pCaps->MemoryManagementCaps.Value = 0;
-            /** @todo this correlates with pCaps->SchedulingCaps.MultiEngineAware */
-            pCaps->MemoryManagementCaps.PagingNode = 0;
-            /** @todo this correlates with pCaps->SchedulingCaps.MultiEngineAware */
-            pCaps->GpuEngineTopology.NbAsymetricProcessingNodes = VBOXWDDM_NUM_NODES;
-#ifdef VBOX_WDDM_WIN8
-            pCaps->WDDMVersion = DXGKDDI_WDDMv1;
+                pCaps->GammaRampCaps.Value = 0;
+                pCaps->PresentationCaps.Value = 0;
+                pCaps->PresentationCaps.NoScreenToScreenBlt = 1;
+                pCaps->PresentationCaps.NoOverlapScreenBlt = 1;
+                pCaps->MaxQueuedFlipOnVSync = 0; /* do we need it? */
+                pCaps->FlipCaps.Value = 0;
+                /* ? pCaps->FlipCaps.FlipOnVSyncWithNoWait = 1; */
+                pCaps->SchedulingCaps.Value = 0;
+                /* we might need it for Aero.
+                 * Setting this flag means we support DeviceContext, i.e.
+                 *  DxgkDdiCreateContext and DxgkDdiDestroyContext
+                 */
+                pCaps->SchedulingCaps.MultiEngineAware = 1;
+                pCaps->MemoryManagementCaps.Value = 0;
+                /** @todo this correlates with pCaps->SchedulingCaps.MultiEngineAware */
+                pCaps->MemoryManagementCaps.PagingNode = 0;
+                /** @todo this correlates with pCaps->SchedulingCaps.MultiEngineAware */
+                pCaps->GpuEngineTopology.NbAsymetricProcessingNodes = VBOXWDDM_NUM_NODES;
+#ifdef VBOX_WITH_MESA3D
+                if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                {
+                    /* The Gallium node has NodeOrdinal == 0, because:
+                     *   GDI context is created with it;
+                     *   we generate commands for the context;
+                     *   there seems to be no easy way to distinguish which node a fence was completed for.
+                     *
+                     * GDI context is used for example for copying between D3DKMDT_STANDARDALLOCATION_SHADOWSURFACE
+                     * and D3DKMDT_STANDARDALLOCATION_SHAREDPRIMARYSURFACE.
+                     */
+                    pCaps->GpuEngineTopology.NbAsymetricProcessingNodes = 1;
+                }
 #endif
+
+                if (VBoxQueryWinVersion(NULL) >= WINVERSION_8)
+                    pCaps->WDDMVersion = DXGKDDI_WDDMv1;
             }
-#ifdef VBOX_WDDM_WIN8
             else
             {
                 pCaps->WDDMVersion = DXGKDDI_WDDMv1_2;
             }
-#endif
             break;
         }
         case DXGKQAITYPE_QUERYSEGMENT:
         {
-#ifdef VBOX_WDDM_WIN8
             if (!g_VBoxDisplayOnly)
-#endif
             {
-            /* no need for DXGK_QUERYSEGMENTIN as it contains AGP aperture info, which (AGP aperture) we do not support
-             * DXGK_QUERYSEGMENTIN *pQsIn = (DXGK_QUERYSEGMENTIN*)pQueryAdapterInfo->pInputData; */
-            DXGK_QUERYSEGMENTOUT *pQsOut = (DXGK_QUERYSEGMENTOUT*)pQueryAdapterInfo->pOutputData;
+                /* no need for DXGK_QUERYSEGMENTIN as it contains AGP aperture info, which (AGP aperture) we do not support
+                 * DXGK_QUERYSEGMENTIN *pQsIn = (DXGK_QUERYSEGMENTIN*)pQueryAdapterInfo->pInputData; */
+                DXGK_QUERYSEGMENTOUT *pQsOut = (DXGK_QUERYSEGMENTOUT*)pQueryAdapterInfo->pOutputData;
 # define VBOXWDDM_SEGMENTS_COUNT 2
-            if (!pQsOut->pSegmentDescriptor)
-            {
-                /* we are requested to provide the number of segments we support */
-                pQsOut->NbSegment = VBOXWDDM_SEGMENTS_COUNT;
-            }
-            else if (pQsOut->NbSegment != VBOXWDDM_SEGMENTS_COUNT)
-            {
-                WARN(("NbSegment (%d) != 1", pQsOut->NbSegment));
-                Status = STATUS_INVALID_PARAMETER;
-            }
-            else
-            {
-                DXGK_SEGMENTDESCRIPTOR* pDr = pQsOut->pSegmentDescriptor;
-                /* we are requested to provide segment information */
-                pDr->BaseAddress.QuadPart = 0;
-                pDr->CpuTranslatedAddress = VBoxCommonFromDeviceExt(pDevExt)->phVRAM;
-                /* make sure the size is page aligned */
-                /** @todo need to setup VBVA buffers and adjust the mem size here */
-                pDr->Size = vboxWddmVramCpuVisibleSegmentSize(pDevExt);
-                pDr->NbOfBanks = 0;
-                pDr->pBankRangeTable = 0;
-                pDr->CommitLimit = pDr->Size;
-                pDr->Flags.Value = 0;
-                pDr->Flags.CpuVisible = 1;
+                if (!pQsOut->pSegmentDescriptor)
+                {
+                    /* we are requested to provide the number of segments we support */
+                    pQsOut->NbSegment = VBOXWDDM_SEGMENTS_COUNT;
+                }
+                else if (pQsOut->NbSegment != VBOXWDDM_SEGMENTS_COUNT)
+                {
+                    WARN(("NbSegment (%d) != 1", pQsOut->NbSegment));
+                    Status = STATUS_INVALID_PARAMETER;
+                }
+                else
+                {
+                    DXGK_SEGMENTDESCRIPTOR* pDr = pQsOut->pSegmentDescriptor;
+                    /* we are requested to provide segment information */
+                    pDr->BaseAddress.QuadPart = 0;
+                    pDr->CpuTranslatedAddress = VBoxCommonFromDeviceExt(pDevExt)->phVRAM;
+                    /* make sure the size is page aligned */
+                    /** @todo need to setup VBVA buffers and adjust the mem size here */
+                    pDr->Size = vboxWddmVramCpuVisibleSegmentSize(pDevExt);
+                    pDr->NbOfBanks = 0;
+                    pDr->pBankRangeTable = 0;
+                    pDr->CommitLimit = pDr->Size;
+                    pDr->Flags.Value = 0;
+                    pDr->Flags.CpuVisible = 1;
 
-                ++pDr;
-                /* create cpu-invisible segment of the same size */
-                pDr->BaseAddress.QuadPart = 0;
-                pDr->CpuTranslatedAddress.QuadPart = 0;
-                /* make sure the size is page aligned */
-                /** @todo need to setup VBVA buffers and adjust the mem size here */
-                pDr->Size = vboxWddmVramCpuInvisibleSegmentSize(pDevExt);
-                pDr->NbOfBanks = 0;
-                pDr->pBankRangeTable = 0;
-                pDr->CommitLimit = pDr->Size;
-                pDr->Flags.Value = 0;
+                    ++pDr;
+                    /* create cpu-invisible segment of the same size */
+                    pDr->BaseAddress.QuadPart = 0;
+                    pDr->CpuTranslatedAddress.QuadPart = 0;
+                    /* make sure the size is page aligned */
+                    /** @todo need to setup VBVA buffers and adjust the mem size here */
+                    pDr->Size = vboxWddmVramCpuInvisibleSegmentSize(pDevExt);
+                    pDr->NbOfBanks = 0;
+                    pDr->pBankRangeTable = 0;
+                    pDr->CommitLimit = pDr->Size;
+                    pDr->Flags.Value = 0;
 
-                pQsOut->PagingBufferSegmentId = 0;
-                pQsOut->PagingBufferSize = PAGE_SIZE;
-                pQsOut->PagingBufferPrivateDataSize = PAGE_SIZE;
+                    pQsOut->PagingBufferSegmentId = 0;
+                    pQsOut->PagingBufferSize = PAGE_SIZE;
+                    pQsOut->PagingBufferPrivateDataSize = PAGE_SIZE;
+                }
             }
-            }
-#ifdef VBOX_WDDM_WIN8
             else
             {
                 WARN(("unsupported Type (%d)", pQueryAdapterInfo->Type));
                 Status = STATUS_NOT_SUPPORTED;
             }
-#endif
 
             break;
         }
         case DXGKQAITYPE_UMDRIVERPRIVATE:
-#ifdef VBOX_WDDM_WIN8
             if (!g_VBoxDisplayOnly)
-#endif
             {
-                if (pQueryAdapterInfo->OutputDataSize == sizeof (VBOXWDDM_QI))
+                if (pQueryAdapterInfo->OutputDataSize >= sizeof(VBOXWDDM_QAI))
                 {
-                    VBOXWDDM_QI * pQi = (VBOXWDDM_QI*)pQueryAdapterInfo->pOutputData;
-                    memset (pQi, 0, sizeof (VBOXWDDM_QI));
-                    pQi->u32Version = VBOXVIDEOIF_VERSION;
-#ifdef VBOX_WITH_CROGL
-                    pQi->u32VBox3DCaps = VBoxMpCrGetHostCaps();
-#endif
-                    pQi->cInfos = VBoxCommonFromDeviceExt(pDevExt)->cDisplays;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                    for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+                    VBOXWDDM_QAI *pQAI = (VBOXWDDM_QAI *)pQueryAdapterInfo->pOutputData;
+                    memset(pQAI, 0, sizeof(VBOXWDDM_QAI));
+
+                    pQAI->u32Version = VBOXVIDEOIF_VERSION;
+                    pQAI->enmHwType = pDevExt->enmHwType;
+                    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
                     {
-                        pQi->aInfos[i] = pDevExt->aSources[i].Vhwa.Settings;
+#ifdef VBOX_WITH_CROGL
+                        pQAI->u.vbox.u32VBox3DCaps = VBoxMpCrGetHostCaps();
+#endif
+                    }
+#ifdef VBOX_WITH_MESA3D
+                    else if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                        GaQueryInfo(pDevExt->pGa, pDevExt->enmHwType, &pQAI->u.vmsvga.HWInfo);
+#endif
+
+#ifdef VBOX_WITH_VIDEOHWACCEL
+                    pQAI->cInfos = VBoxCommonFromDeviceExt(pDevExt)->cDisplays;
+                    for (uint32_t i = 0; i < pQAI->cInfos; ++i)
+                    {
+                        pQAI->aInfos[i] = pDevExt->aSources[i].Vhwa.Settings;
                     }
 #endif
                 }
                 else
                 {
-                    WARN(("incorrect buffer size %d, expected %d", pQueryAdapterInfo->OutputDataSize, sizeof (VBOXWDDM_QI)));
+                    WARN(("incorrect buffer size %d, expected %d", pQueryAdapterInfo->OutputDataSize, sizeof(VBOXWDDM_QAI)));
                     Status = STATUS_BUFFER_TOO_SMALL;
                 }
             }
-#ifdef VBOX_WDDM_WIN8
             else
             {
                 WARN(("unsupported Type (%d)", pQueryAdapterInfo->Type));
                 Status = STATUS_NOT_SUPPORTED;
             }
-#endif
             break;
-#ifdef VBOX_WDDM_WIN8
+
         case DXGKQAITYPE_QUERYSEGMENT3:
             LOGREL(("DXGKQAITYPE_QUERYSEGMENT3 treating as unsupported!"));
             Status = STATUS_NOT_SUPPORTED;
             break;
-#endif
+
         default:
             WARN(("unsupported Type (%d)", pQueryAdapterInfo->Type));
             Status = STATUS_NOT_SUPPORTED;
@@ -2398,6 +2507,17 @@ NTSTATUS APIENTRY DxgkDdiCreateDevice(
         pDevice->enmType = VBOXWDDM_DEVICE_TYPE_SYSTEM;
 
     pCreateDevice->pInfo = NULL;
+
+#ifdef VBOX_WITH_MESA3D
+     if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+     {
+         Status = GaDeviceCreate(pDevExt->pGa, pDevice);
+         if (Status != STATUS_SUCCESS)
+         {
+             vboxWddmMemFree(pDevice);
+         }
+     }
+#endif
 
     LOGF(("LEAVE, context(0x%x), Status(0x%x)", hAdapter, Status));
 
@@ -2844,7 +2964,7 @@ DxgkDdiDestroyAllocation(
         vboxWddmAllocationCleanupAssignment(pDevExt, pAlloc);
         /* wait for all current allocation-related ops are completed */
         vboxWddmAllocationCleanup(pDevExt, pAlloc);
-        if (pAlloc->hSharedHandle && pAlloc->AllocData.hostID)
+        if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX && pAlloc->hSharedHandle && pAlloc->AllocData.hostID)
             VBoxVdmaChromiumParameteriCRSubmit(pDevExt, GL_PIN_TEXTURE_CLEAR_CR, pAlloc->AllocData.hostID);
         vboxWddmAllocationDestroy(pAlloc);
     }
@@ -3060,6 +3180,13 @@ DxgkDdiPatchNew(
     RT_NOREF(hAdapter);
     /* DxgkDdiPatch should be made pageable. */
     PAGED_CODE();
+
+#ifdef VBOX_WITH_MESA3D
+    if (((PVBOXMP_DEVEXT)hAdapter)->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiPatch(hAdapter, pPatch);
+    }
+#endif
 
     LOGF(("ENTER, context(0x%x)", hAdapter));
 
@@ -3291,6 +3418,13 @@ DxgkDdiSubmitCommandNew(
     CONST DXGKARG_SUBMITCOMMAND*  pSubmitCommand)
 {
     /* DxgkDdiSubmitCommand runs at dispatch, should not be pageable. */
+
+#ifdef VBOX_WITH_MESA3D
+    if (((PVBOXMP_DEVEXT)hAdapter)->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiSubmitCommand(hAdapter, pSubmitCommand);
+    }
+#endif
 
 //    LOGF(("ENTER, context(0x%x)", hAdapter));
 
@@ -3615,6 +3749,12 @@ DxgkDdiPreemptCommandNew(
     CONST HANDLE  hAdapter,
     CONST DXGKARG_PREEMPTCOMMAND*  pPreemptCommand)
 {
+#ifdef VBOX_WITH_MESA3D
+    if (((PVBOXMP_DEVEXT)hAdapter)->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiPreemptCommand(hAdapter, pPreemptCommand);
+    }
+#endif
     LOGF(("ENTER, hAdapter(0x%x)", hAdapter));
 
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)hAdapter;
@@ -3656,6 +3796,13 @@ DxgkDdiBuildPagingBufferNew(
     CONST HANDLE  hAdapter,
     DXGKARG_BUILDPAGINGBUFFER*  pBuildPagingBuffer)
 {
+#ifdef VBOX_WITH_MESA3D
+    if (((PVBOXMP_DEVEXT)hAdapter)->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiBuildPagingBuffer(hAdapter, pBuildPagingBuffer);
+    }
+#endif
+
     RT_NOREF(hAdapter);
     /* DxgkDdiBuildPagingBuffer should be made pageable. */
     PAGED_CODE();
@@ -4550,7 +4697,15 @@ DxgkDdiEscape(
             {
                 if (pEscape->PrivateDriverDataSize == sizeof (*pEscapeHdr))
                 {
-                    pEscapeHdr->u32CmdSpecific = VBoxMpCrGetHostCaps();
+                    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
+                        pEscapeHdr->u32CmdSpecific = VBoxMpCrGetHostCaps();
+#ifdef VBOX_WITH_MESA3D
+                    else if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                        /** @todo User-mode driver probably should not need it in Gallium mode. */
+                        pEscapeHdr->u32CmdSpecific = CR_VBOX_CAP_TEX_PRESENT | CR_VBOX_CAP_CMDVBVA;
+#endif
+                    else
+                        pEscapeHdr->u32CmdSpecific = 0;
                     Status = STATUS_SUCCESS;
                 }
                 else
@@ -5040,11 +5195,24 @@ DxgkDdiEscape(
 
                 for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
                 {
+#ifdef VBOX_WITH_MESA3D
+                    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+                    {
+                        GaVidPnSourceCheckPos(pDevExt, i);
+                        continue;
+                    }
+#endif
+
                     vboxWddmDisplaySettingsCheckPos(pDevExt, i);
                 }
                 break;
             }
             default:
+#ifdef VBOX_WITH_MESA3D
+                Status = GaDxgkDdiEscape(hAdapter, pEscape);
+                if (NT_SUCCESS(Status) || Status != STATUS_NOT_SUPPORTED)
+                    break;
+#endif
                 WARN(("unsupported escape code (0x%x)", pEscapeHdr->escapeCode));
                 break;
         }
@@ -5100,6 +5268,12 @@ DxgkDdiQueryCurrentFenceNew(
     CONST HANDLE  hAdapter,
     DXGKARG_QUERYCURRENTFENCE*  pCurrentFence)
 {
+#ifdef VBOX_WITH_MESA3D
+    if (((PVBOXMP_DEVEXT)hAdapter)->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiQueryCurrentFence(hAdapter, pCurrentFence);
+    }
+#endif
     LOGF(("ENTER, hAdapter(0x%x)", hAdapter));
 
     vboxVDbgBreakF();
@@ -5280,6 +5454,13 @@ DxgkDdiSetVidPnSourceAddress(
     vboxVDbgBreakFv();
 
     LOGF(("ENTER, context(0x%x)", hAdapter));
+    LOG(("id %d, seg %d, addr 0x%RX64, hAllocation %p, ctx cnt %d, f 0x%x",
+         pSetVidPnSourceAddress->VidPnSourceId,
+         pSetVidPnSourceAddress->PrimarySegment,
+         pSetVidPnSourceAddress->PrimaryAddress.QuadPart,
+         pSetVidPnSourceAddress->hAllocation,
+         pSetVidPnSourceAddress->ContextCount,
+         pSetVidPnSourceAddress->Flags.Value));
 
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)hAdapter;
     if ((UINT)VBoxCommonFromDeviceExt(pDevExt)->cDisplays <= pSetVidPnSourceAddress->VidPnSourceId)
@@ -5288,10 +5469,17 @@ DxgkDdiSetVidPnSourceAddress(
         return STATUS_INVALID_PARAMETER;
     }
 
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType != VBOXVIDEO_HWTYPE_VMSVGA)
+#endif
     vboxWddmDisplaySettingsCheckPos(pDevExt, pSetVidPnSourceAddress->VidPnSourceId);
 
     NTSTATUS Status = STATUS_SUCCESS;
     PVBOXWDDM_SOURCE pSource = &pDevExt->aSources[pSetVidPnSourceAddress->VidPnSourceId];
+
+    /*
+     * Update the source VRAM address.
+     */
     PVBOXWDDM_ALLOCATION pAllocation;
     Assert(pSetVidPnSourceAddress->hAllocation);
     Assert(pSetVidPnSourceAddress->hAllocation || pSource->pPrimaryAllocation);
@@ -5310,7 +5498,6 @@ DxgkDdiSetVidPnSourceAddress(
         vboxWddmAddrSetVram(&pAllocation->AllocData.Addr, pSetVidPnSourceAddress->PrimarySegment, (VBOXVIDEOOFFSET)pSetVidPnSourceAddress->PrimaryAddress.QuadPart);
     }
 
-#ifdef VBOX_WDDM_WIN8
     if (g_VBoxDisplayOnly && !pAllocation)
     {
         /* the VRAM here is an absolute address, nto an offset!
@@ -5319,16 +5506,27 @@ DxgkDdiSetVidPnSourceAddress(
                 vboxWddmVramAddrToOffset(pDevExt, pSetVidPnSourceAddress->PrimaryAddress));
     }
     else
-#endif
     {
-#ifdef VBOX_WDDM_WIN8
         Assert(!g_VBoxDisplayOnly);
-#endif
         vboxWddmAddrSetVram(&pSource->AllocData.Addr, pSetVidPnSourceAddress->PrimarySegment,
                                                     pSetVidPnSourceAddress->PrimaryAddress.QuadPart);
     }
 
     pSource->u8SyncState &= ~VBOXWDDM_HGSYNC_F_SYNCED_LOCATION;
+
+    /*
+     * Report the source.
+     */
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        /* Query the position of the screen to make sure it is up to date. */
+        vboxWddmDisplaySettingsQueryPos(pDevExt, pSetVidPnSourceAddress->VidPnSourceId, &pSource->VScreenPos);
+
+        GaVidPnSourceReport(pDevExt, pSource);
+        return STATUS_SUCCESS;
+    }
+#endif
 
     vboxWddmGhDisplayCheckSetInfoFromSource(pDevExt, pSource);
 
@@ -5359,6 +5557,9 @@ DxgkDdiSetVidPnSourceVisibility(
         return STATUS_INVALID_PARAMETER;
     }
 
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType != VBOXVIDEO_HWTYPE_VMSVGA)
+#endif
     vboxWddmDisplaySettingsCheckPos(pDevExt, pSetVidPnSourceVisibility->VidPnSourceId);
 
     NTSTATUS Status = STATUS_SUCCESS;
@@ -5379,6 +5580,13 @@ DxgkDdiSetVidPnSourceVisibility(
 //            vboxWddmGhDisplayCheckSetInfoFromSource(pDevExt, pSource);
 //        }
     }
+
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        GaVidPnSourceCheckPos(pDevExt, pSetVidPnSourceVisibility->VidPnSourceId);
+    }
+#endif
 
     LOGF(("LEAVE, status(0x%x), context(0x%x)", Status, hAdapter));
 
@@ -5466,6 +5674,45 @@ DxgkDdiCommitVidPn(
 
         VBoxDumpSourceTargetArrays(paSources, paTargets, VBoxCommonFromDeviceExt(pDevExt)->cDisplays);
 
+#ifdef VBOX_WITH_MESA3D
+        if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+        {
+            for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+            {
+                VBOXWDDM_SOURCE *pSource = &pDevExt->aSources[i];
+
+                LOG(("Source [%d]: visible %d, blanked %d", i, pSource->bVisible, pSource->bBlankedByPowerOff));
+
+                /* Update positions of all screens. */
+                vboxWddmDisplaySettingsQueryPos(pDevExt, i, &pSource->VScreenPos);
+
+                GaVidPnSourceReport(pDevExt, pSource);
+            }
+
+            for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+            {
+                VBOXWDDM_TARGET *pTarget = &pDevExt->aTargets[i];
+                Assert(pTarget->u32Id == i);
+                if (pTarget->VidPnSourceId != D3DDDI_ID_UNINITIALIZED)
+                {
+                    continue;
+                }
+
+                LOG(("Target [%d]: blanked %d", i, pTarget->fBlankedByPowerOff));
+
+                if (pTarget->fBlankedByPowerOff)
+                {
+                    GaScreenDefine(pDevExt->pGa, 0, pTarget->u32Id, 0, 0, 0, 0, true);
+                }
+                else
+                {
+                    GaScreenDestroy(pDevExt->pGa, pTarget->u32Id);
+                }
+            }
+
+            break;
+        }
+#endif
         vboxWddmGhDisplayCheckSetInfo(pDevExt);
     } while (0);
 
@@ -5589,9 +5836,7 @@ DxgkDdiControlInterrupt(
 
     switch (InterruptType)
     {
-#ifdef VBOX_WDDM_WIN8
         case DXGK_INTERRUPT_DISPLAYONLY_VSYNC:
-#endif
         case DXGK_INTERRUPT_CRTC_VSYNC:
         {
             Status = VBoxWddmSlEnableVSyncNotification(pDevExt, Enable);
@@ -5661,6 +5906,15 @@ DxgkDdiDestroyDevice(
     LOGF(("ENTER, hDevice(0x%x)", hDevice));
 
     vboxVDbgBreakFv();
+
+#ifdef VBOX_WITH_MESA3D
+    PVBOXWDDM_DEVICE pDevice = (PVBOXWDDM_DEVICE)hDevice;
+    PVBOXMP_DEVEXT pDevExt = pDevice->pAdapter;
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        GaDeviceDestroy(pDevExt->pGa, pDevice);
+    }
+#endif
 
     vboxWddmMemFree(hDevice);
 
@@ -5847,6 +6101,13 @@ DxgkDdiRenderNew(
     RT_NOREF(hContext);
 //    LOGF(("ENTER, hContext(0x%x)", hContext));
     vboxVDbgBreakF();
+
+#ifdef VBOX_WITH_MESA3D
+    if (GaContextHwTypeIs((PVBOXWDDM_CONTEXT)hContext, VBOXVIDEO_HWTYPE_VMSVGA))
+    {
+        return GaDxgkDdiRender(hContext, pRender);
+    }
+#endif
 
     if (pRender->DmaBufferPrivateDataSize < sizeof (VBOXCMDVBVA_HDR))
     {
@@ -6265,6 +6526,12 @@ DxgkDdiPresentNew(
 //    LOGF(("ENTER, hContext(0x%x)", hContext));
 
     vboxVDbgBreakFv();
+#ifdef VBOX_WITH_MESA3D
+    if (GaContextHwTypeIs((PVBOXWDDM_CONTEXT)hContext, VBOXVIDEO_HWTYPE_VMSVGA))
+    {
+        return GaDxgkDdiPresent(hContext, pPresent);
+    }
+#endif
 
 #ifdef VBOX_STRICT
     PVBOXWDDM_CONTEXT pContext = (PVBOXWDDM_CONTEXT)hContext;
@@ -6887,20 +7154,24 @@ DxgkDdiCreateContext(
             Assert(!pCreateContext->pPrivateDriverData);
             Assert(pCreateContext->Flags.Value <= 2); /* 2 is a GDI context in Win7 */
             pContext->enmType = VBOXWDDM_CONTEXT_TYPE_SYSTEM;
-            for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+
+            if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
             {
-                vboxWddmDisplaySettingsCheckPos(pDevExt, i);
-            }
+                for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
+                {
+                    vboxWddmDisplaySettingsCheckPos(pDevExt, i);
+                }
 
 #ifdef VBOX_WITH_CROGL
-            if (!VBOXWDDM_IS_DISPLAYONLY() && pDevExt->f3DEnabled)
-            {
-                VBoxMpCrPackerInit(&pContext->CrPacker);
-                int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon, CR_PROTOCOL_VERSION_MAJOR, CR_PROTOCOL_VERSION_MINOR, &pContext->u32CrConClientID);
-                if (!RT_SUCCESS(rc))
-                    WARN(("VBoxMpCrCtlConConnect failed rc (%d), ignoring for system context", rc));
-            }
+                if (!VBOXWDDM_IS_DISPLAYONLY() && pDevExt->f3DEnabled)
+                {
+                    VBoxMpCrPackerInit(&pContext->CrPacker);
+                    int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon, CR_PROTOCOL_VERSION_MAJOR, CR_PROTOCOL_VERSION_MINOR, &pContext->u32CrConClientID);
+                    if (!RT_SUCCESS(rc))
+                        WARN(("VBoxMpCrCtlConConnect failed rc (%d), ignoring for system context", rc));
+                }
 #endif
+            }
             Status = STATUS_SUCCESS;
         }
         else
@@ -6932,25 +7203,28 @@ DxgkDdiCreateContext(
                             if (Status == STATUS_SUCCESS)
                             {
                                 pContext->enmType = VBOXWDDM_CONTEXT_TYPE_CUSTOM_3D;
-                                Status = vboxVideoCmCtxAdd(&pDevice->pAdapter->CmMgr, &pContext->CmContext, (HANDLE)pInfo->hUmEvent, pInfo->u64UmInfo);
+                                Status = vboxVideoCmCtxAdd(&pDevice->pAdapter->CmMgr, &pContext->CmContext, (HANDLE)pInfo->u.vbox.hUmEvent, pInfo->u.vbox.u64UmInfo);
                                 AssertNtStatusSuccess(Status);
                                 if (Status == STATUS_SUCCESS)
                                 {
-                                    if (pInfo->crVersionMajor || pInfo->crVersionMinor)
+                                    if (pInfo->u.vbox.crVersionMajor || pInfo->u.vbox.crVersionMinor)
                                     {
                                         if (pDevExt->f3DEnabled)
                                         {
-                                            int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon,
-                                                pInfo->crVersionMajor, pInfo->crVersionMinor,
-                                                &pContext->u32CrConClientID);
-                                            if (RT_SUCCESS(rc))
+                                            if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
                                             {
-                                                VBoxMpCrPackerInit(&pContext->CrPacker);
-                                            }
-                                            else
-                                            {
-                                                WARN(("VBoxMpCrCtlConConnect failed rc (%d)", rc));
-                                                Status = STATUS_UNSUCCESSFUL;
+                                                int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon,
+                                                    pInfo->u.vbox.crVersionMajor, pInfo->u.vbox.crVersionMinor,
+                                                    &pContext->u32CrConClientID);
+                                                if (RT_SUCCESS(rc))
+                                                {
+                                                    VBoxMpCrPackerInit(&pContext->CrPacker);
+                                                }
+                                                else
+                                                {
+                                                    WARN(("VBoxMpCrCtlConConnect failed rc (%d)", rc));
+                                                    Status = STATUS_UNSUCCESSFUL;
+                                                }
                                             }
                                         }
                                         else
@@ -6988,17 +7262,20 @@ DxgkDdiCreateContext(
 
                         if (Status == STATUS_SUCCESS)
                         {
-                            if (pInfo->crVersionMajor || pInfo->crVersionMinor)
+                            if (pInfo->u.vbox.crVersionMajor || pInfo->u.vbox.crVersionMinor)
                             {
                                 if (pDevExt->f3DEnabled)
                                 {
-                                    int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon,
-                                        pInfo->crVersionMajor, pInfo->crVersionMinor,
-                                        &pContext->u32CrConClientID);
-                                    if (!RT_SUCCESS(rc))
+                                    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX)
                                     {
-                                        WARN(("VBoxMpCrCtlConConnect failed rc (%d)", rc));
-                                        Status = STATUS_UNSUCCESSFUL;
+                                        int rc = VBoxMpCrCtlConConnect(pDevExt, &pDevExt->CrCtlCon,
+                                            pInfo->u.vbox.crVersionMajor, pInfo->u.vbox.crVersionMinor,
+                                            &pContext->u32CrConClientID);
+                                        if (!RT_SUCCESS(rc))
+                                        {
+                                            WARN(("VBoxMpCrCtlConConnect failed rc (%d)", rc));
+                                            Status = STATUS_UNSUCCESSFUL;
+                                        }
                                     }
                                 }
                                 else
@@ -7033,13 +7310,21 @@ DxgkDdiCreateContext(
                     case VBOXWDDM_CONTEXT_TYPE_CUSTOM_DISPIF_SEAMLESS:
                     {
                         pContext->enmType = pInfo->enmType;
-                        Status = vboxVideoCmCtxAdd(&pDevice->pAdapter->SeamlessCtxMgr, &pContext->CmContext, (HANDLE)pInfo->hUmEvent, pInfo->u64UmInfo);
+                        Status = vboxVideoCmCtxAdd(&pDevice->pAdapter->SeamlessCtxMgr, &pContext->CmContext, (HANDLE)pInfo->u.vbox.hUmEvent, pInfo->u.vbox.u64UmInfo);
                         if (!NT_SUCCESS(Status))
                         {
                             WARN(("vboxVideoCmCtxAdd failed, Status 0x%x", Status));
                         }
                         break;
                     }
+#ifdef VBOX_WITH_MESA3D
+                    case VBOXWDDM_CONTEXT_TYPE_GA_3D:
+                    {
+                        pContext->enmType = VBOXWDDM_CONTEXT_TYPE_GA_3D;
+                        Status = GaContextCreate(pDevExt->pGa, pInfo, pContext);
+                        break;
+                    }
+#endif
                     default:
                     {
                         WARN(("unsupported context type %d", pInfo->enmType));
@@ -7124,12 +7409,19 @@ DxgkDdiDestroyContext(
             Assert(pContext->CmContext.pSession == NULL);
             break;
         }
+#ifdef VBOX_WITH_MESA3D
+        case VBOXWDDM_CONTEXT_TYPE_GA_3D:
+        {
+            Status = GaContextDestroy(pDevExt->pGa, pContext);
+            break;
+        }
+#endif
         default:
             break;
     }
 
 #ifdef VBOX_WITH_CROGL
-    if (pContext->u32CrConClientID)
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VBOX && pContext->u32CrConClientID)
     {
         VBoxMpCrCtlConDisconnect(pDevExt, &pDevExt->CrCtlCon, pContext->u32CrConClientID);
     }
@@ -7200,8 +7492,6 @@ NTSTATUS APIENTRY CALLBACK DxgkDdiRestartFromTimeout(IN_CONST_HANDLE hAdapter)
     return STATUS_SUCCESS;
 }
 
-#ifdef VBOX_WDDM_WIN8
-
 static NTSTATUS APIENTRY DxgkDdiQueryVidPnHWCapability(
         __in     const HANDLE hAdapter,
         __inout  DXGKARG_QUERYVIDPNHWCAPABILITY *pVidPnHWCaps
@@ -7229,6 +7519,12 @@ static NTSTATUS APIENTRY DxgkDdiPresentDisplayOnly(
     vboxVDbgBreakFv();
 
     PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)hAdapter;
+#ifdef VBOX_WITH_MESA3D
+    if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+    {
+        return GaDxgkDdiPresentDisplayOnly(hAdapter, pPresentDisplayOnly);
+    }
+#endif
     PVBOXWDDM_SOURCE pSource = &pDevExt->aSources[pPresentDisplayOnly->VidPnSourceId];
     Assert(pSource->AllocData.Addr.SegmentId == 1);
     VBOXWDDM_ALLOC_DATA SrcAllocData;
@@ -7264,6 +7560,7 @@ static NTSTATUS APIENTRY DxgkDdiPresentDisplayOnly(
     SrcAllocData.pSwapchain = NULL;
 
     RECT UpdateRect;
+    RT_ZERO(UpdateRect);
     BOOLEAN bUpdateRectInited = FALSE;
 
     for (UINT i = 0; i < pPresentDisplayOnly->NumMoves; ++i)
@@ -7477,7 +7774,6 @@ static NTSTATUS vboxWddmInitDisplayOnlyDriver(IN PDRIVER_OBJECT pDriverObject, I
     }
     return Status;
 }
-#endif
 
 static NTSTATUS vboxWddmInitFullGraphicsDriver(IN PDRIVER_OBJECT pDriverObject, IN PUNICODE_STRING pRegistryPath, BOOLEAN fCmdVbva)
 {
@@ -7490,7 +7786,10 @@ static NTSTATUS vboxWddmInitFullGraphicsDriver(IN PDRIVER_OBJECT pDriverObject, 
     DRIVER_INITIALIZATION_DATA DriverInitializationData = {'\0'};
 
     // Fill in the DriverInitializationData structure and call DxgkInitialize()
-    DriverInitializationData.Version = DXGKDDI_INTERFACE_VERSION;
+    if (VBoxQueryWinVersion(NULL) >= WINVERSION_8)
+        DriverInitializationData.Version = DXGKDDI_INTERFACE_VERSION_WIN8;
+    else
+        DriverInitializationData.Version = DXGKDDI_INTERFACE_VERSION_VISTA_SP1;
 
     DriverInitializationData.DxgkDdiAddDevice = DxgkDdiAddDevice;
     DriverInitializationData.DxgkDdiStartDevice = DxgkDdiStartDevice;
@@ -7591,15 +7890,10 @@ DriverEntry(
     RTLogGroupSettings(0, "+default.e.l.f.l2.l3");
 #endif
 
-#ifdef VBOX_WDDM_WIN8
-    LOGREL(("VBox WDDM Driver for Windows 8+ version %d.%d.%dr%d, %d bit; Built %s %s",
+    LOGREL(("VBox WDDM Driver for Windows %s version %d.%d.%dr%d, %d bit; Built %s %s",
+            VBoxQueryWinVersion(NULL) >= WINVERSION_8 ? "8+" : "Vista and 7",
             VBOX_VERSION_MAJOR, VBOX_VERSION_MINOR, VBOX_VERSION_BUILD, VBOX_SVN_REV,
             (sizeof (void*) << 3), __DATE__, __TIME__));
-#else
-    LOGREL(("VBox WDDM Driver for Windows Vista and 7 version %d.%d.%dr%d, %d bit; Built %s %s",
-            VBOX_VERSION_MAJOR, VBOX_VERSION_MINOR, VBOX_VERSION_BUILD, VBOX_SVN_REV,
-            (sizeof (void*) << 3), __DATE__, __TIME__));
-#endif
 
     if (   !ARGUMENT_PRESENT(DriverObject)
         || !ARGUMENT_PRESENT(RegistryPath))
@@ -7618,6 +7912,7 @@ DriverEntry(
     int rc = VbglR0InitClient();
     if (RT_SUCCESS(rc))
     {
+        /* Check whether 3D is required by the guest. */
         if (major > 6)
         {
             /* Windows 10 and newer. */
@@ -7643,46 +7938,91 @@ DriverEntry(
 
         LOG(("3D is %srequired!", f3DRequired? "": "NOT "));
 
-        Status = STATUS_SUCCESS;
-#ifdef VBOX_WITH_CROGL
-        VBoxMpCrCtlConInit();
+        /* Check whether 3D is provided by the host. */
+        VBOXVIDEO_HWTYPE enmHwType = VBOXVIDEO_HWTYPE_VBOX;
+        BOOL f3DSupported = FALSE;
 
-        /* always need to do the check to request host caps */
-        LOG(("Doing the 3D check.."));
-        if (!VBoxMpCrCtlConIs3DSupported())
-#endif
+        if (VBoxVGACfgAvailable())
         {
-#ifdef VBOX_WDDM_WIN8
-            Assert(f3DRequired);
-            g_VBoxDisplayOnly = 1;
+            /* New configuration query interface is available. */
+            uint32_t u32;
+            if (VBoxVGACfgQuery(VBE_DISPI_CFG_ID_VERSION, &u32, 0))
+            {
+                LOGREL(("WDDM: VGA configuration version %d", u32));
+            }
 
-            /* Black list some builds. */
-            if (major == 6 && minor == 4 && build == 9841)
+            VBoxVGACfgQuery(VBE_DISPI_CFG_ID_3D, &u32, 0);
+            f3DSupported = RT_BOOL(u32);
+
+            VBoxVGACfgQuery(VBE_DISPI_CFG_ID_VMSVGA, &u32, 0);
+            if (u32)
             {
-                /* W10 Technical preview crashes with display-only driver. */
-                LOGREL(("3D is NOT supported by the host, fallback to the system video driver."));
-                Status = STATUS_UNSUCCESSFUL;
+                enmHwType = VBOXVIDEO_HWTYPE_VMSVGA;
             }
-            else
-            {
-                LOGREL(("3D is NOT supported by the host, falling back to display-only mode.."));
-            }
-#else
-            if (f3DRequired)
-            {
-                LOGREL(("3D is NOT supported by the host, but is required for the current guest version using this driver.."));
-                Status = STATUS_UNSUCCESSFUL;
-            }
-            else
-                LOGREL(("3D is NOT supported by the host, but is NOT required for the current guest version using this driver, continuing with Disabled 3D.."));
-#endif
+            LOGREL(("WDDM: VGA configuration: 3D %d, hardware type %d", f3DSupported, enmHwType));
         }
 
-#if 0 //defined(DEBUG_misha) && defined(VBOX_WDDM_WIN8)
-        /* force g_VBoxDisplayOnly for debugging purposes */
-        LOGREL(("Current win8 video driver only supports display-only mode no matter whether or not host 3D is enabled!"));
-        g_VBoxDisplayOnly = 1;
+        BOOL fCmdVbva = FALSE;
+        if (enmHwType == VBOXVIDEO_HWTYPE_VBOX)
+        {
+            /* Try to establish connection to the host 3D service. */
+#ifdef VBOX_WITH_CROGL
+            VBoxMpCrCtlConInit();
+
+            /* always need to do the check to request host caps */
+            LOG(("Doing the 3D check.."));
+            f3DSupported = VBoxMpCrCtlConIs3DSupported();
+
+            fCmdVbva = RT_BOOL(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_CMDVBVA);
 #endif
+        }
+        else if (enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
+        {
+            fCmdVbva = TRUE;
+        }
+        else
+        {
+            /* No supported hardware, fallback to VBox 2D only. */
+            enmHwType = VBOXVIDEO_HWTYPE_VBOX;
+            f3DSupported = FALSE;
+        }
+
+        LOGREL(("WDDM: 3D is %ssupported, hardware type %d", f3DSupported? "": "not ", enmHwType));
+
+        if (NT_SUCCESS(Status))
+        {
+            if (!f3DSupported)
+            {
+                /* No 3D support by the host. */
+                if (VBoxQueryWinVersion(NULL) >= WINVERSION_8)
+                {
+                    /* Use display only driver for Win8+. */
+                    g_VBoxDisplayOnly = 1;
+
+                    /* Black list some builds. */
+                    if (major == 6 && minor == 4 && build == 9841)
+                    {
+                        /* W10 Technical preview crashes with display-only driver. */
+                        LOGREL(("3D is NOT supported by the host, fallback to the system video driver."));
+                        Status = STATUS_UNSUCCESSFUL;
+                    }
+                    else
+                    {
+                        LOGREL(("3D is NOT supported by the host, falling back to display-only mode.."));
+                    }
+                }
+                else
+                {
+                    if (f3DRequired)
+                    {
+                        LOGREL(("3D is NOT supported by the host, but is required for the current guest version using this driver.."));
+                        Status = STATUS_UNSUCCESSFUL;
+                    }
+                    else
+                        LOGREL(("3D is NOT supported by the host, but is NOT required for the current guest version using this driver, continuing with Disabled 3D.."));
+                }
+            }
+        }
 
         if (NT_SUCCESS(Status))
         {
@@ -7691,25 +8031,27 @@ DriverEntry(
             if (RT_SUCCESS(rc))
 #endif
             {
-#ifdef VBOX_WDDM_WIN8
                 if (g_VBoxDisplayOnly)
                 {
                     Status = vboxWddmInitDisplayOnlyDriver(DriverObject, RegistryPath);
                 }
                 else
-#endif
                 {
-                    Status = vboxWddmInitFullGraphicsDriver(DriverObject, RegistryPath,
-#ifdef VBOX_WITH_CROGL
-                            !!(VBoxMpCrGetHostCaps() & CR_VBOX_CAP_CMDVBVA)
-#else
-                            FALSE
-#endif
-                            );
+                    Status = vboxWddmInitFullGraphicsDriver(DriverObject, RegistryPath, fCmdVbva);
                 }
 
                 if (NT_SUCCESS(Status))
+                {
+                    /*
+                     * Successfully initialized the driver.
+                     */
                     return Status;
+                }
+
+                /*
+                 * Cleanup on failure.
+                 */
+
 #ifdef VBOX_WITH_CROGL
                 VBoxVrTerm();
 #endif
@@ -7748,4 +8090,3 @@ DriverEntry(
 
     return Status;
 }
-

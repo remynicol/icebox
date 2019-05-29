@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -14,6 +14,12 @@
  * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
+
+#ifndef GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDispIf_h
+#define GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDispIf_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <iprt/cdefs.h>
 
@@ -81,6 +87,9 @@ DWORD VBoxDispIfResizeModes(PCVBOXDISPIF const pIf, UINT iChangedMode, BOOL fEna
 DWORD VBoxDispIfCancelPendingResize(PCVBOXDISPIF const pIf);
 DWORD VBoxDispIfResizeStarted(PCVBOXDISPIF const pIf);
 
+BOOL VBoxDispIfResizeDisplayWin7(PCVBOXDISPIF const pIf, uint32_t cDispDef, const VMMDevDisplayDef *paDispDef);
+BOOL VBoxDispIfResizeDisplayVista(PCVBOXDISPIF const pIf, uint32_t cDispDef, const VMMDevDisplayDef *paDispDef);
+
 typedef struct VBOXDISPIF_SEAMLESS
 {
     PCVBOXDISPIF pIf;
@@ -108,4 +117,6 @@ DECLINLINE(bool) VBoxDispIfSeamlesIsValid(VBOXDISPIF_SEAMLESS *pSeamless)
 DWORD VBoxDispIfSeamlessCreate(PCVBOXDISPIF const pIf, VBOXDISPIF_SEAMLESS *pSeamless, HANDLE hEvent);
 DWORD VBoxDispIfSeamlessTerm(VBOXDISPIF_SEAMLESS *pSeamless);
 DWORD VBoxDispIfSeamlessSubmit(VBOXDISPIF_SEAMLESS *pSeamless, VBOXDISPIFESCAPE *pData, int cbData);
+
+#endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxDispIf_h */
 

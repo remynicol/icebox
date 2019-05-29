@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,8 +15,11 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___VBoxDispD3D_h___
-#define ___VBoxDispD3D_h___
+#ifndef GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispD3D_h
+#define GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispD3D_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include "VBoxDispD3DIf.h"
 #include "../../common/wddm/VBoxMPIf.h"
@@ -75,9 +78,17 @@ typedef struct VBOXWDDMDISP_ADAPTER
     UINT uIfVersion;
     UINT uRtVersion;
     D3DDDI_ADAPTERCALLBACKS RtCallbacks;
+
+    VBOXVIDEO_HWTYPE enmHwType;     /* VBOXVIDEO_HWTYPE_* */
+
     VBOXWDDMDISP_D3D D3D;
     VBOXWDDMDISP_FORMATS Formats;
     uint32_t u32VBox3DCaps;
+    bool f3D;
+    bool fReserved[3];
+
+    VBOXWDDM_QAI AdapterInfo;
+
 #ifdef VBOX_WDDMDISP_WITH_PROFILE
     VBoxDispProfileFpsCounter ProfileDdiFps;
     VBoxDispProfileSet ProfileDdiFunc;
@@ -179,10 +190,18 @@ typedef struct VBOXWDDMDISP_SWAPCHAIN
     VBOXWDDMDISP_RENDERTGT aRTs[VBOXWDDMDISP_MAX_SWAPCHAIN_SIZE];
 } VBOXWDDMDISP_SWAPCHAIN, *PVBOXWDDMDISP_SWAPCHAIN;
 
+typedef HRESULT FNVBOXWDDMCREATEDIRECT3DDEVICE(PVBOXWDDMDISP_DEVICE pDevice);
+typedef FNVBOXWDDMCREATEDIRECT3DDEVICE *PFNVBOXWDDMCREATEDIRECT3DDEVICE;
+
+typedef IUnknown* FNVBOXWDDMCREATESHAREDPRIMARY(struct VBOXWDDMDISP_ALLOCATION *pAlloc);
+typedef FNVBOXWDDMCREATESHAREDPRIMARY *PFNVBOXWDDMCREATESHAREDPRIMARY;
+
 typedef struct VBOXWDDMDISP_DEVICE
 {
     HANDLE hDevice;
     PVBOXWDDMDISP_ADAPTER pAdapter;
+    PFNVBOXWDDMCREATEDIRECT3DDEVICE pfnCreateDirect3DDevice;
+    PFNVBOXWDDMCREATESHAREDPRIMARY pfnCreateSharedPrimary;
     IDirect3DDevice9 *pDevice9If;
     RTLISTANCHOR SwapchainList;
     UINT u32IfVersion;
@@ -280,6 +299,9 @@ typedef struct VBOXWDDMDISP_ALLOCATION
     VBOXWDDM_DIRTYREGION DirtyRegion; /* <- dirty region to notify host about */
     VBOXWDDM_SURFACE_DESC SurfDesc;
     PVBOXWDDMDISP_SWAPCHAIN pSwapchain;
+#ifdef VBOX_WITH_MESA3D
+    uint32_t hostID;
+#endif
 } VBOXWDDMDISP_ALLOCATION, *PVBOXWDDMDISP_ALLOCATION;
 
 typedef struct VBOXWDDMDISP_RESOURCE
@@ -357,4 +379,4 @@ VOID vboxWddmSwapchainDestroy(PVBOXWDDMDISP_DEVICE pDevice, PVBOXWDDMDISP_SWAPCH
 
 #endif
 
-#endif /* #ifndef ___VBoxDispD3D_h___ */
+#endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispD3D_h */

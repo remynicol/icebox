@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -25,7 +25,7 @@
 #include <VBox/vmm/uvm.h>
 #include <VBox/sup.h>
 #include <VBox/param.h>
-#include <VBox/err.h>
+#include <iprt/errcore.h>
 
 #include <VBox/log.h>
 #include <iprt/initterm.h>
@@ -53,22 +53,30 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
     /*
      * Create empty VM structure and call MMR3Init().
      */
-    PVM         pVM = NULL;
+    void       *pvVM = NULL;
     RTR0PTR     pvR0 = NIL_RTR0PTR;
-    SUPPAGE     aPages[RT_ALIGN_Z(sizeof(*pVM) + NUM_CPUS * sizeof(VMCPU), PAGE_SIZE) >> PAGE_SHIFT];
+    SUPPAGE     aPages[RT_ALIGN_Z(sizeof(VM) + NUM_CPUS * sizeof(VMCPU), PAGE_SIZE) >> PAGE_SHIFT];
     int rc = SUPR3Init(NULL);
     if (RT_SUCCESS(rc))
-        rc = SUPR3LowAlloc(RT_ELEMENTS(aPages), (void **)&pVM, &pvR0, &aPages[0]);
+        //rc = SUPR3LowAlloc(RT_ELEMENTS(aPages), (void **)&pVM, &pvR0, &aPages[0]);
+        rc = SUPR3PageAllocEx(RT_ELEMENTS(aPages), 0, &pvVM, &pvR0, &aPages[0]);
     if (RT_FAILURE(rc))
     {
         RTPrintf("Fatal error: SUP Failure! rc=%Rrc\n", rc);
-        return 1;
+        return RTEXITCODE_FAILURE;
     }
+    RT_BZERO(pvVM, RT_ELEMENTS(aPages) * PAGE_SIZE); /* SUPR3PageAllocEx doesn't necessarily zero the memory. */
+    PVM  pVM = (PVM)pvVM;
     pVM->paVMPagesR3 = aPages;
     pVM->pVMR0 = pvR0;
 
-    static UVM s_UVM;
-    PUVM pUVM = &s_UVM;
+    PUVM pUVM = (PUVM)RTMemPageAllocZ(RT_ALIGN_Z(sizeof(*pUVM), PAGE_SIZE));
+    if (!pUVM)
+    {
+        RTPrintf("Fatal error: RTMEmPageAllocZ failed\n");
+        return RTEXITCODE_FAILURE;
+    }
+    pUVM->u32Magic = UVM_MAGIC;
     pUVM->pVM = pVM;
     pVM->pUVM = pUVM;
 
@@ -242,6 +250,8 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
 #ifdef LOG_ENABLED
     RTLogFlush(NULL);
 #endif
+    SUPR3PageFreeEx(pVM, RT_ELEMENTS(aPages));
+    RTMemPageFree(pUVM, RT_ALIGN_Z(sizeof(*pUVM), PAGE_SIZE));
     return 0;
 }
 

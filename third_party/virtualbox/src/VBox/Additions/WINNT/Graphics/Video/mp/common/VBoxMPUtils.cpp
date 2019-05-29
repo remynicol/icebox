@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Oracle Corporation
+ * Copyright (C) 2011-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -27,13 +27,8 @@
 /* specifies whether the vboxVDbgBreakF should break in the debugger
  * windbg seems to have some issues when there is a lot ( >32) of sw breakpoints defined
  * to simplify things we just insert breaks for the case of intensive debugging WDDM driver*/
-#ifndef VBOX_WDDM_WIN8
 int g_bVBoxVDbgBreakF = 0;
 int g_bVBoxVDbgBreakFv = 0;
-#else
-int g_bVBoxVDbgBreakF = 0;
-int g_bVBoxVDbgBreakFv = 0;
-#endif
 #endif
 
 #pragma alloc_text(PAGE, VBoxQueryWinVersion)
@@ -44,42 +39,49 @@ int g_bVBoxVDbgBreakFv = 0;
 #pragma alloc_text(PAGE, VBoxQueryPointerPos)
 
 /*Returns the windows version we're running on*/
-vboxWinVersion_t VBoxQueryWinVersion()
+/** @todo r=andy Use RTSystemQueryOSInfo() instead? This also does caching and stuff. */
+vboxWinVersion_t VBoxQueryWinVersion(uint32_t *pbuild)
 {
-    ULONG major, minor, build;
-    BOOLEAN checkedBuild;
+    static ULONG            s_pbuild     = 0;
     static vboxWinVersion_t s_WinVersion = WINVERSION_UNKNOWN;
 
-    if (s_WinVersion != WINVERSION_UNKNOWN)
-        return s_WinVersion;
+    ULONG major, minor;
+    BOOLEAN checkedBuild;
 
-    checkedBuild = PsGetVersion(&major, &minor, &build, NULL);
-    LOG(("running on version %d.%d, build %d(checked=%d)", major, minor, build, (int)checkedBuild));
+    if (s_WinVersion == WINVERSION_UNKNOWN)
+    {
+        checkedBuild = PsGetVersion(&major, &minor, &s_pbuild, NULL);
+        LOG(("running on version %d.%d, build %d(checked=%d)", major, minor, s_pbuild, (int)checkedBuild));
 
-    if (major > 6)
-    {
-        /* Everything newer than Windows 8.1, i.e. Windows 10 with major == 10. */
-        s_WinVersion = WINVERSION_10;
-    }
-    else if (major == 6)
-    {
-        if (minor >= 4)
+        if (major > 6)
+        {
+            /* Everything newer than Windows 8.1, i.e. Windows 10 with major == 10. */
             s_WinVersion = WINVERSION_10;
-        else if (minor == 3)
-            s_WinVersion = WINVERSION_81;
-        else if (minor == 2)
-            s_WinVersion = WINVERSION_8;
-        else if (minor == 1)
-            s_WinVersion = WINVERSION_7;
-        else if (minor == 0)
-            s_WinVersion = WINVERSION_VISTA; /* Or Windows Server 2008. */
+        }
+        else if (major == 6)
+        {
+            if (minor >= 4)
+                s_WinVersion = WINVERSION_10;
+            else if (minor == 3)
+                s_WinVersion = WINVERSION_81;
+            else if (minor == 2)
+                s_WinVersion = WINVERSION_8;
+            else if (minor == 1)
+                s_WinVersion = WINVERSION_7;
+            else if (minor == 0)
+                s_WinVersion = WINVERSION_VISTA; /* Or Windows Server 2008. */
+        }
+        else if (major == 5)
+            s_WinVersion = (minor>=1) ? WINVERSION_XP: WINVERSION_2K;
+        else if (major == 4)
+            s_WinVersion = WINVERSION_NT4;
+        else
+            WARN(("NT4 required!"));
     }
-    else if (major == 5)
-        s_WinVersion = (minor>=1) ? WINVERSION_XP: WINVERSION_2K;
-    else if (major == 4)
-        s_WinVersion = WINVERSION_NT4;
-    else
-        WARN(("NT4 required!"));
+
+    if (pbuild)
+        *pbuild = s_pbuild;
+
     return s_WinVersion;
 }
 
@@ -151,7 +153,6 @@ bool VBoxLikesVideoMode(uint32_t display, uint32_t width, uint32_t height, uint3
             req->header.requestType = VMMDevReq_VideoModeSupported;
             req->header.rc          = VERR_GENERAL_FAILURE;
             req->header.reserved1   = 0;
-            req->header.reserved2   = 0;
             req->width  = width;
             req->height = height;
             req->bpp    = bpp;

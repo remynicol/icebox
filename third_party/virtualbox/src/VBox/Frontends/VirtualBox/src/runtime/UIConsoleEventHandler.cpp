@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Oracle Corporation
+ * Copyright (C) 2010-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,26 +15,20 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifdef VBOX_WITH_PRECOMPILED_HEADERS
-# include <precomp.h>
-#else  /* !VBOX_WITH_PRECOMPILED_HEADERS */
-
 /* GUI includes: */
-# include "UIConsoleEventHandler.h"
-# include "UIMainEventListener.h"
-# include "UIExtraDataManager.h"
-# include "VBoxGlobal.h"
-# include "UISession.h"
-# ifdef VBOX_WS_MAC
-#  include "VBoxUtils.h"
-# endif /* VBOX_WS_MAC */
+#include "UIConsoleEventHandler.h"
+#include "UIMainEventListener.h"
+#include "UIExtraDataManager.h"
+#include "VBoxGlobal.h"
+#include "UISession.h"
+#ifdef VBOX_WS_MAC
+# include "VBoxUtils.h"
+#endif
 
 /* COM includes: */
-# include "CEventListener.h"
-# include "CEventSource.h"
-# include "CConsole.h"
-
-#endif /* !VBOX_WITH_PRECOMPILED_HEADERS */
+#include "CEventListener.h"
+#include "CEventSource.h"
+#include "CConsole.h"
 
 
 /** Private QObject extension
@@ -49,6 +43,9 @@ signals:
     void sigMousePointerShapeChange(bool fVisible, bool fAlpha, QPoint hotCorner, QSize size, QVector<uint8_t> shape);
     /** Notifies about mouse capability change to @a fSupportsAbsolute, @a fSupportsRelative, @a fSupportsMultiTouch and @a fNeedsHostCursor. */
     void sigMouseCapabilityChange(bool fSupportsAbsolute, bool fSupportsRelative, bool fSupportsMultiTouch, bool fNeedsHostCursor);
+    /** Notifies about guest request to change the cursor position to @a uX * @a uY.
+      * @param  fContainsData  Brings whether the @a uX and @a uY values are valid and could be used by the GUI now. */
+    void sigCursorPositionChange(bool fContainsData, unsigned long uX, unsigned long uY);
     /** Notifies about keyboard LEDs change for @a fNumLock, @a fCapsLock and @a fScrollLock. */
     void sigKeyboardLedsChangeEvent(bool fNumLock, bool fCapsLock, bool fScrollLock);
     /** Notifies about machine @a state change. */
@@ -63,8 +60,8 @@ signals:
     void sigMediumChange(CMediumAttachment attachment);
     /** Notifies about VRDE device state change. */
     void sigVRDEChange();
-    /** Notifies about Video Capture device state change. */
-    void sigVideoCaptureChange();
+    /** Notifies about recording state change. */
+    void sigRecordingChange();
     /** Notifies about USB controller state change. */
     void sigUSBControllerChange();
     /** Notifies about USB @a device state change to @a fAttached, holding additional @a error information. */
@@ -179,6 +176,7 @@ void UIConsoleEventHandlerProxy::prepareListener()
     eventTypes
         << KVBoxEventType_OnMousePointerShapeChanged
         << KVBoxEventType_OnMouseCapabilityChanged
+        << KVBoxEventType_OnCursorPositionChanged
         << KVBoxEventType_OnKeyboardLedsChanged
         << KVBoxEventType_OnStateChanged
         << KVBoxEventType_OnAdditionsStateChanged
@@ -187,7 +185,7 @@ void UIConsoleEventHandlerProxy::prepareListener()
         << KVBoxEventType_OnMediumChanged
         << KVBoxEventType_OnVRDEServerChanged
         << KVBoxEventType_OnVRDEServerInfoChanged
-        << KVBoxEventType_OnVideoCaptureChanged
+        << KVBoxEventType_OnRecordingChanged
         << KVBoxEventType_OnUSBControllerChanged
         << KVBoxEventType_OnUSBDeviceStateChanged
         << KVBoxEventType_OnSharedFolderChanged
@@ -220,6 +218,9 @@ void UIConsoleEventHandlerProxy::prepareConnections()
     connect(m_pQtListener->getWrapped(), SIGNAL(sigMouseCapabilityChange(bool, bool, bool, bool)),
             this, SIGNAL(sigMouseCapabilityChange(bool, bool, bool, bool)),
             Qt::DirectConnection);
+    connect(m_pQtListener->getWrapped(), SIGNAL(sigCursorPositionChange(bool, unsigned long, unsigned long)),
+            this, SIGNAL(sigCursorPositionChange(bool, unsigned long, unsigned long)),
+            Qt::DirectConnection);
     connect(m_pQtListener->getWrapped(), SIGNAL(sigKeyboardLedsChangeEvent(bool, bool, bool)),
             this, SIGNAL(sigKeyboardLedsChangeEvent(bool, bool, bool)),
             Qt::DirectConnection);
@@ -241,8 +242,8 @@ void UIConsoleEventHandlerProxy::prepareConnections()
     connect(m_pQtListener->getWrapped(), SIGNAL(sigVRDEChange()),
             this, SIGNAL(sigVRDEChange()),
             Qt::DirectConnection);
-    connect(m_pQtListener->getWrapped(), SIGNAL(sigVideoCaptureChange()),
-            this, SIGNAL(sigVideoCaptureChange()),
+    connect(m_pQtListener->getWrapped(), SIGNAL(sigRecordingChange()),
+            this, SIGNAL(sigRecordingChange()),
             Qt::DirectConnection);
     connect(m_pQtListener->getWrapped(), SIGNAL(sigUSBControllerChange()),
             this, SIGNAL(sigUSBControllerChange()),
@@ -379,6 +380,9 @@ void UIConsoleEventHandler::prepareConnections()
     connect(m_pProxy, SIGNAL(sigMouseCapabilityChange(bool, bool, bool, bool)),
             this, SIGNAL(sigMouseCapabilityChange(bool, bool, bool, bool)),
             Qt::QueuedConnection);
+    connect(m_pProxy, SIGNAL(sigCursorPositionChange(bool, unsigned long, unsigned long)),
+            this, SIGNAL(sigCursorPositionChange(bool, unsigned long, unsigned long)),
+            Qt::QueuedConnection);
     connect(m_pProxy, SIGNAL(sigKeyboardLedsChangeEvent(bool, bool, bool)),
             this, SIGNAL(sigKeyboardLedsChangeEvent(bool, bool, bool)),
             Qt::QueuedConnection);
@@ -400,8 +404,8 @@ void UIConsoleEventHandler::prepareConnections()
     connect(m_pProxy, SIGNAL(sigVRDEChange()),
             this, SIGNAL(sigVRDEChange()),
             Qt::QueuedConnection);
-    connect(m_pProxy, SIGNAL(sigVideoCaptureChange()),
-            this, SIGNAL(sigVideoCaptureChange()),
+    connect(m_pProxy, SIGNAL(sigRecordingChange()),
+            this, SIGNAL(sigRecordingChange()),
             Qt::QueuedConnection);
     connect(m_pProxy, SIGNAL(sigUSBControllerChange()),
             this, SIGNAL(sigUSBControllerChange()),

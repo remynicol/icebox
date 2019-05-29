@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2017 Oracle Corporation
+ * Copyright (C) 2007-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -67,6 +67,7 @@ DECLHIDDEN(void) rtR0AssertNativeMsg2V(bool fInitial, const char *pszFormat, va_
 
 RTR0DECL(void) RTR0AssertPanicSystem(void)
 {
+ASMBreakpoint();// temp
     panic("%s%s", g_szRTAssertMsg1, g_szRTAssertMsg2);
 }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -148,7 +148,6 @@
 
 #ifdef VBOX_WITH_VMSVGA
 #include "DevVGA-SVGA.h"
-#include "vmsvga/svga_reg.h"
 #endif
 
 
@@ -857,6 +856,27 @@ static void vga_ioport_write(PVGASTATE pThis, uint32_t addr, uint32_t val)
 }
 
 #ifdef CONFIG_BOCHS_VBE
+
+static uint32_t vbe_read_cfg(PVGASTATE pThis)
+{
+    const uint16_t u16Cfg = pThis->vbe_regs[VBE_DISPI_INDEX_CFG];
+    const uint16_t u16Id = u16Cfg & VBE_DISPI_CFG_MASK_ID;
+    const bool fQuerySupport = RT_BOOL(u16Cfg & VBE_DISPI_CFG_MASK_SUPPORT);
+
+    uint32_t val = 0;
+    switch (u16Id)
+    {
+        case VBE_DISPI_CFG_ID_VERSION:   val = 1; break;
+        case VBE_DISPI_CFG_ID_VRAM_SIZE: val = pThis->vram_size; break;
+        case VBE_DISPI_CFG_ID_3D:        val = pThis->f3DEnabled; break;
+        case VBE_DISPI_CFG_ID_VMSVGA:    val = pThis->fVMSVGAEnabled; break;
+        default:
+           return 0; /* Not supported. */
+    }
+
+    return fQuerySupport ? 1 : val;
+}
+
 static uint32_t vbe_ioport_read_index(PVGASTATE pThis, uint32_t addr)
 {
     uint32_t val = pThis->vbe_index;
@@ -900,6 +920,9 @@ static uint32_t vbe_ioport_read_data(PVGASTATE pThis, uint32_t addr)
                 case VBE_DISPI_INDEX_VBOX_VIDEO:
                     /* Reading from the port means that the old additions are requesting the number of monitors. */
                     val = 1;
+                    break;
+                case VBE_DISPI_INDEX_CFG:
+                    val = vbe_read_cfg(pThis);
                     break;
                 default:
                     Assert(idxVbe < VBE_DISPI_INDEX_NB);
@@ -949,7 +972,7 @@ static uint32_t calc_line_width(uint16_t bpp, uint32_t pitch)
 }
 #endif
 
-static void recalculate_data(PVGASTATE pThis, bool fVirtHeightOnly)
+static void recalculate_data(PVGASTATE pThis)
 {
     uint16_t cBPP        = pThis->vbe_regs[VBE_DISPI_INDEX_BPP];
     uint16_t cVirtWidth  = pThis->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH];
@@ -961,19 +984,16 @@ static void recalculate_data(PVGASTATE pThis, bool fVirtHeightOnly)
         cbLinePitch      = calc_line_pitch(cBPP, cX);
     Assert(cbLinePitch != 0);
     uint32_t cVirtHeight = pThis->vram_size / cbLinePitch;
-    if (!fVirtHeightOnly)
-    {
-        uint16_t offX        = pThis->vbe_regs[VBE_DISPI_INDEX_X_OFFSET];
-        uint16_t offY        = pThis->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET];
-        uint32_t offStart    = cbLinePitch * offY;
-        if (cBPP == 4)
-            offStart += offX >> 1;
-        else
-            offStart += offX * ((cBPP + 7) >> 3);
-        offStart >>= 2;
-        pThis->vbe_line_offset = RT_MIN(cbLinePitch, pThis->vram_size);
-        pThis->vbe_start_addr  = RT_MIN(offStart, pThis->vram_size);
-    }
+    uint16_t offX        = pThis->vbe_regs[VBE_DISPI_INDEX_X_OFFSET];
+    uint16_t offY        = pThis->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET];
+    uint32_t offStart    = cbLinePitch * offY;
+    if (cBPP == 4)
+        offStart += offX >> 1;
+    else
+        offStart += offX * ((cBPP + 7) >> 3);
+    offStart >>= 2;
+    pThis->vbe_line_offset = RT_MIN(cbLinePitch, pThis->vram_size);
+    pThis->vbe_start_addr  = RT_MIN(offStart, pThis->vram_size);
 
     /* The VBE_DISPI_INDEX_VIRT_HEIGHT is used to prevent setting resolution bigger than
      * the VRAM size permits. It is used instead of VBE_DISPI_INDEX_YRES *only* in case
@@ -1003,19 +1023,17 @@ static int vbe_ioport_write_data(PVGASTATE pThis, uint32_t addr, uint32_t val)
                 val == VBE_DISPI_ID1 ||
                 val == VBE_DISPI_ID2 ||
                 val == VBE_DISPI_ID3 ||
-                val == VBE_DISPI_ID4) {
-                pThis->vbe_regs[pThis->vbe_index] = val;
-            }
-            if (val == VBE_DISPI_ID_VBOX_VIDEO) {
-                pThis->vbe_regs[pThis->vbe_index] = val;
-            } else if (val == VBE_DISPI_ID_ANYX) {
-                pThis->vbe_regs[pThis->vbe_index] = val;
-            }
+                val == VBE_DISPI_ID4 ||
+                /* VBox extensions. */
+                val == VBE_DISPI_ID_VBOX_VIDEO ||
+                val == VBE_DISPI_ID_ANYX       ||
 #ifdef VBOX_WITH_HGSMI
-            else if (val == VBE_DISPI_ID_HGSMI) {
+                val == VBE_DISPI_ID_HGSMI      ||
+#endif
+                val == VBE_DISPI_ID_CFG)
+            {
                 pThis->vbe_regs[pThis->vbe_index] = val;
             }
-#endif /* VBOX_WITH_HGSMI */
             break;
         case VBE_DISPI_INDEX_XRES:
             if (val <= VBE_DISPI_MAX_XRES)
@@ -1199,12 +1217,15 @@ static int vbe_ioport_write_data(PVGASTATE pThis, uint32_t addr, uint32_t val)
             }
 #endif /* IN_RING3 */
             break;
+        case VBE_DISPI_INDEX_CFG:
+            pThis->vbe_regs[pThis->vbe_index] = val;
+            break;
         default:
             break;
         }
         if (fRecalculate)
         {
-            recalculate_data(pThis, false);
+            recalculate_data(pThis);
         }
     }
     return VINF_SUCCESS;
@@ -1227,8 +1248,13 @@ static uint32_t vga_mem_readb(PVGASTATE pThis, RTGCPHYS addr, int *prc)
 #ifdef VMSVGA_WITH_VGA_FB_BACKUP_AND_IN_RZ
     /* VMSVGA keeps the VGA and SVGA framebuffers separate unlike this boch-based
        VGA implementation, so we fake it by going to ring-3 and using a heap buffer.  */
-    if (!pThis->svga.fEnabled) { /*likely*/ }
-    else                       return VINF_IOM_R3_MMIO_READ;
+    if (!pThis->svga.fEnabled)
+    { /*likely*/ }
+    else
+    {
+        *prc = VINF_IOM_R3_MMIO_READ;
+        return 0;
+    }
 #endif
 
     addr &= 0x1ffff;
@@ -1424,48 +1450,6 @@ static int vga_mem_writeb(PVGASTATE pThis, RTGCPHYS addr, uint32_t val)
     } else {
         /* standard VGA latched access */
         VERIFY_VRAM_WRITE_OFF_RETURN(pThis, addr * 4 + 3);
-
-#if 0
-/* This code does not work reliably (@bugref{8123}) and no longer helps performance either. */
-#ifdef IN_RING0
-        if (((++pThis->cLatchAccesses) & pThis->uMaskLatchAccess) == pThis->uMaskLatchAccess)
-        {
-            static uint32_t const s_aMask[5]  = {   0x3ff,   0x1ff,    0x7f,    0x3f,   0x1f};
-            static uint64_t const s_aDelta[5] = {10000000, 5000000, 2500000, 1250000, 625000};
-            if (PDMDevHlpCanEmulateIoBlock(pThis->CTX_SUFF(pDevIns)))
-            {
-                uint64_t u64CurTime = RTTimeSystemNanoTS();
-
-                /* About 1000 (or more) accesses per 10 ms will trigger a reschedule
-                * to the recompiler
-                */
-                if (u64CurTime - pThis->u64LastLatchedAccess < s_aDelta[pThis->iMask])
-                {
-                    pThis->u64LastLatchedAccess = 0;
-                    pThis->iMask                = RT_MIN(pThis->iMask + 1U, RT_ELEMENTS(s_aMask) - 1U);
-                    pThis->uMaskLatchAccess     = s_aMask[pThis->iMask];
-                    pThis->cLatchAccesses       = pThis->uMaskLatchAccess - 1;
-                    return VINF_EM_RAW_EMULATE_IO_BLOCK;
-                }
-                if (pThis->u64LastLatchedAccess)
-                {
-                    Log2(("Reset mask (was %d) delta %RX64 (limit %x)\n", pThis->iMask, u64CurTime - pThis->u64LastLatchedAccess, s_aDelta[pThis->iMask]));
-                    if (pThis->iMask)
-                        pThis->iMask--;
-                    pThis->uMaskLatchAccess     = s_aMask[pThis->iMask];
-                }
-                pThis->u64LastLatchedAccess = u64CurTime;
-            }
-            else
-            {
-                pThis->u64LastLatchedAccess = 0;
-                pThis->iMask                = 0;
-                pThis->uMaskLatchAccess     = s_aMask[pThis->iMask];
-                pThis->cLatchAccesses       = 0;
-            }
-        }
-#endif
-#endif
 
         write_mode = pThis->gr[5] & 3;
         switch(write_mode) {
@@ -2296,10 +2280,10 @@ static int vmsvga_draw_graphic(PVGASTATE pThis, bool fFullUpdate, bool fFailOnRe
 {
     RT_NOREF1(fFailOnResize);
 
-    uint32_t const cx        = pThis->svga.uWidth;
+    uint32_t const cx        = pThis->last_scr_width;
     uint32_t const cxDisplay = cx;
-    uint32_t const cy        = pThis->svga.uHeight;
-    uint32_t       cBits     = pThis->svga.uBpp;
+    uint32_t const cy        = pThis->last_scr_height;
+    uint32_t       cBits     = pThis->last_bpp;
 
     if (   cx    == VMSVGA_VAL_UNINITIALIZED
         || cx    == 0
@@ -2771,9 +2755,10 @@ static void vga_save(PSSMHANDLE pSSM, PVGASTATE pThis)
 
     SSMR3PutU32(pSSM, pThis->bank_offset);
 #ifdef CONFIG_BOCHS_VBE
-    SSMR3PutU8(pSSM, 1);
+    AssertCompile(RT_ELEMENTS(pThis->vbe_regs) < 256);
+    SSMR3PutU8(pSSM, (uint8_t)RT_ELEMENTS(pThis->vbe_regs));
     SSMR3PutU16(pSSM, pThis->vbe_index);
-    for(i = 0; i < VBE_DISPI_INDEX_NB_SAVED; i++)
+    for(i = 0; i < (int)RT_ELEMENTS(pThis->vbe_regs); i++)
         SSMR3PutU16(pSSM, pThis->vbe_regs[i]);
     SSMR3PutU32(pSSM, pThis->vbe_start_addr);
     SSMR3PutU32(pSSM, pThis->vbe_line_offset);
@@ -2819,11 +2804,20 @@ static int vga_load(PSSMHANDLE pSSM, PVGASTATE pThis, int version_id)
         Log(("vga_load: !is_vbe !!\n"));
         return VERR_SSM_DATA_UNIT_FORMAT_CHANGED;
     }
+
+    if (u8 == 1)
+        u8 = VBE_DISPI_INDEX_NB_SAVED; /* Used to save so many registers. */
+    if (u8 > RT_ELEMENTS(pThis->vbe_regs))
+    {
+        Log(("vga_load: saved %d, expected %d!!\n", u8, RT_ELEMENTS(pThis->vbe_regs)));
+        return VERR_SSM_DATA_UNIT_FORMAT_CHANGED;
+    }
+
     SSMR3GetU16(pSSM, &pThis->vbe_index);
-    for(i = 0; i < VBE_DISPI_INDEX_NB_SAVED; i++)
+    for(i = 0; i < (int)u8; i++)
         SSMR3GetU16(pSSM, &pThis->vbe_regs[i]);
     if (version_id <= VGA_SAVEDSTATE_VERSION_INV_VHEIGHT)
-        recalculate_data(pThis, false); /* <- re-calculate the pThis->vbe_regs[VBE_DISPI_INDEX_VIRT_HEIGHT] since it might be invalid */
+        recalculate_data(pThis);    /* <- re-calculate the pThis->vbe_regs[VBE_DISPI_INDEX_VIRT_HEIGHT] since it might be invalid */
     SSMR3GetU32(pSSM, &pThis->vbe_start_addr);
     SSMR3GetU32(pSSM, &pThis->vbe_line_offset);
     if (version_id < 2)
@@ -3023,7 +3017,6 @@ PDMBOTHCBDECL(int) vgaIOPortReadVBEData(PPDMDEVINS pDevIns, void *pvUser, RTIOPO
     PVGASTATE pThis = PDMINS_2_DATA(pDevIns, PVGASTATE); NOREF(pvUser);
     Assert(PDMCritSectIsOwner(pDevIns->CTX_SUFF(pCritSectRo)));
 
-
 #ifdef VBE_BYTEWISE_IO
     if (cb == 1)
     {
@@ -3045,8 +3038,10 @@ PDMBOTHCBDECL(int) vgaIOPortReadVBEData(PPDMDEVINS pDevIns, void *pvUser, RTIOPO
     }
     if (cb == 4)
     {
-        /* Quick hack for getting the vram size. */
-        *pu32 = pThis->vram_size;
+        if (pThis->vbe_regs[VBE_DISPI_INDEX_ID] == VBE_DISPI_ID_CFG)
+            *pu32 = vbe_ioport_read_data(pThis, Port); /* New interface. */
+        else
+            *pu32 = pThis->vram_size; /* Quick hack for getting the vram size. */
         return VINF_SUCCESS;
     }
     AssertMsgFailed(("vgaIOPortReadVBEData: Port=%#x cb=%d\n", Port, cb));
@@ -4847,7 +4842,17 @@ static DECLCALLBACK(int) vgaPortSetRefreshRate(PPDMIDISPLAYPORT pInterface, uint
 {
     PVGASTATE pThis = IDISPLAYPORT_2_VGASTATE(pInterface);
 
-    pThis->cMilliesRefreshInterval = cMilliesInterval;
+    /*
+     * Update the interval, notify the VMSVGA FIFO thread if sleeping,
+     * then restart or stop the timer.
+     */
+    ASMAtomicWriteU32(&pThis->cMilliesRefreshInterval, cMilliesInterval);
+
+#ifdef VBOX_WITH_VMSVGA
+    if (pThis->svga.fFIFOThreadSleeping)
+        SUPSemEventSignal(pThis->svga.pSupDrvSession, pThis->svga.FIFORequestSem);
+#endif
+
     if (cMilliesInterval)
         return TMTimerSetMillies(pThis->RefreshTimer, cMilliesInterval);
     return TMTimerStop(pThis->RefreshTimer);
@@ -5332,7 +5337,8 @@ vgaPortCopyRect(PPDMIDISPLAYPORT pInterface,
      * That is a not paused VBVA means that the video mode can be handled even if VBE_DISPI_ENABLED is clear.
      */
     if (   (pThis->vbe_regs[VBE_DISPI_INDEX_ENABLE] & VBE_DISPI_ENABLED) == 0
-        && VBVAIsPaused(pThis))
+        && VBVAIsPaused(pThis)
+        && !pThis->svga.fEnabled)
     {
         PDMCritSectLeave(&pThis->CritSect);
         return VERR_INVALID_STATE;
@@ -5407,6 +5413,15 @@ static DECLCALLBACK(void) vgaPortSetRenderVRAM(PPDMIDISPLAYPORT pInterface, bool
     PDMCritSectLeave(&pThis->CritSect);
 }
 
+static DECLCALLBACK(void) vgaPortReportHostCursorPosition(PPDMIDISPLAYPORT pInterface, uint32_t x, uint32_t y, bool fOutOfRange)
+{
+    RT_NOREF(pInterface, x, y, fOutOfRange);
+}
+
+static DECLCALLBACK(void) vgaPortReportHostCursorCapabilities(PPDMIDISPLAYPORT pInterface, bool fSupportsRenderCursor, bool fSupportsMoveCursor)
+{
+    RT_NOREF(pInterface, fSupportsRenderCursor, fSupportsMoveCursor);
+}
 
 static DECLCALLBACK(void) vgaTimerRefresh(PPDMDEVINS pDevIns, PTMTIMER pTimer, void *pvUser)
 {
@@ -5430,6 +5445,15 @@ static DECLCALLBACK(void) vgaTimerRefresh(PPDMDEVINS pDevIns, PTMTIMER pTimer, v
 
 #ifdef VBOX_WITH_CRHGSMI
     vboxCmdVBVATimerRefresh(pThis);
+#endif
+
+#ifdef VBOX_WITH_VMSVGA
+    /*
+     * Call the VMSVGA FIFO poller/watchdog so we can wake up the thread if
+     * there is work to be done.
+     */
+    if (pThis->svga.fFIFOThreadSleeping && pThis->svga.fEnabled && pThis->svga.fConfigured)
+        vmsvgaFIFOWatchdogTimer(pThis);
 #endif
 }
 
@@ -5472,11 +5496,11 @@ static DECLCALLBACK(int) vgaR3IORegionMap(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev
     PVGASTATE   pThis = PDMINS_2_DATA(pDevIns, PVGASTATE);
     Log(("vgaR3IORegionMap: iRegion=%d GCPhysAddress=%RGp cb=%RGp enmType=%d\n", iRegion, GCPhysAddress, cb, enmType));
 #ifdef VBOX_WITH_VMSVGA
-    AssertReturn(   iRegion == (pThis->fVMSVGAEnabled ? 1U : 0U)
+    AssertReturn(   iRegion == pThis->pciRegions.iVRAM
                  && enmType == (pThis->fVMSVGAEnabled ? PCI_ADDRESS_SPACE_MEM : PCI_ADDRESS_SPACE_MEM_PREFETCH),
                  VERR_INTERNAL_ERROR);
 #else
-    AssertReturn(iRegion == 0 && enmType == PCI_ADDRESS_SPACE_MEM_PREFETCH, VERR_INTERNAL_ERROR);
+    AssertReturn(iRegion == pThis->pciRegions.iVRAM && enmType == PCI_ADDRESS_SPACE_MEM_PREFETCH, VERR_INTERNAL_ERROR);
 #endif
 
     rc = PDMCritSectEnter(&pThis->CritSect, VERR_SEM_BUSY);
@@ -5539,17 +5563,50 @@ static DECLCALLBACK(int) vgaR3IORegionMap(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev
  */
 static DECLCALLBACK(int) vgaR3PciRegionLoadChangeHook(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev, uint32_t iRegion,
                                                       uint64_t cbRegion, PCIADDRESSSPACE enmType,
-                                                      PFNPCIIOREGIONOLDSETTER pfnOldSetter)
+                                                      PFNPCIIOREGIONOLDSETTER pfnOldSetter, PFNPCIIOREGIONSWAP pfnSwapRegions)
 {
     PVGASTATE pThis = PDMINS_2_DATA(pDevIns, PVGASTATE);
 
 # ifdef VBOX_WITH_VMSVGA
-    /*
-     * The VMSVGA changed the default FIFO size from 128KB to 2MB after 5.1.
-     */
     if (pThis->fVMSVGAEnabled)
     {
-        if (iRegion == 2 /*FIFO*/)
+        /*
+         * We messed up BAR order for the hybrid devices in 6.0 (see #9359).
+         * It should have been compatible with the VBox VGA device and had the
+         * VRAM region first and I/O second, but instead the I/O region ended
+         * up first and VRAM second like the VMSVGA device.
+         *
+         * So, we have to detect that here and reconfigure the memory regions.
+         * Region numbers are used in our (and the PCI bus') interfaction with
+         * PGM, so PGM needs to be informed too.
+         */
+        if (   iRegion == 0
+            && iRegion == pThis->pciRegions.iVRAM
+            && (enmType & PCI_ADDRESS_SPACE_IO))
+        {
+            LogRel(("VGA: Detected old BAR config, making adjustments.\n"));
+
+            /* Update the entries. */
+            pThis->pciRegions.iIO   = 0;
+            pThis->pciRegions.iVRAM = 1;
+
+            /* Update PGM on the region number change so it won't barf when restoring state. */
+            AssertLogRelReturn(pDevIns->CTX_SUFF(pHlp)->pfnMMIOExChangeRegionNo, VERR_VERSION_MISMATCH);
+            int rc = pDevIns->CTX_SUFF(pHlp)->pfnMMIOExChangeRegionNo(pDevIns, pPciDev, 0, 1);
+            AssertLogRelRCReturn(rc, rc);
+
+            /* Update the calling PCI device. */
+            AssertLogRelReturn(pfnSwapRegions, VERR_INTERNAL_ERROR_2);
+            rc = pfnSwapRegions(pPciDev, 0, 1);
+            AssertLogRelRCReturn(rc, rc);
+
+            return rc;
+        }
+
+        /*
+         * The VMSVGA changed the default FIFO size from 128KB to 2MB after 5.1.
+         */
+        if (iRegion == pThis->pciRegions.iFIFO)
         {
             /* Make sure it's still 32-bit memory.  Ignore fluxtuations in the prefetch flag */
             AssertLogRelMsgReturn(!(enmType & (PCI_ADDRESS_SPACE_IO | PCI_ADDRESS_SPACE_BAR64)), ("enmType=%#x\n", enmType),
@@ -5575,12 +5632,14 @@ static DECLCALLBACK(int) vgaR3PciRegionLoadChangeHook(PPDMDEVINS pDevIns, PPDMPC
             return rc;
 
         }
+
         /* Emulate callbacks for 5.1 and older saved states by recursion. */
-        else if (iRegion == UINT32_MAX)
+        if (iRegion == UINT32_MAX)
         {
-            int rc = vgaR3PciRegionLoadChangeHook(pDevIns, pPciDev, 2, VMSVGA_FIFO_SIZE_OLD, PCI_ADDRESS_SPACE_MEM, NULL);
+            int rc = vgaR3PciRegionLoadChangeHook(pDevIns, pPciDev, pThis->pciRegions.iFIFO, VMSVGA_FIFO_SIZE_OLD,
+                                                  PCI_ADDRESS_SPACE_MEM, NULL, NULL);
             if (RT_SUCCESS(rc))
-                rc = pfnOldSetter(pPciDev, 2, VMSVGA_FIFO_SIZE_OLD, PCI_ADDRESS_SPACE_MEM);
+                rc = pfnOldSetter(pPciDev, pThis->pciRegions.iFIFO, VMSVGA_FIFO_SIZE_OLD, PCI_ADDRESS_SPACE_MEM);
             return rc;
         }
     }
@@ -6192,13 +6251,15 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
                                           "MaxBiosYRes\0"
 #ifdef VBOX_WITH_VMSVGA
                                           "VMSVGAEnabled\0"
+                                          "VMSVGAPciId\0"
+                                          "VMSVGAPciBarLayout\0"
                                           "VMSVGAFifoSize\0"
 #endif
 #ifdef VBOX_WITH_VMSVGA3D
                                           "VMSVGA3dEnabled\0"
-                                          "HostWindowId\0"
 #endif
                                           "SuppressNewYearSplash\0"
+                                          "3DEnabled\0"
                                           ))
         return PDMDEV_SET_ERROR(pDevIns, VERR_PDM_DEVINS_UNKNOWN_CFG_VALUES,
                                 N_("Invalid configuration for vga device"));
@@ -6228,10 +6289,22 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     AssertLogRelRCReturn(rc, rc);
     Log(("VGA: VRamSize=%#x fGCenabled=%RTbool fR0Enabled=%RTbool\n", pThis->vram_size, pThis->fGCEnabled, pThis->fR0Enabled));
 
+    rc = CFGMR3QueryBoolDef(pCfg, "3DEnabled", &pThis->f3DEnabled, false);
+    AssertLogRelRCReturn(rc, rc);
+    Log(("VGA: f3DEnabled=%RTbool\n", pThis->f3DEnabled));
+
 #ifdef VBOX_WITH_VMSVGA
     rc = CFGMR3QueryBoolDef(pCfg, "VMSVGAEnabled", &pThis->fVMSVGAEnabled, false);
     AssertLogRelRCReturn(rc, rc);
     Log(("VMSVGA: VMSVGAEnabled   = %d\n", pThis->fVMSVGAEnabled));
+
+    rc = CFGMR3QueryBoolDef(pCfg, "VMSVGAPciId", &pThis->fVMSVGAPciId, false);
+    AssertLogRelRCReturn(rc, rc);
+    Log(("VMSVGA: VMSVGAPciId   = %d\n", pThis->fVMSVGAPciId));
+
+    rc = CFGMR3QueryBoolDef(pCfg, "VMSVGAPciBarLayout", &pThis->fVMSVGAPciBarLayout, pThis->fVMSVGAPciId);
+    AssertLogRelRCReturn(rc, rc);
+    Log(("VMSVGA: VMSVGAPciBarLayout = %d\n", pThis->fVMSVGAPciBarLayout));
 
     rc = CFGMR3QueryU32Def(pCfg, "VMSVGAFifoSize", &pThis->svga.cbFIFO, VMSVGA_FIFO_SIZE);
     AssertLogRelRCReturn(rc, rc);
@@ -6244,10 +6317,24 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
 #ifdef VBOX_WITH_VMSVGA3D
     rc = CFGMR3QueryBoolDef(pCfg, "VMSVGA3dEnabled", &pThis->svga.f3DEnabled, false);
     AssertLogRelRCReturn(rc, rc);
-    rc = CFGMR3QueryU64Def(pCfg, "HostWindowId", &pThis->svga.u64HostWindowId, 0);
-    AssertLogRelRCReturn(rc, rc);
     Log(("VMSVGA: VMSVGA3dEnabled = %d\n", pThis->svga.f3DEnabled));
-    Log(("VMSVGA: HostWindowId    = 0x%x\n", pThis->svga.u64HostWindowId));
+#endif
+
+    
+#ifdef VBOX_WITH_VMSVGA
+    if (pThis->fVMSVGAPciBarLayout)
+    {
+        pThis->pciRegions.iIO   = 0;
+        pThis->pciRegions.iVRAM = 1;
+    }
+    else
+    {
+        pThis->pciRegions.iVRAM = 0;
+        pThis->pciRegions.iIO   = 1;
+    }
+    pThis->pciRegions.iFIFO = 2;
+#else
+    pThis->pciRegions.iVRAM = 0;
 #endif
 
     pThis->pDevInsR3 = pDevIns;
@@ -6261,8 +6348,16 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     if (pThis->fVMSVGAEnabled)
     {
         /* Extend our VGA device with VMWare SVGA functionality. */
-        PCIDevSetVendorId(&pThis->Dev, PCI_VENDOR_ID_VMWARE);
-        PCIDevSetDeviceId(&pThis->Dev, PCI_DEVICE_ID_VMWARE_SVGA2);
+        if (pThis->fVMSVGAPciId)
+        {
+            PCIDevSetVendorId(&pThis->Dev, PCI_VENDOR_ID_VMWARE);
+            PCIDevSetDeviceId(&pThis->Dev, PCI_DEVICE_ID_VMWARE_SVGA2);
+        }
+        else
+        {
+            PCIDevSetVendorId(&pThis->Dev, 0x80ee);   /* PCI vendor, just a free bogus value */
+            PCIDevSetDeviceId(&pThis->Dev, 0xbeef);
+        }
         PCIDevSetSubSystemVendorId(&pThis->Dev, PCI_VENDOR_ID_VMWARE);
         PCIDevSetSubSystemId(&pThis->Dev, PCI_DEVICE_ID_VMWARE_SVGA2);
     }
@@ -6301,9 +6396,9 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
 #endif
     pThis->IPort.pfnSendModeHint        = vbvaPortSendModeHint;
     pThis->IPort.pfnReportHostCursorCapabilities
-                                        = vbvaPortReportHostCursorCapabilities;
+                                        = vgaPortReportHostCursorCapabilities;
     pThis->IPort.pfnReportHostCursorPosition
-                                        = vbvaPortReportHostCursorPosition;
+                                        = vgaPortReportHostCursorPosition;
 
 #if defined(VBOX_WITH_HGSMI)
 # if defined(VBOX_WITH_VIDEOHWACCEL)
@@ -6349,15 +6444,15 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     if (pThis->fVMSVGAEnabled)
     {
         /* Register the io command ports. */
-        rc = PDMDevHlpPCIIORegionRegister (pDevIns, 0 /* iRegion */, 0x10, PCI_ADDRESS_SPACE_IO, vmsvgaR3IORegionMap);
+        rc = PDMDevHlpPCIIORegionRegister(pDevIns, pThis->pciRegions.iIO, 0x10, PCI_ADDRESS_SPACE_IO, vmsvgaR3IORegionMap);
         if (RT_FAILURE (rc))
             return rc;
         /* VMware's MetalKit doesn't like PCI_ADDRESS_SPACE_MEM_PREFETCH */
-        rc = PDMDevHlpPCIIORegionRegister(pDevIns, 1 /* iRegion */, pThis->vram_size,
+        rc = PDMDevHlpPCIIORegionRegister(pDevIns, pThis->pciRegions.iVRAM, pThis->vram_size,
                                           PCI_ADDRESS_SPACE_MEM /* PCI_ADDRESS_SPACE_MEM_PREFETCH */, vgaR3IORegionMap);
         if (RT_FAILURE(rc))
             return rc;
-        rc = PDMDevHlpPCIIORegionRegister(pDevIns, 2 /* iRegion */, pThis->svga.cbFIFO,
+        rc = PDMDevHlpPCIIORegionRegister(pDevIns, pThis->pciRegions.iFIFO, pThis->svga.cbFIFO,
                                           PCI_ADDRESS_SPACE_MEM /* PCI_ADDRESS_SPACE_MEM_PREFETCH */, vmsvgaR3IORegionMap);
         if (RT_FAILURE(rc))
             return rc;
@@ -6366,12 +6461,7 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     else
 #endif /* VBOX_WITH_VMSVGA */
     {
-#ifdef VBOX_WITH_VMSVGA
-        int iPCIRegionVRAM = (pThis->fVMSVGAEnabled) ? 1 : 0;
-#else
-        int iPCIRegionVRAM = 0;
-#endif
-        rc = PDMDevHlpPCIIORegionRegister(pDevIns, iPCIRegionVRAM, pThis->vram_size,
+        rc = PDMDevHlpPCIIORegionRegister(pDevIns, pThis->pciRegions.iVRAM, pThis->vram_size,
                                           PCI_ADDRESS_SPACE_MEM_PREFETCH, vgaR3IORegionMap);
         if (RT_FAILURE(rc))
             return rc;
@@ -6381,31 +6471,27 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
      * Allocate the VRAM and map the first 512KB of it into GC so we can speed up VGA support.
      */
 #ifdef VBOX_WITH_VMSVGA
-    int iPCIRegionVRAM = (pThis->fVMSVGAEnabled) ? 1 : 0;
-
     if (pThis->fVMSVGAEnabled)
     {
         /*
          * Allocate and initialize the FIFO MMIO2 memory.
          */
-        rc = PDMDevHlpMMIO2Register(pDevIns, &pThis->Dev, 2 /*iRegion*/, pThis->svga.cbFIFO,
+        rc = PDMDevHlpMMIO2Register(pDevIns, &pThis->Dev, pThis->pciRegions.iFIFO, pThis->svga.cbFIFO,
                                     0 /*fFlags*/, (void **)&pThis->svga.pFIFOR3, "VMSVGA-FIFO");
         if (RT_FAILURE(rc))
             return PDMDevHlpVMSetError(pDevIns, rc, RT_SRC_POS,
                                         N_("Failed to allocate %u bytes of memory for the VMSVGA device"), pThis->svga.cbFIFO);
         pThis->svga.pFIFOR0 = (RTR0PTR)pThis->svga.pFIFOR3;
     }
-#else
-    int iPCIRegionVRAM = 0;
 #endif
-    rc = PDMDevHlpMMIO2Register(pDevIns, &pThis->Dev, iPCIRegionVRAM, pThis->vram_size, 0, (void **)&pThis->vram_ptrR3, "VRam");
+    rc = PDMDevHlpMMIO2Register(pDevIns, &pThis->Dev, pThis->pciRegions.iVRAM, pThis->vram_size, 0, (void **)&pThis->vram_ptrR3, "VRam");
     AssertLogRelMsgRCReturn(rc, ("PDMDevHlpMMIO2Register(%#x,) -> %Rrc\n", pThis->vram_size, rc), rc);
     pThis->vram_ptrR0 = (RTR0PTR)pThis->vram_ptrR3; /** @todo @bugref{1865} Map parts into R0 or just use PGM access (Mac only). */
 
     if (pThis->fGCEnabled)
     {
         RTRCPTR pRCMapping = 0;
-        rc = PDMDevHlpMMHyperMapMMIO2(pDevIns, &pThis->Dev, iPCIRegionVRAM, 0 /* off */,  VGA_MAPPING_SIZE,
+        rc = PDMDevHlpMMHyperMapMMIO2(pDevIns, &pThis->Dev, pThis->pciRegions.iVRAM, 0 /* off */,  VGA_MAPPING_SIZE,
                                       "VGA VRam", &pRCMapping);
         AssertLogRelMsgRCReturn(rc, ("PDMDevHlpMMHyperMapMMIO2(%#x,) -> %Rrc\n", VGA_MAPPING_SIZE, rc), rc);
         pThis->vram_ptrRC = pRCMapping;
@@ -6425,7 +6511,7 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
         if (pThis->fVMSVGAEnabled)
         {
             RTR0PTR pR0Mapping = 0;
-            rc = PDMDevHlpMMIO2MapKernel(pDevIns, 2 /* iRegion */, 0 /* off */,  pThis->svga.cbFIFO, "VMSVGA-FIFO", &pR0Mapping);
+            rc = PDMDevHlpMMIO2MapKernel(pDevIns, pThis->pciRegions.iFIFO, 0 /* off */,  pThis->svga.cbFIFO, "VMSVGA-FIFO", &pR0Mapping);
             AssertLogRelMsgRCReturn(rc, ("PDMDevHlpMapMMIO2IntoR0(%#x,) -> %Rrc\n", pThis->svga.cbFIFO, rc), rc);
             pThis->svga.pFIFOR0 = pR0Mapping;
         }

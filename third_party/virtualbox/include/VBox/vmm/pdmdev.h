@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -23,12 +23,17 @@
  * terms and conditions of either the GPL or the CDDL or both.
  */
 
-#ifndef ___VBox_vmm_pdmdev_h
-#define ___VBox_vmm_pdmdev_h
+#ifndef VBOX_INCLUDED_vmm_pdmdev_h
+#define VBOX_INCLUDED_vmm_pdmdev_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 #include <VBox/vmm/pdmqueue.h>
 #include <VBox/vmm/pdmcritsect.h>
-#include <VBox/vmm/pdmthread.h>
+#ifdef IN_RING3
+# include <VBox/vmm/pdmthread.h>
+#endif
 #include <VBox/vmm/pdmifs.h>
 #include <VBox/vmm/pdmins.h>
 #include <VBox/vmm/pdmcommon.h>
@@ -38,9 +43,7 @@
 #include <VBox/vmm/ssm.h>
 #include <VBox/vmm/cfgm.h>
 #include <VBox/vmm/dbgf.h>
-#include <VBox/err.h>
-#include <VBox/pci.h>
-#include <VBox/sup.h>
+#include <VBox/err.h>  /* VINF_EM_DBG_STOP, also 120+ source files expecting this. */
 #include <iprt/stdarg.h>
 
 
@@ -1208,7 +1211,9 @@ typedef struct PDMIOAPICREG
      * @param   iIrq            IRQ number to set.
      * @param   iLevel          IRQ level. See the PDM_IRQ_LEVEL_* \#defines.
      * @param   uTagSrc         The IRQ tag and source (for tracing).
+     *
      * @remarks Caller enters the PDM critical section
+     *          Actually, as per 2018-07-21 this isn't true (bird).
      */
     DECLR3CALLBACKMEMBER(void, pfnSetIrqR3,(PPDMDEVINS pDevIns, int iIrq, int iLevel, uint32_t uTagSrc));
 
@@ -1225,7 +1230,9 @@ typedef struct PDMIOAPICREG
      * @param   GCPhys          Request address.
      * @param   uValue          Request value.
      * @param   uTagSrc         The IRQ tag and source (for tracing).
+     *
      * @remarks Caller enters the PDM critical section
+     *          Actually, as per 2018-07-21 this isn't true (bird).
      */
     DECLR3CALLBACKMEMBER(void, pfnSendMsiR3,(PPDMDEVINS pDevIns, RTGCPHYS GCPhys, uint32_t uValue, uint32_t uTagSrc));
 
@@ -1238,10 +1245,15 @@ typedef struct PDMIOAPICREG
     /**
      * Set the EOI for an interrupt vector.
      *
-     * @returns VBox status code.
+     * @returns Strict VBox status code - only the following informational status codes:
+     * @retval  VINF_IOM_R3_MMIO_WRITE if the I/O APIC lock is contenteded and we're in R0 or RC.2
+     * @retval  VINF_SUCCESS
+     *
      * @param   pDevIns         Device instance of the I/O APIC.
      * @param   u8Vector        The vector.
+     *
      * @remarks Caller enters the PDM critical section
+     *          Actually, as per 2018-07-21 this isn't true (bird).
      */
     DECLR3CALLBACKMEMBER(int, pfnSetEoiR3,(PPDMDEVINS pDevIns, uint8_t u8Vector));
 
@@ -1877,7 +1889,7 @@ typedef const PDMRTCHLP *PCPDMRTCHLP;
 /** @}   */
 
 /** Current PDMDEVHLPR3 version number. */
-#define PDM_DEVHLPR3_VERSION                    PDM_VERSION_MAKE_PP(0xffe7, 22, 0)
+#define PDM_DEVHLPR3_VERSION                    PDM_VERSION_MAKE_PP(0xffe7, 22, 2)
 
 /**
  * PDM Device API.
@@ -3282,6 +3294,109 @@ typedef struct PDMDEVHLPR3
      */
     DECLR3CALLBACKMEMBER(VMRESUMEREASON, pfnVMGetResumeReason,(PPDMDEVINS pDevIns));
 
+    /**
+     * Requests the mapping of multiple guest page into ring-3.
+     *
+     * When you're done with the pages, call pfnPhysBulkReleasePageMappingLocks()
+     * ASAP to release them.
+     *
+     * This API will assume your intention is to write to the pages, and will
+     * therefore replace shared and zero pages. If you do not intend to modify the
+     * pages, use the pfnPhysBulkGCPhys2CCPtrReadOnly() API.
+     *
+     * @returns VBox status code.
+     * @retval  VINF_SUCCESS on success.
+     * @retval  VERR_PGM_PHYS_PAGE_RESERVED if any of the pages has no physical
+     *          backing or if any of the pages the page has any active access
+     *          handlers. The caller must fall back on using PGMR3PhysWriteExternal.
+     * @retval  VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS if @a paGCPhysPages contains
+     *          an invalid physical address.
+     *
+     * @param   pDevIns             The device instance.
+     * @param   cPages              Number of pages to lock.
+     * @param   paGCPhysPages       The guest physical address of the pages that
+     *                              should be mapped (@a cPages entries).
+     * @param   fFlags              Flags reserved for future use, MBZ.
+     * @param   papvPages           Where to store the ring-3 mapping addresses
+     *                              corresponding to @a paGCPhysPages.
+     * @param   paLocks             Where to store the locking information that
+     *                              pfnPhysBulkReleasePageMappingLock needs (@a cPages
+     *                              in length).
+     *
+     * @remark  Avoid calling this API from within critical sections (other than the
+     *          PGM one) because of the deadlock risk when we have to delegating the
+     *          task to an EMT.
+     * @thread  Any.
+     * @since   6.0.6
+     */
+    DECLR3CALLBACKMEMBER(int, pfnPhysBulkGCPhys2CCPtr,(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                                       uint32_t fFlags, void **papvPages, PPGMPAGEMAPLOCK paLocks));
+
+    /**
+     * Requests the mapping of multiple guest page into ring-3, for reading only.
+     *
+     * When you're done with the pages, call pfnPhysBulkReleasePageMappingLocks()
+     * ASAP to release them.
+     *
+     * @returns VBox status code.
+     * @retval  VINF_SUCCESS on success.
+     * @retval  VERR_PGM_PHYS_PAGE_RESERVED if any of the pages has no physical
+     *          backing or if any of the pages the page has an active ALL access
+     *          handler. The caller must fall back on using PGMR3PhysWriteExternal.
+     * @retval  VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS if @a paGCPhysPages contains
+     *          an invalid physical address.
+     *
+     * @param   pDevIns             The device instance.
+     * @param   cPages              Number of pages to lock.
+     * @param   paGCPhysPages       The guest physical address of the pages that
+     *                              should be mapped (@a cPages entries).
+     * @param   fFlags              Flags reserved for future use, MBZ.
+     * @param   papvPages           Where to store the ring-3 mapping addresses
+     *                              corresponding to @a paGCPhysPages.
+     * @param   paLocks             Where to store the lock information that
+     *                              pfnPhysReleasePageMappingLock needs (@a cPages
+     *                              in length).
+     *
+     * @remark  Avoid calling this API from within critical sections.
+     * @thread  Any.
+     * @since   6.0.6
+     */
+    DECLR3CALLBACKMEMBER(int, pfnPhysBulkGCPhys2CCPtrReadOnly,(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                                               uint32_t fFlags, void const **papvPages, PPGMPAGEMAPLOCK paLocks));
+
+    /**
+     * Release the mappings of multiple guest pages.
+     *
+     * This is the counter part of pfnPhysBulkGCPhys2CCPtr and
+     * pfnPhysBulkGCPhys2CCPtrReadOnly.
+     *
+     * @param   pDevIns             The device instance.
+     * @param   cPages              Number of pages to unlock.
+     * @param   paLocks             The lock structures initialized by the mapping
+     *                              function (@a cPages in length).
+     * @thread  Any.
+     * @since   6.0.6
+     */
+    DECLR3CALLBACKMEMBER(void, pfnPhysBulkReleasePageMappingLocks,(PPDMDEVINS pDevIns, uint32_t cPages, PPGMPAGEMAPLOCK paLocks));
+
+    /**
+     * Changes the number of an MMIO2 or pre-registered MMIO region.
+     *
+     * This should only be used to deal with saved state problems, so there is no
+     * convenience inline wrapper for this method.
+     *
+     * @returns VBox status code.
+     * @param   pDevIns             The device instance.
+     * @param   pPciDev             The PCI device the region is associated with, or
+     *                              NULL if not associated with any.
+     * @param   iRegion             The region.
+     * @param   iNewRegion          The new region index.
+     *
+     * @sa      @bugref{9359}
+     */
+    DECLR3CALLBACKMEMBER(int, pfnMMIOExChangeRegionNo,(PPDMDEVINS pDevIns, PPDMPCIDEV pPciDev, uint32_t iRegion,
+                                                       uint32_t iNewRegion));
+
     /** Space reserved for future members.
      * @{ */
     DECLR3CALLBACKMEMBER(void, pfnReserved1,(void));
@@ -3290,10 +3405,10 @@ typedef struct PDMDEVHLPR3
     DECLR3CALLBACKMEMBER(void, pfnReserved4,(void));
     DECLR3CALLBACKMEMBER(void, pfnReserved5,(void));
     DECLR3CALLBACKMEMBER(void, pfnReserved6,(void));
-    DECLR3CALLBACKMEMBER(void, pfnReserved7,(void));
-    DECLR3CALLBACKMEMBER(void, pfnReserved8,(void));
-    DECLR3CALLBACKMEMBER(void, pfnReserved9,(void));
-    DECLR3CALLBACKMEMBER(void, pfnReserved10,(void));
+    /*DECLR3CALLBACKMEMBER(void, pfnReserved7,(void)); */
+    /*DECLR3CALLBACKMEMBER(void, pfnReserved8,(void)); */
+    /*DECLR3CALLBACKMEMBER(void, pfnReserved9,(void)); */
+    /*DECLR3CALLBACKMEMBER(void, pfnReserved10,(void));*/
     /** @} */
 
 
@@ -3332,7 +3447,7 @@ typedef struct PDMDEVHLPR3
     /**
      * The the VM CPU ID of the current thread (restricted API).
      *
-     * @returns The VMCPUID of the calling thread, NIL_CPUID if not EMT.
+     * @returns The VMCPUID of the calling thread, NIL_VMCPUID if not EMT.
      * @param   pDevIns             The device instance.
      */
     DECLR3CALLBACKMEMBER(VMCPUID, pfnGetCurrentCpuId,(PPDMDEVINS pDevIns));
@@ -3699,7 +3814,7 @@ typedef struct PDMDEVHLPRC
     /**
      * The the VM CPU ID of the current thread (restricted API).
      *
-     * @returns The VMCPUID of the calling thread, NIL_CPUID if not EMT.
+     * @returns The VMCPUID of the calling thread, NIL_VMCPUID if not EMT.
      * @param   pDevIns             The device instance.
      */
     DECLRCCALLBACKMEMBER(VMCPUID, pfnGetCurrentCpuId,(PPDMDEVINS pDevIns));
@@ -3950,14 +4065,6 @@ typedef struct PDMDEVHLPR0
     DECLR0CALLBACKMEMBER(PVM, pfnGetVM,(PPDMDEVINS pDevIns));
 
     /**
-     * Checks if our current CPU state allows for IO block emulation fallback to the recompiler
-     *
-     * @returns true = yes, false = no
-     * @param   pDevIns         Device instance.
-     */
-    DECLR0CALLBACKMEMBER(bool, pfnCanEmulateIoBlock,(PPDMDEVINS pDevIns));
-
-    /**
      * Gets the VMCPU handle. Restricted API.
      *
      * @returns VMCPU Handle.
@@ -3968,7 +4075,7 @@ typedef struct PDMDEVHLPR0
     /**
      * The the VM CPU ID of the current thread (restricted API).
      *
-     * @returns The VMCPUID of the calling thread, NIL_CPUID if not EMT.
+     * @returns The VMCPUID of the calling thread, NIL_VMCPUID if not EMT.
      * @param   pDevIns             The device instance.
      */
     DECLR0CALLBACKMEMBER(VMCPUID, pfnGetCurrentCpuId,(PPDMDEVINS pDevIns));
@@ -4032,7 +4139,7 @@ typedef R0PTRTYPE(struct PDMDEVHLPR0 *) PPDMDEVHLPR0;
 typedef R0PTRTYPE(const struct PDMDEVHLPR0 *) PCPDMDEVHLPR0;
 
 /** Current PDMDEVHLP version number. */
-#define PDM_DEVHLPR0_VERSION                    PDM_VERSION_MAKE(0xffe5, 7, 0)
+#define PDM_DEVHLPR0_VERSION                    PDM_VERSION_MAKE(0xffe5, 8, 0)
 
 
 
@@ -4594,6 +4701,32 @@ DECLINLINE(int) PDMDevHlpPhysGCPhys2CCPtrReadOnly(PPDMDEVINS pDevIns, RTGCPHYS G
 DECLINLINE(void) PDMDevHlpPhysReleasePageMappingLock(PPDMDEVINS pDevIns, PPGMPAGEMAPLOCK pLock)
 {
     pDevIns->CTX_SUFF(pHlp)->pfnPhysReleasePageMappingLock(pDevIns, pLock);
+}
+
+/**
+ * @copydoc PDMDEVHLPR3::pfnPhysBulkGCPhys2CCPtr
+ */
+DECLINLINE(int) PDMDevHlpPhysBulkGCPhys2CCPtr(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                              uint32_t fFlags, void **papvPages, PPGMPAGEMAPLOCK paLocks)
+{
+    return pDevIns->CTX_SUFF(pHlp)->pfnPhysBulkGCPhys2CCPtr(pDevIns, cPages, paGCPhysPages, fFlags, papvPages, paLocks);
+}
+
+/**
+ * @copydoc PDMDEVHLPR3::pfnPhysBulkGCPhys2CCPtrReadOnly
+ */
+DECLINLINE(int) PDMDevHlpPhysBulkGCPhys2CCPtrReadOnly(PPDMDEVINS pDevIns, uint32_t cPages, PCRTGCPHYS paGCPhysPages,
+                                                      uint32_t fFlags, void const **papvPages, PPGMPAGEMAPLOCK paLocks)
+{
+    return pDevIns->CTX_SUFF(pHlp)->pfnPhysBulkGCPhys2CCPtrReadOnly(pDevIns, cPages, paGCPhysPages, fFlags, papvPages, paLocks);
+}
+
+/**
+ * @copydoc PDMDEVHLPR3::pfnPhysBulkReleasePageMappingLocks
+ */
+DECLINLINE(void) PDMDevHlpPhysBulkReleasePageMappingLocks(PPDMDEVINS pDevIns, uint32_t cPages, PPGMPAGEMAPLOCK paLocks)
+{
+    pDevIns->CTX_SUFF(pHlp)->pfnPhysBulkReleasePageMappingLocks(pDevIns, cPages, paLocks);
 }
 
 /**
@@ -5380,20 +5513,6 @@ DECLINLINE(void *) PDMDevHlpQueryGenericUserObject(PPDMDEVINS pDevIns, PCRTUUID 
 }
 
 #endif /* IN_RING3 */
-#ifdef IN_RING0
-
-/**
- * @copydoc PDMDEVHLPR0::pfnCanEmulateIoBlock
- */
-DECLINLINE(bool) PDMDevHlpCanEmulateIoBlock(PPDMDEVINS pDevIns)
-{
-    return pDevIns->CTX_SUFF(pHlp)->pfnCanEmulateIoBlock(pDevIns);
-}
-
-#endif /* IN_RING0 */
-
-
-
 
 /** Pointer to callbacks provided to the VBoxDeviceRegister() call. */
 typedef struct PDMDEVREGCB *PPDMDEVREGCB;
@@ -5438,4 +5557,4 @@ typedef DECLCALLBACK(int) FNPDMVBOXDEVICESREGISTER(PPDMDEVREGCB pCallbacks, uint
 
 RT_C_DECLS_END
 
-#endif
+#endif /* !VBOX_INCLUDED_vmm_pdmdev_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2017 Oracle Corporation
+ * Copyright (C) 2013-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -21,7 +21,7 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_DEV_VMSVGA
 #include <VBox/vmm/pdmdev.h>
-#include <VBox/err.h>
+#include <iprt/errcore.h>
 #include <VBox/log.h>
 
 #include <iprt/assert.h>
@@ -344,8 +344,7 @@ int vmsvga3dLoadExec(PVGASTATE pThis, PSSMHANDLE pSSM, uint32_t uVersion, uint32
                 }
             }
 
-#if 0 /** @todo */
-            if (uVersion >= VGA_SAVEDSTATE_VERSION_VMSVGA_TEX_STAGES) /** @todo VGA_SAVEDSTATE_VERSION_VMSVGA_3D */
+            if (uVersion >= VGA_SAVEDSTATE_VERSION_VMSVGA)
             {
                 VMSVGA3DQUERY query;
                 RT_ZERO(query);
@@ -383,7 +382,6 @@ int vmsvga3dLoadExec(PVGASTATE pThis, PSSMHANDLE pSSM, uint32_t uVersion, uint32
                         break;
                 }
             }
-#endif
         }
     }
 
@@ -503,7 +501,7 @@ int vmsvga3dLoadExec(PVGASTATE pThis, PSSMHANDLE pSSM, uint32_t uVersion, uint32
 
 static int vmsvga3dSaveContext(PVGASTATE pThis, PSSMHANDLE pSSM, PVMSVGA3DCONTEXT pContext)
 {
-    RT_NOREF(pThis);
+    PVMSVGA3DSTATE pState = pThis->svga.p3dState;
     uint32_t cid = pContext->id;
 
     /* Save the id first. */
@@ -600,8 +598,6 @@ static int vmsvga3dSaveContext(PVGASTATE pThis, PSSMHANDLE pSSM, PVMSVGA3DCONTEX
             }
         }
 
-#if 0 /** @todo Enable later. */
-        PVMSVGA3DSTATE pState = pThis->svga.p3dState;
         /* Occlusion query. */
         if (!VMSVGA3DQUERY_EXISTS(&pContext->occlusion))
         {
@@ -634,7 +630,6 @@ static int vmsvga3dSaveContext(PVGASTATE pThis, PSSMHANDLE pSSM, PVMSVGA3DCONTEX
 
         rc = SSMR3PutStructEx(pSSM, &pContext->occlusion, sizeof(pContext->occlusion), 0, g_aVMSVGA3DQUERYFields, NULL);
         AssertRCReturn(rc, rc);
-#endif
     }
 
     return VINF_SUCCESS;
@@ -705,11 +700,7 @@ int vmsvga3dSaveExec(PVGASTATE pThis, PSSMHANDLE pSSM)
 
                     Log(("Surface sid=%d: save mipmap level %d with %x bytes data.\n", sid, i, pMipmapLevel->cbSurface));
 
-#ifdef VMSVGA3D_DIRECT3D
-                    if (!pSurface->u.pSurface)
-#else
-                    if (pSurface->oglId.texture == OPENGL_INVALID_ID)
-#endif
+                    if (!VMSVGA3DSURFACE_HAS_HW_SURFACE(pSurface))
                     {
                         if (pMipmapLevel->fDirty)
                         {
@@ -892,22 +883,19 @@ int vmsvga3dSaveExec(PVGASTATE pThis, PSSMHANDLE pSSM)
 
                         Assert(pMipmapLevel->cbSurface);
 
-                        switch (pSurface->surfaceFlags & VMSVGA3D_SURFACE_HINT_SWITCH_MASK)
+                        switch (pSurface->enmOGLResType)
                         {
                         default:
                             AssertFailed();
                             RT_FALL_THRU();
-                        case SVGA3D_SURFACE_HINT_DEPTHSTENCIL:
-                        case SVGA3D_SURFACE_HINT_DEPTHSTENCIL | SVGA3D_SURFACE_HINT_TEXTURE:
-                            /** @todo fetch data from the renderbuffer */
+                        case VMSVGA3D_OGLRESTYPE_RENDERBUFFER:
+                            /** @todo fetch data from the renderbuffer. Not used currently. */
                             /* No data follows */
                             rc = SSMR3PutBool(pSSM, false);
                             AssertRCReturn(rc, rc);
                             break;
 
-                        case SVGA3D_SURFACE_HINT_TEXTURE | SVGA3D_SURFACE_HINT_RENDERTARGET:
-                        case SVGA3D_SURFACE_HINT_TEXTURE:
-                        case SVGA3D_SURFACE_HINT_RENDERTARGET:
+                        case VMSVGA3D_OGLRESTYPE_TEXTURE:
                         {
                             GLint activeTexture;
 
@@ -947,9 +935,7 @@ int vmsvga3dSaveExec(PVGASTATE pThis, PSSMHANDLE pSSM)
                             break;
                         }
 
-                        case SVGA3D_SURFACE_HINT_VERTEXBUFFER | SVGA3D_SURFACE_HINT_INDEXBUFFER:
-                        case SVGA3D_SURFACE_HINT_VERTEXBUFFER:
-                        case SVGA3D_SURFACE_HINT_INDEXBUFFER:
+                        case VMSVGA3D_OGLRESTYPE_BUFFER:
                         {
                             uint8_t *pBufferData;
 

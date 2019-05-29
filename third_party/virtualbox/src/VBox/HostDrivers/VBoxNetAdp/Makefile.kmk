@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2009-2017 Oracle Corporation
+# Copyright (C) 2009-2019 Oracle Corporation
 #
 # This file is part of VirtualBox Open Source Edition (OSE), as
 # available from http://www.virtualbox.org. This file is free software;
@@ -175,13 +175,16 @@ $$(VBoxNetAdp-src_0_OUTDIR)/Makefile: \
 		| $$(dir $$@)
 	$(QUIET)$(RM) -f -- $@
  ifndef VBOX_WITH_HARDENING
-	$(QUIET)$(SED) -e "s;-DVBOX_WITH_HARDENING;;g" --output $@ $<
+	$(QUIET)$(SED) -e "s;VBOX_WITH_HARDENING;;g" --output $@ $<
  else
 	$(QUIET)$(CP) -f $< $@
  endif
 	%$(QUIET2)$(APPEND) -t '$(PATH_TARGET)/VBoxNetAdp-src-1.dep' 'VBoxNetAdp/linux/Makefile_VBOX_HARDENED=$(VBOX_WITH_HARDENING)'
 
-
+ #
+ # Build test for the linux host kernel modules.
+ #
+ $(evalcall2 VBOX_LINUX_KMOD_TEST_BUILD_RULE_FN,VBoxNetAdp-src,vboxdrv-src,)
 endif # linux
 
 ifeq ($(KBUILD_TARGET),freebsd)
@@ -204,7 +207,7 @@ $$(VBoxNetAdp-src_0_OUTDIR)/Makefile: \
 		| $$(dir $$@)
 	$(QUIET)$(RM) -f -- $@
  ifndef VBOX_WITH_HARDENING
-	$(QUIET)$(SED) -e "s;-DVBOX_WITH_HARDENING;;g" --output $@ $<
+	$(QUIET)$(SED) -e "s;VBOX_WITH_HARDENING;;g" --output $@ $<
  else
 	$(QUIET)$(CP) -f $< $@
  endif

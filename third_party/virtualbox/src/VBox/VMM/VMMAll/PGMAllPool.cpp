@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -92,12 +92,10 @@ DECLINLINE(bool) pgmPoolIsBigPage(PGMPOOLKIND enmKind)
 /**
  * Flushes a chain of pages sharing the same access monitor.
  *
- * @returns VBox status code suitable for scheduling.
  * @param   pPool       The pool.
  * @param   pPage       A page in the chain.
- * @todo VBOXSTRICTRC
  */
-int pgmPoolMonitorChainFlush(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
+void pgmPoolMonitorChainFlush(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
 {
     LogFlow(("pgmPoolMonitorChainFlush: Flush page %RGp type=%d\n", pPage->GCPhys, pPage->enmKind));
 
@@ -118,7 +116,6 @@ int pgmPoolMonitorChainFlush(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
     /*
      * Iterate the list flushing each shadow page.
      */
-    int rc = VINF_SUCCESS;
     for (;;)
     {
         idx = pPage->iMonitoredNext;
@@ -133,7 +130,6 @@ int pgmPoolMonitorChainFlush(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
             break;
         pPage = &pPool->aPages[idx];
     }
-    return rc;
 }
 
 
@@ -867,19 +863,19 @@ static int pgmRZPoolAccessPfHandlerFlush(PVM pVM, PVMCPU pVCpu, PPGMPOOL pPool, 
     /*
      * First, do the flushing.
      */
-    int rc = pgmPoolMonitorChainFlush(pPool, pPage);
+    pgmPoolMonitorChainFlush(pPool, pPage);
 
     /*
      * Emulate the instruction (xp/w2k problem, requires pc/cr2/sp detection).
      * Must do this in raw mode (!); XP boot will fail otherwise.
      */
+    int rc = VINF_SUCCESS;
     VBOXSTRICTRC rc2 = EMInterpretInstructionDisasState(pVCpu, pDis, pRegFrame, pvFault, EMCODETYPE_ALL);
     if (rc2 == VINF_SUCCESS)
     { /* do nothing */ }
     else if (rc2 == VINF_EM_RESCHEDULE)
     {
-        if (rc == VINF_SUCCESS)
-            rc = VBOXSTRICTRC_VAL(rc2);
+        rc = VBOXSTRICTRC_VAL(rc2);
 # ifndef IN_RING3
         VMCPU_FF_SET(pVCpu, VMCPU_FF_TO_R3);
 # endif
@@ -1485,10 +1481,7 @@ pgmPoolAccessHandler(PVM pVM, PVMCPU pVCpu, RTGCPHYS GCPhys, void *pvPhys, void 
             }
         }
         else
-        {
-            /* ASSUME that VERR_PGM_POOL_CLEARED can be ignored here and that FFs will deal with it in due time. */
             pgmPoolMonitorChainFlush(pPool, pPage);
-        }
 
         STAM_PROFILE_STOP_EX(&pPool->CTX_SUFF_Z(StatMonitor), &pPool->CTX_MID_Z(StatMonitor,FlushPage), a);
     }
@@ -1499,9 +1492,9 @@ pgmPoolAccessHandler(PVM pVM, PVMCPU pVCpu, RTGCPHYS GCPhys, void *pvPhys, void 
 }
 
 
-# ifdef PGMPOOL_WITH_OPTIMIZED_DIRTY_PT
+#ifdef PGMPOOL_WITH_OPTIMIZED_DIRTY_PT
 
-#  if defined(VBOX_STRICT) && !defined(IN_RING3)
+# if defined(VBOX_STRICT) && !defined(IN_RING3)
 
 /**
  * Check references to guest physical memory in a PAE / PAE page table.
@@ -1519,10 +1512,10 @@ static void pgmPoolTrackCheckPTPaePae(PPGMPOOL pPool, PPGMPOOLPAGE pPage, PPGMSH
     RTHCPHYS LastHCPhys = NIL_RTHCPHYS; /* initialized to shut up gcc */
     PVM      pVM        = pPool->CTX_SUFF(pVM);
 
-#ifdef VBOX_STRICT
+#  ifdef VBOX_STRICT
     for (unsigned i = 0; i < RT_MIN(RT_ELEMENTS(pShwPT->a), pPage->iFirstPresent); i++)
         AssertMsg(!PGMSHWPTEPAE_IS_P(pShwPT->a[i]), ("Unexpected PTE: idx=%d %RX64 (first=%d)\n", i, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]),  pPage->iFirstPresent));
-#endif
+#  endif
     for (unsigned i = pPage->iFirstPresent; i < RT_ELEMENTS(pShwPT->a); i++)
     {
         if (PGMSHWPTEPAE_IS_P(pShwPT->a[i]))
@@ -1585,10 +1578,10 @@ static void pgmPoolTrackCheckPTPae32Bit(PPGMPOOL pPool, PPGMPOOLPAGE pPage, PPGM
     RTHCPHYS LastHCPhys = NIL_RTHCPHYS; /* initialized to shut up gcc */
     PVM      pVM        = pPool->CTX_SUFF(pVM);
 
-#ifdef VBOX_STRICT
+#  ifdef VBOX_STRICT
     for (unsigned i = 0; i < RT_MIN(RT_ELEMENTS(pShwPT->a), pPage->iFirstPresent); i++)
         AssertMsg(!PGMSHWPTEPAE_IS_P(pShwPT->a[i]), ("Unexpected PTE: idx=%d %RX64 (first=%d)\n", i, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]),  pPage->iFirstPresent));
-#endif
+#  endif
     for (unsigned i = pPage->iFirstPresent; i < RT_ELEMENTS(pShwPT->a); i++)
     {
         if (PGMSHWPTEPAE_IS_P(pShwPT->a[i]))
@@ -1634,7 +1627,7 @@ static void pgmPoolTrackCheckPTPae32Bit(PPGMPOOL pPool, PPGMPOOLPAGE pPage, PPGM
     AssertMsg(!cErrors, ("cErrors=%d: last rc=%d idx=%d guest %x shw=%RX64 vs %RHp\n", cErrors, LastRc, LastPTE, pGstPT->a[LastPTE].u, PGMSHWPTEPAE_GET_LOG(pShwPT->a[LastPTE]), LastHCPhys));
 }
 
-#  endif /* VBOX_STRICT && !IN_RING3 */
+# endif /* VBOX_STRICT && !IN_RING3 */
 
 /**
  * Clear references to guest physical memory in a PAE / PAE page table.
@@ -1653,10 +1646,10 @@ DECLINLINE(unsigned) pgmPoolTrackFlushPTPaePae(PPGMPOOL pPool, PPGMPOOLPAGE pPag
 {
     unsigned cChanged = 0;
 
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
     for (unsigned i = 0; i < RT_MIN(RT_ELEMENTS(pShwPT->a), pPage->iFirstPresent); i++)
         AssertMsg(!PGMSHWPTEPAE_IS_P(pShwPT->a[i]), ("Unexpected PTE: idx=%d %RX64 (first=%d)\n", i, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]),  pPage->iFirstPresent));
-#endif
+# endif
     *pfFlush = false;
 
     for (unsigned i = pPage->iFirstPresent; i < RT_ELEMENTS(pShwPT->a); i++)
@@ -1678,11 +1671,11 @@ DECLINLINE(unsigned) pgmPoolTrackFlushPTPaePae(PPGMPOOL pPool, PPGMPOOLPAGE pPag
             /* If the old cached PTE is identical, then there's no need to flush the shadow copy. */
             if ((pGstPT->a[i].u & X86_PTE_PAE_PG_MASK) == (pOldGstPT->a[i].u & X86_PTE_PAE_PG_MASK))
             {
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
                 RTHCPHYS HCPhys = NIL_RTGCPHYS;
                 int rc = PGMPhysGCPhys2HCPhys(pPool->CTX_SUFF(pVM), pGstPT->a[i].u & X86_PTE_PAE_PG_MASK, &HCPhys);
                 AssertMsg(rc == VINF_SUCCESS && PGMSHWPTEPAE_GET_HCPHYS(pShwPT->a[i]) == HCPhys, ("rc=%d guest %RX64 old %RX64 shw=%RX64 vs %RHp\n", rc, pGstPT->a[i].u, pOldGstPT->a[i].u, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]), HCPhys));
-#endif
+# endif
                 uint64_t uHostAttr  = PGMSHWPTEPAE_GET_U(pShwPT->a[i]) & (X86_PTE_P | X86_PTE_US | X86_PTE_A | X86_PTE_D | X86_PTE_G | X86_PTE_PAE_NX);
                 bool     fHostRW    = !!(PGMSHWPTEPAE_GET_U(pShwPT->a[i]) & X86_PTE_RW);
                 uint64_t uGuestAttr = pGstPT->a[i].u & (X86_PTE_P | X86_PTE_US | X86_PTE_A | X86_PTE_D | X86_PTE_G | X86_PTE_PAE_NX);
@@ -1721,10 +1714,10 @@ DECLINLINE(unsigned) pgmPoolTrackFlushPTPae32Bit(PPGMPOOL pPool, PPGMPOOLPAGE pP
 {
     unsigned cChanged = 0;
 
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
     for (unsigned i = 0; i < RT_MIN(RT_ELEMENTS(pShwPT->a), pPage->iFirstPresent); i++)
         AssertMsg(!PGMSHWPTEPAE_IS_P(pShwPT->a[i]), ("Unexpected PTE: idx=%d %RX64 (first=%d)\n", i, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]),  pPage->iFirstPresent));
-#endif
+# endif
     *pfFlush = false;
 
     for (unsigned i = pPage->iFirstPresent; i < RT_ELEMENTS(pShwPT->a); i++)
@@ -1746,11 +1739,11 @@ DECLINLINE(unsigned) pgmPoolTrackFlushPTPae32Bit(PPGMPOOL pPool, PPGMPOOLPAGE pP
             /* If the old cached PTE is identical, then there's no need to flush the shadow copy. */
             if ((pGstPT->a[i].u & X86_PTE_PG_MASK) == (pOldGstPT->a[i].u & X86_PTE_PG_MASK))
             {
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
                 RTHCPHYS HCPhys = NIL_RTGCPHYS;
                 int rc = PGMPhysGCPhys2HCPhys(pPool->CTX_SUFF(pVM), pGstPT->a[i].u & X86_PTE_PG_MASK, &HCPhys);
                 AssertMsg(rc == VINF_SUCCESS && PGMSHWPTEPAE_GET_HCPHYS(pShwPT->a[i]) == HCPhys, ("rc=%d guest %x old %x shw=%RX64 vs %RHp\n", rc, pGstPT->a[i].u, pOldGstPT->a[i].u, PGMSHWPTEPAE_GET_LOG(pShwPT->a[i]), HCPhys));
-#endif
+# endif
                 uint64_t uHostAttr  = PGMSHWPTEPAE_GET_U(pShwPT->a[i]) & (X86_PTE_P | X86_PTE_US | X86_PTE_A | X86_PTE_D | X86_PTE_G);
                 bool     fHostRW    = !!(PGMSHWPTEPAE_GET_U(pShwPT->a[i]) & X86_PTE_RW);
                 uint64_t uGuestAttr = pGstPT->a[i].u & (X86_PTE_P | X86_PTE_US | X86_PTE_A | X86_PTE_D | X86_PTE_G);
@@ -1782,33 +1775,31 @@ DECLINLINE(unsigned) pgmPoolTrackFlushPTPae32Bit(PPGMPOOL pPool, PPGMPOOLPAGE pP
  */
 static void pgmPoolFlushDirtyPage(PVM pVM, PPGMPOOL pPool, unsigned idxSlot, bool fAllowRemoval = false)
 {
-    PPGMPOOLPAGE pPage;
-    unsigned     idxPage;
+    AssertCompile(RT_ELEMENTS(pPool->aidxDirtyPages) == RT_ELEMENTS(pPool->aDirtyPages));
 
     Assert(idxSlot < RT_ELEMENTS(pPool->aDirtyPages));
-    if (pPool->aDirtyPages[idxSlot].uIdx == NIL_PGMPOOL_IDX)
+    unsigned idxPage = pPool->aidxDirtyPages[idxSlot];
+    if (idxPage == NIL_PGMPOOL_IDX)
         return;
 
-    idxPage = pPool->aDirtyPages[idxSlot].uIdx;
-    AssertRelease(idxPage != NIL_PGMPOOL_IDX);
-    pPage = &pPool->aPages[idxPage];
+    PPGMPOOLPAGE pPage = &pPool->aPages[idxPage];
     Assert(pPage->idx == idxPage);
     Assert(pPage->iMonitoredNext == NIL_PGMPOOL_IDX && pPage->iMonitoredPrev == NIL_PGMPOOL_IDX);
 
     AssertMsg(pPage->fDirty, ("Page %RGp (slot=%d) not marked dirty!", pPage->GCPhys, idxSlot));
     Log(("Flush dirty page %RGp cMods=%d\n", pPage->GCPhys, pPage->cModifications));
 
-#if defined(VBOX_WITH_2X_4GB_ADDR_SPACE_IN_R0) || defined(IN_RC)
+# if defined(VBOX_WITH_2X_4GB_ADDR_SPACE_IN_R0) || defined(IN_RC)
     PVMCPU   pVCpu = VMMGetCpu(pVM);
     uint32_t iPrevSubset = PGMRZDynMapPushAutoSubset(pVCpu);
-#endif
+# endif
 
     /* First write protect the page again to catch all write accesses. (before checking for changes -> SMP) */
     int rc = PGMHandlerPhysicalReset(pVM, pPage->GCPhys & PAGE_BASE_GC_MASK);
     Assert(rc == VINF_SUCCESS);
     pPage->fDirty = false;
 
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
     uint64_t fFlags = 0;
     RTHCPHYS HCPhys;
     rc = PGMShwGetPage(VMMGetCpu(pVM), pPage->GCPtrDirtyFault, &fFlags, &HCPhys);
@@ -1818,7 +1809,7 @@ static void pgmPoolFlushDirtyPage(PVM pVM, PPGMPOOL pPool, unsigned idxSlot, boo
               ||    rc == VERR_PAGE_TABLE_NOT_PRESENT
               ||    rc == VERR_PAGE_NOT_PRESENT,
               ("PGMShwGetPage -> GCPtr=%RGv rc=%d flags=%RX64\n", pPage->GCPtrDirtyFault, rc, fFlags));
-#endif
+# endif
 
     /* Flush those PTEs that have changed. */
     STAM_PROFILE_START(&pPool->StatTrackDeref,a);
@@ -1852,7 +1843,7 @@ static void pgmPoolFlushDirtyPage(PVM pVM, PPGMPOOL pPool, unsigned idxSlot, boo
         pPool->idxFreeDirtyPage = idxSlot;
 
     pPool->cDirtyPages--;
-    pPool->aDirtyPages[idxSlot].uIdx = NIL_PGMPOOL_IDX;
+    pPool->aidxDirtyPages[idxSlot] = NIL_PGMPOOL_IDX;
     Assert(pPool->cDirtyPages <= RT_ELEMENTS(pPool->aDirtyPages));
     if (fFlush)
     {
@@ -1864,9 +1855,9 @@ static void pgmPoolFlushDirtyPage(PVM pVM, PPGMPOOL pPool, unsigned idxSlot, boo
     else
         Log(("Removed dirty page %RGp cMods=%d cChanges=%d\n", pPage->GCPhys, pPage->cModifications, cChanges));
 
-#if defined(VBOX_WITH_2X_4GB_ADDR_SPACE_IN_R0) || defined(IN_RC)
+# if defined(VBOX_WITH_2X_4GB_ADDR_SPACE_IN_R0) || defined(IN_RC)
     PGMRZDynMapPopAutoSubset(pVCpu, iPrevSubset);
-#endif
+# endif
 }
 
 
@@ -1880,13 +1871,11 @@ static void pgmPoolFlushDirtyPage(PVM pVM, PPGMPOOL pPool, unsigned idxSlot, boo
  */
 void pgmPoolAddDirtyPage(PVM pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage)
 {
-    unsigned idxFree;
-
     PGM_LOCK_ASSERT_OWNER(pVM);
     AssertCompile(RT_ELEMENTS(pPool->aDirtyPages) == 8 || RT_ELEMENTS(pPool->aDirtyPages) == 16);
     Assert(!pPage->fDirty);
 
-    idxFree = pPool->idxFreeDirtyPage;
+    unsigned idxFree = pPool->idxFreeDirtyPage;
     Assert(idxFree < RT_ELEMENTS(pPool->aDirtyPages));
     Assert(pPage->iMonitoredNext == NIL_PGMPOOL_IDX && pPage->iMonitoredPrev == NIL_PGMPOOL_IDX);
 
@@ -1896,7 +1885,7 @@ void pgmPoolAddDirtyPage(PVM pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage)
         pgmPoolFlushDirtyPage(pVM, pPool, idxFree, true /* allow removal of reused page tables*/);
     }
     Assert(pPool->cDirtyPages < RT_ELEMENTS(pPool->aDirtyPages));
-    AssertMsg(pPool->aDirtyPages[idxFree].uIdx == NIL_PGMPOOL_IDX, ("idxFree=%d cDirtyPages=%d\n", idxFree, pPool->cDirtyPages));
+    AssertMsg(pPool->aidxDirtyPages[idxFree] == NIL_PGMPOOL_IDX, ("idxFree=%d cDirtyPages=%d\n", idxFree, pPool->cDirtyPages));
 
     Log(("Add dirty page %RGp (slot=%d)\n", pPage->GCPhys, idxFree));
 
@@ -1921,18 +1910,18 @@ void pgmPoolAddDirtyPage(PVM pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage)
     STAM_COUNTER_INC(&pPool->StatDirtyPage);
     pPage->fDirty                    = true;
     pPage->idxDirtyEntry             = (uint8_t)idxFree; Assert(pPage->idxDirtyEntry == idxFree);
-    pPool->aDirtyPages[idxFree].uIdx = pPage->idx;
+    pPool->aidxDirtyPages[idxFree]   = pPage->idx;
     pPool->cDirtyPages++;
 
     pPool->idxFreeDirtyPage        = (pPool->idxFreeDirtyPage + 1) & (RT_ELEMENTS(pPool->aDirtyPages) - 1);
     if (    pPool->cDirtyPages < RT_ELEMENTS(pPool->aDirtyPages)
-        &&  pPool->aDirtyPages[pPool->idxFreeDirtyPage].uIdx != NIL_PGMPOOL_IDX)
+        &&  pPool->aidxDirtyPages[pPool->idxFreeDirtyPage] != NIL_PGMPOOL_IDX)
     {
         unsigned i;
         for (i = 1; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
         {
             idxFree = (pPool->idxFreeDirtyPage + i) & (RT_ELEMENTS(pPool->aDirtyPages) - 1);
-            if (pPool->aDirtyPages[idxFree].uIdx == NIL_PGMPOOL_IDX)
+            if (pPool->aidxDirtyPages[idxFree] == NIL_PGMPOOL_IDX)
             {
                 pPool->idxFreeDirtyPage = idxFree;
                 break;
@@ -1941,7 +1930,7 @@ void pgmPoolAddDirtyPage(PVM pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage)
         Assert(i != RT_ELEMENTS(pPool->aDirtyPages));
     }
 
-    Assert(pPool->cDirtyPages == RT_ELEMENTS(pPool->aDirtyPages) || pPool->aDirtyPages[pPool->idxFreeDirtyPage].uIdx == NIL_PGMPOOL_IDX);
+    Assert(pPool->cDirtyPages == RT_ELEMENTS(pPool->aDirtyPages) || pPool->aidxDirtyPages[pPool->idxFreeDirtyPage] == NIL_PGMPOOL_IDX);
 
     /*
      * Clear all references to this shadow table. See @bugref{7298}.
@@ -1958,7 +1947,7 @@ void pgmPoolAddDirtyPage(PVM pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage)
  * @param   pVM             The cross context VM structure.
  * @param   GCPhys          Guest physical address
  */
-bool pgmPoolIsDirtyPage(PVM pVM, RTGCPHYS GCPhys)
+bool pgmPoolIsDirtyPageSlow(PVM pVM, RTGCPHYS GCPhys)
 {
     PPGMPOOL pPool = pVM->pgm.s.CTX_SUFF(pPool);
     PGM_LOCK_ASSERT_OWNER(pVM);
@@ -1969,12 +1958,10 @@ bool pgmPoolIsDirtyPage(PVM pVM, RTGCPHYS GCPhys)
 
     for (unsigned i = 0; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
     {
-        if (pPool->aDirtyPages[i].uIdx != NIL_PGMPOOL_IDX)
+        unsigned idxPage = pPool->aidxDirtyPages[i];
+        if (idxPage != NIL_PGMPOOL_IDX)
         {
-            PPGMPOOLPAGE pPage;
-            unsigned     idxPage = pPool->aDirtyPages[i].uIdx;
-
-            pPage = &pPool->aPages[idxPage];
+            PPGMPOOLPAGE pPage = &pPool->aPages[idxPage];
             if (pPage->GCPhys == GCPhys)
                 return true;
         }
@@ -2003,12 +1990,12 @@ void pgmPoolResetDirtyPages(PVM pVM)
 
     pPool->idxFreeDirtyPage = 0;
     if (    pPool->cDirtyPages != RT_ELEMENTS(pPool->aDirtyPages)
-        &&  pPool->aDirtyPages[pPool->idxFreeDirtyPage].uIdx != NIL_PGMPOOL_IDX)
+        &&  pPool->aidxDirtyPages[pPool->idxFreeDirtyPage] != NIL_PGMPOOL_IDX)
     {
         unsigned i;
         for (i = 1; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
         {
-            if (pPool->aDirtyPages[i].uIdx == NIL_PGMPOOL_IDX)
+            if (pPool->aidxDirtyPages[i] == NIL_PGMPOOL_IDX)
             {
                 pPool->idxFreeDirtyPage = i;
                 break;
@@ -2017,7 +2004,7 @@ void pgmPoolResetDirtyPages(PVM pVM)
         AssertMsg(i != RT_ELEMENTS(pPool->aDirtyPages), ("cDirtyPages %d", pPool->cDirtyPages));
     }
 
-    Assert(pPool->aDirtyPages[pPool->idxFreeDirtyPage].uIdx == NIL_PGMPOOL_IDX || pPool->cDirtyPages == RT_ELEMENTS(pPool->aDirtyPages));
+    Assert(pPool->aidxDirtyPages[pPool->idxFreeDirtyPage] == NIL_PGMPOOL_IDX || pPool->cDirtyPages == RT_ELEMENTS(pPool->aDirtyPages));
     return;
 }
 
@@ -2040,6 +2027,7 @@ void pgmPoolResetDirtyPage(PVM pVM, RTGCPTR GCPtrPage)
     Log(("pgmPoolResetDirtyPage %RGv\n", GCPtrPage)); RT_NOREF_PV(GCPtrPage);
     for (unsigned i = 0; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
     {
+    /** @todo What was intended here??? This looks incomplete... */
     }
 }
 
@@ -2064,10 +2052,9 @@ void pgmPoolInvalidateDirtyPage(PVM pVM, RTGCPHYS GCPhysPT)
 
     for (unsigned i = 0; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
     {
-        if (pPool->aDirtyPages[i].uIdx != NIL_PGMPOOL_IDX)
+        unsigned idxPage = pPool->aidxDirtyPages[i];
+        if (idxPage != NIL_PGMPOOL_IDX)
         {
-            unsigned     idxPage = pPool->aDirtyPages[i].uIdx;
-
             PPGMPOOLPAGE pPage = &pPool->aPages[idxPage];
             if (pPage->GCPhys == GCPhysPT)
             {
@@ -2081,12 +2068,12 @@ void pgmPoolInvalidateDirtyPage(PVM pVM, RTGCPHYS GCPhysPT)
     {
         pgmPoolFlushDirtyPage(pVM, pPool, idxDirtyPage, true /* allow removal of reused page tables*/);
         if (    pPool->cDirtyPages != RT_ELEMENTS(pPool->aDirtyPages)
-            &&  pPool->aDirtyPages[pPool->idxFreeDirtyPage].uIdx != NIL_PGMPOOL_IDX)
+            &&  pPool->aidxDirtyPages[pPool->idxFreeDirtyPage] != NIL_PGMPOOL_IDX)
         {
             unsigned i;
             for (i = 0; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
             {
-                if (pPool->aDirtyPages[i].uIdx == NIL_PGMPOOL_IDX)
+                if (pPool->aidxDirtyPages[i] == NIL_PGMPOOL_IDX)
                 {
                     pPool->idxFreeDirtyPage = i;
                     break;
@@ -2097,7 +2084,7 @@ void pgmPoolInvalidateDirtyPage(PVM pVM, RTGCPHYS GCPhysPT)
     }
 }
 
-# endif /* PGMPOOL_WITH_OPTIMIZED_DIRTY_PT */
+#endif /* PGMPOOL_WITH_OPTIMIZED_DIRTY_PT */
 
 /**
  * Inserts a page into the GCPhys hash table.
@@ -2919,7 +2906,7 @@ int pgmPoolSyncCR3(PVMCPU pVCpu)
  *
  * @returns VBox status code.
  * @retval  VINF_SUCCESS if successfully added.
- * @retval  VERR_PGM_POOL_FLUSHED if the pool was flushed.
+ *
  * @param   pPool       The pool.
  * @param   iUser       The user index.
  */
@@ -2949,7 +2936,7 @@ static int pgmPoolTrackFreeOneUser(PPGMPOOL pPool, uint16_t iUser)
  *
  * @returns VBox status code.
  * @retval  VINF_SUCCESS if successfully added.
- * @retval  VERR_PGM_POOL_FLUSHED if the pool was flushed.
+ *
  * @param   pPool       The pool.
  * @param   pPage       The cached page.
  * @param   GCPhys      The GC physical address of the page we're gonna shadow.
@@ -3037,7 +3024,7 @@ DECLINLINE(int) pgmPoolTrackInsert(PPGMPOOL pPool, PPGMPOOLPAGE pPage, RTGCPHYS 
  *
  * @returns VBox status code.
  * @retval  VINF_SUCCESS if successfully added.
- * @retval  VERR_PGM_POOL_FLUSHED if the pool was flushed.
+ *
  * @param   pPool       The pool.
  * @param   pPage       The cached page.
  * @param   iUser       The user index.
@@ -3314,15 +3301,15 @@ static bool pgmPoolTrackFlushGCPhysPTInt(PVM pVM, PCPGMPAGE pPhysPage, bool fFlu
             {
                 switch (PGM_PAGE_GET_HNDL_PHYS_STATE(pPhysPage))
                 {
-                    case PGM_PAGE_HNDL_PHYS_STATE_NONE:         /** No handler installed. */
-                    case PGM_PAGE_HNDL_PHYS_STATE_DISABLED:     /** Monitoring is temporarily disabled. */
+                    case PGM_PAGE_HNDL_PHYS_STATE_NONE:         /* No handler installed. */
+                    case PGM_PAGE_HNDL_PHYS_STATE_DISABLED:     /* Monitoring is temporarily disabled. */
                         u32OrMask = X86_PTE_RW;
                         u32AndMask = UINT32_MAX;
                         fRet = true;
                         STAM_COUNTER_INC(&pPool->StatTrackFlushEntryKeep);
                         break;
 
-                    case PGM_PAGE_HNDL_PHYS_STATE_WRITE:        /** Write access is monitored. */
+                    case PGM_PAGE_HNDL_PHYS_STATE_WRITE:        /* Write access is monitored. */
                         u32OrMask = 0;
                         u32AndMask = ~X86_PTE_RW;
                         fRet = true;
@@ -5098,7 +5085,6 @@ void pgmPoolFreeByPage(PPGMPOOL pPool, PPGMPOOLPAGE pPage, uint16_t iUser, uint3
  *
  * @returns VBox status code.
  * @retval  VINF_SUCCESS on success.
- * @retval  VERR_PGM_POOL_FLUSHED if the pool was flushed.
  *
  * @param   pPool       The pool.
  * @param   enmKind     Page table kind
@@ -5150,7 +5136,6 @@ static int pgmPoolMakeMoreFreePages(PPGMPOOL pPool, PGMPOOLKIND enmKind, uint16_
  * @returns VBox status code.
  * @retval  VINF_SUCCESS if a NEW page was allocated.
  * @retval  VINF_PGM_CACHED_PAGE if a CACHED page was returned.
- * @retval  VERR_PGM_POOL_FLUSHED if the pool was flushed.
  *
  * @param   pVM         The cross context VM structure.
  * @param   GCPhys      The GC physical address of the page we're gonna shadow.
@@ -5581,8 +5566,8 @@ void pgmR3PoolReset(PVM pVM)
     /* Clear all dirty pages. */
     pPool->idxFreeDirtyPage = 0;
     pPool->cDirtyPages      = 0;
-    for (unsigned i = 0; i < RT_ELEMENTS(pPool->aDirtyPages); i++)
-        pPool->aDirtyPages[i].uIdx = NIL_PGMPOOL_IDX;
+    for (unsigned i = 0; i < RT_ELEMENTS(pPool->aidxDirtyPages); i++)
+        pPool->aidxDirtyPages[i] = NIL_PGMPOOL_IDX;
 #endif
 
     /*

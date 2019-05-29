@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017 Oracle Corporation
+ * Copyright (C) 2017-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -704,7 +704,8 @@ static char         g_szSystemId[64] = "";
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 static int rtFsIsoMakerObjSetName(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAMESPACE pNamespace, PRTFSISOMAKEROBJ pObj,
-                                  PRTFSISOMAKERNAME pParent, const char *pchSpec, size_t cchSpec, PPRTFSISOMAKERNAME ppNewName);
+                                  PRTFSISOMAKERNAME pParent, const char *pchSpec, size_t cchSpec, bool fNoNormalize,
+                                  PPRTFSISOMAKERNAME ppNewName);
 static int rtFsIsoMakerObjUnsetName(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAMESPACE pNamespace, PRTFSISOMAKEROBJ pObj);
 static int rtFsIsoMakerAddUnnamedDirWorker(PRTFSISOMAKERINT pThis, PCRTFSOBJINFO pObjInfo, PRTFSISOMAKERDIR *ppDir);
 static int rtFsIsoMakerAddUnnamedFileWorker(PRTFSISOMAKERINT pThis, PCRTFSOBJINFO pObjInfo, size_t cbExtra,
@@ -1878,20 +1879,22 @@ static size_t rtFsIsoMakerCopyIso9660Name(char *pszDst, size_t cchDstMax, const 
  * Normalizes a name for the primary ISO-9660 namespace.
  *
  * @returns IPRT status code.
- * @param   pThis       The ISO maker instance.
- * @param   pParent     The parent directory.  NULL if root.
- * @param   pchSrc      The specified name to normalize (not necessarily zero
- *                      terminated).
- * @param   cchSrc      The length of the specified name.
- * @param   fIsDir      Indicates whether it's a directory or file (like).
- * @param   pszDst      The output buffer.  Must be at least 32 bytes.
- * @param   cbDst       The size of the output buffer.
- * @param   pcchDst     Where to return the length of the returned string (i.e.
- *                      not counting the terminator).
- * @param   pcbInDirRec Where to return the name size in the directory record.
+ * @param   pThis           The ISO maker instance.
+ * @param   pParent         The parent directory.  NULL if root.
+ * @param   pchSrc          The specified name to normalize (not necessarily zero
+ *                          terminated).
+ * @param   cchSrc          The length of the specified name.
+ * @param   fNoNormalize    Don't normalize the name very strictly (imported or
+ *                          such).
+ * @param   fIsDir          Indicates whether it's a directory or file (like).
+ * @param   pszDst          The output buffer.  Must be at least 32 bytes.
+ * @param   cbDst           The size of the output buffer.
+ * @param   pcchDst         Where to return the length of the returned string (i.e.
+ *                          not counting the terminator).
+ * @param   pcbInDirRec     Where to return the name size in the directory record.
  */
 static int rtFsIsoMakerNormalizeNameForPrimaryIso9660(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAME pParent,
-                                                      const char *pchSrc, size_t cchSrc, bool fIsDir,
+                                                      const char *pchSrc, size_t cchSrc, bool fNoNormalize, bool fIsDir,
                                                       char *pszDst, size_t cbDst, size_t *pcchDst, size_t *pcbInDirRec)
 {
     AssertReturn(cbDst > ISO9660_MAX_NAME_LEN + 2, VERR_ISOMK_IPE_BUFFER_SIZE);
@@ -1908,10 +1911,10 @@ static int rtFsIsoMakerNormalizeNameForPrimaryIso9660(PRTFSISOMAKERINT pThis, PR
     /*
      * Produce a first name.
      */
-    uint8_t const uIsoLevel = pThis->PrimaryIso.uLevel;
+    uint8_t const uIsoLevel = !fNoNormalize ? pThis->PrimaryIso.uLevel : RT_MAX(pThis->PrimaryIso.uLevel, 3);
     size_t cchDst;
     size_t offDstDot;
-    if (fIsDir)
+    if (fIsDir && !fNoNormalize)
         offDstDot = cchDst = rtFsIsoMakerCopyIso9660Name(pszDst, uIsoLevel >= 2 ? ISO9660_MAX_NAME_LEN : 8,
                                                          pchSrc, cchSrc);
     else
@@ -1922,7 +1925,21 @@ static int rtFsIsoMakerNormalizeNameForPrimaryIso9660(PRTFSISOMAKERINT pThis, PR
             if (pchSrc[off] == '.')
                 offLastDot = off;
 
-        if (offLastDot == cchSrc)
+        if (fNoNormalize)
+        {
+            /* Try preserve the imported name, though, put the foot down if too long. */
+            offDstDot = offLastDot;
+            cchDst    = cchSrc;
+            if (cchSrc > ISO9660_MAX_NAME_LEN)
+            {
+                cchDst = ISO9660_MAX_NAME_LEN;
+                if (offDstDot > cchDst)
+                    offDstDot = cchDst;
+            }
+            memcpy(pszDst, pchSrc, cchDst);
+            pszDst[cchDst] = '\0';
+        }
+        else if (offLastDot == cchSrc)
             offDstDot = cchDst = rtFsIsoMakerCopyIso9660Name(pszDst, uIsoLevel >= 2 ? ISO9660_MAX_NAME_LEN : 8,
                                                              pchSrc, cchSrc);
         else
@@ -2018,21 +2035,24 @@ static int rtFsIsoMakerNormalizeNameForPrimaryIso9660(PRTFSISOMAKERINT pThis, PR
  * Normalizes a name for the specified name space.
  *
  * @returns IPRT status code.
- * @param   pThis       The ISO maker instance.
- * @param   pNamespace  The namespace which rules to normalize it according to.
- * @param   pParent     The parent directory.  NULL if root.
- * @param   pchSrc      The specified name to normalize (not necessarily zero
- *                      terminated).
- * @param   cchSrc      The length of the specified name.
- * @param   fIsDir      Indicates whether it's a directory or file (like).
- * @param   pszDst      The output buffer.  Must be at least 32 bytes.
- * @param   cbDst       The size of the output buffer.
- * @param   pcchDst     Where to return the length of the returned string (i.e.
- *                      not counting the terminator).
- * @param   pcbInDirRec Where to return the name size in the directory record.
+ * @param   pThis           The ISO maker instance.
+ * @param   pNamespace      The namespace which rules to normalize it according to.
+ * @param   pParent         The parent directory.  NULL if root.
+ * @param   pchSrc          The specified name to normalize (not necessarily zero
+ *                          terminated).
+ * @param   cchSrc          The length of the specified name.
+ * @param   fIsDir          Indicates whether it's a directory or file (like).
+ * @param   fNoNormalize    Don't normalize the name very strictly (imported or
+ *                          such).
+ * @param   pszDst          The output buffer.  Must be at least 32 bytes.
+ * @param   cbDst           The size of the output buffer.
+ * @param   pcchDst         Where to return the length of the returned string (i.e.
+ *                          not counting the terminator).
+ * @param   pcbInDirRec     Where to return the name size in the directory record.
  */
 static int rtFsIsoMakerNormalizeNameForNamespace(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAMESPACE pNamespace,
-                                                 PRTFSISOMAKERNAME pParent, const char *pchSrc, size_t cchSrc, bool fIsDir,
+                                                 PRTFSISOMAKERNAME pParent, const char *pchSrc, size_t cchSrc,
+                                                 bool fNoNormalize, bool fIsDir,
                                                  char *pszDst, size_t cbDst, size_t *pcchDst, size_t *pcbInDirRec)
 {
     if (cchSrc > 0)
@@ -2047,7 +2067,7 @@ static int rtFsIsoMakerNormalizeNameForNamespace(PRTFSISOMAKERINT pThis, PRTFSIS
              * This one is a lot of work, so separate function.
              */
             case RTFSISOMAKER_NAMESPACE_ISO_9660:
-                return rtFsIsoMakerNormalizeNameForPrimaryIso9660(pThis, pParent, pchSrc, cchSrc, fIsDir,
+                return rtFsIsoMakerNormalizeNameForPrimaryIso9660(pThis, pParent, pchSrc, cchSrc, fNoNormalize, fIsDir,
                                                                   pszDst, cbDst, pcchDst, pcbInDirRec);
 
             /*
@@ -2120,8 +2140,8 @@ static int rtFsIsoMakerAddTransTblFileToNewDir(PRTFSISOMAKERINT pThis, PRTFSISOM
          * Add it to the directory.
          */
         PRTFSISOMAKERNAME pTransTblNm;
-        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pFile->Core, pDirName,
-                                    pNamespace->pszTransTbl, strlen(pNamespace->pszTransTbl), &pTransTblNm);
+        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pFile->Core, pDirName, pNamespace->pszTransTbl,
+                                    strlen(pNamespace->pszTransTbl), false /*fNoNormalize*/, &pTransTblNm);
         if (RT_SUCCESS(rc))
         {
             pTransTblNm->cchTransNm = 0;
@@ -2146,16 +2166,18 @@ static int rtFsIsoMakerAddTransTblFileToNewDir(PRTFSISOMAKERINT pThis, PRTFSISOM
  * issues after removing it, its original state will _not_ be restored.
  *
  * @returns IPRT status code.
- * @param   pThis       The ISO maker instance.
- * @param   pNamespace  The namespace.
- * @param   pObj        The object to name.
- * @param   pParent     The parent namespace entry
- * @param   pchSpec     The specified name (not necessarily terminated).
- * @param   cchSpec     The specified name length.
- * @param   ppNewName   Where to return the name entry.  Optional.
+ * @param   pThis           The ISO maker instance.
+ * @param   pNamespace      The namespace.
+ * @param   pObj            The object to name.
+ * @param   pParent         The parent namespace entry
+ * @param   pchSpec         The specified name (not necessarily terminated).
+ * @param   cchSpec         The specified name length.
+ * @param   fNoNormalize    Don't normalize the name (imported or such).
+ * @param   ppNewName       Where to return the name entry.  Optional.
  */
 static int rtFsIsoMakerObjSetName(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAMESPACE pNamespace, PRTFSISOMAKEROBJ pObj,
-                                  PRTFSISOMAKERNAME pParent, const char *pchSpec, size_t cchSpec, PPRTFSISOMAKERNAME ppNewName)
+                                  PRTFSISOMAKERNAME pParent, const char *pchSpec, size_t cchSpec, bool fNoNormalize,
+                                  PPRTFSISOMAKERNAME ppNewName)
 {
     Assert(cchSpec < _32K);
 
@@ -2218,7 +2240,7 @@ static int rtFsIsoMakerObjSetName(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAMESPACE
     size_t cchName        = 0;
     size_t cbNameInDirRec = 0;
     char   szName[RTFSISOMAKER_MAX_NAME_BUF];
-    int rc = rtFsIsoMakerNormalizeNameForNamespace(pThis, pNamespace, pParent, pchSpec, cchSpec,
+    int rc = rtFsIsoMakerNormalizeNameForNamespace(pThis, pNamespace, pParent, pchSpec, cchSpec, fNoNormalize,
                                                    pObj->enmType == RTFSISOMAKEROBJTYPE_DIR,
                                                    szName, sizeof(szName), &cchName, &cbNameInDirRec);
     if (RT_SUCCESS(rc))
@@ -2375,7 +2397,7 @@ static int rtFsIsoMakerCreatePathToParent(PRTFSISOMAKERINT pThis, PRTFSISOMAKERN
         Assert(*rtFsIsoMakerObjGetNameForNamespace(&pDir->Core, pNamespace) == NULL);
 #endif
 
-        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pDir->Core, NULL /*pParent*/, "", 0, &pParent);
+        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pDir->Core, NULL /*pParent*/, "", 0, false /*fNoNormalize*/, &pParent);
         AssertRCReturn(rc, rc);
         pParent = pNamespace->pRoot;
         AssertReturn(pParent, VERR_ISOMK_IPE_NAMESPACE_4);
@@ -2450,7 +2472,8 @@ static int rtFsIsoMakerCreatePathToParent(PRTFSISOMAKERINT pThis, PRTFSISOMAKERN
                     PPRTFSISOMAKERNAME ppChildName = rtFsIsoMakerObjGetNameForNamespace(&pChildObj->Core, pNamespace);
                     if (!*ppChildName)
                     {
-                        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pChildObj->Core, pParent, pszPath, cchComponent, &pChild);
+                        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pChildObj->Core, pParent, pszPath, cchComponent,
+                                                    false /*fNoNormalize*/, &pChild);
                         if (RT_FAILURE(rc))
                             return rc;
                         AssertReturn(pChild != NULL, VERR_ISOMK_IPE_NAMESPACE_5);
@@ -2461,7 +2484,8 @@ static int rtFsIsoMakerCreatePathToParent(PRTFSISOMAKERINT pThis, PRTFSISOMAKERN
                 {
                     rc = rtFsIsoMakerAddUnnamedDirWorker(pThis, NULL /*pObjInfo*/, &pChildObj);
                     if (RT_SUCCESS(rc))
-                        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pChildObj->Core, pParent, pszPath, cchComponent, &pChild);
+                        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, &pChildObj->Core, pParent, pszPath, cchComponent,
+                                                    false /*fNoNormalize*/, &pChild);
                     if (RT_FAILURE(rc))
                         return rc;
                     AssertReturn(pChild != NULL, VERR_ISOMK_IPE_NAMESPACE_5);
@@ -2523,7 +2547,7 @@ static int rtFsIsoMakerObjSetPathInOne(PRTFSISOMAKERINT pThis, PRTFSISOMAKERNAME
     {
         AssertReturn(!RTPATH_IS_SLASH(pszEntry[cchEntry]) || pObj->enmType == RTFSISOMAKEROBJTYPE_DIR,
                      VERR_NOT_A_DIRECTORY);
-        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, pObj, pParent, pszEntry, cchEntry, NULL);
+        rc = rtFsIsoMakerObjSetName(pThis, pNamespace, pObj, pParent, pszEntry, cchEntry, false /*fNoNormalize*/, NULL);
     }
     return rc;
 }
@@ -2834,9 +2858,10 @@ RTDECL(int) RTFsIsoMakerObjSetPath(RTFSISOMAKER hIsoMaker, uint32_t idxObj, uint
  * @param   fNamespaces         The namespaces to apply the path to
  *                              (RTFSISOMAKER_NAMESPACE_XXX).
  * @param   pszName             The name.
+ * @param   fNoNormalize        Don't normalize the name (imported or such).
  */
 RTDECL(int) RTFsIsoMakerObjSetNameAndParent(RTFSISOMAKER hIsoMaker, uint32_t idxObj, uint32_t idxParentObj,
-                                            uint32_t fNamespaces, const char *pszName)
+                                            uint32_t fNamespaces, const char *pszName, bool fNoNormalize)
 {
     /*
      * Validate and translate input.
@@ -2868,7 +2893,8 @@ RTDECL(int) RTFsIsoMakerObjSetNameAndParent(RTFSISOMAKER hIsoMaker, uint32_t idx
                 PRTFSISOMAKERNAME pParentName = *rtFsIsoMakerObjGetNameForNamespace(pParentObj, pNamespace);
                 if (pParentName)
                 {
-                    int rc2 = rtFsIsoMakerObjSetName(pThis, pNamespace, pObj, pParentName, pszName, cchName, NULL /*ppNewName*/);
+                    int rc2 = rtFsIsoMakerObjSetName(pThis, pNamespace, pObj, pParentName, pszName, cchName,
+                                                     fNoNormalize, NULL /*ppNewName*/);
                     if (RT_SUCCESS(rc2))
                         cAdded++;
                     else if (RT_SUCCESS(rc) || rc == VERR_ISOMK_SYMLINK_REQ_ROCK_RIDGE)
@@ -7254,33 +7280,12 @@ static DECLCALLBACK(int) rtFsIsoMakerOutFile_Read(void *pvThis, RTFOFF off, PCRT
 
 
 /**
- * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
- */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
-{
-    RT_NOREF(pvThis, off, pSgBuf, fBlocking, pcbWritten);
-    return VERR_WRITE_PROTECT;
-}
-
-
-/**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnFlush}
  */
 static DECLCALLBACK(int) rtFsIsoMakerOutFile_Flush(void *pvThis)
 {
     RT_NOREF(pvThis);
     return VINF_SUCCESS;
-}
-
-
-/**
- * @interface_method_impl{RTVFSIOSTREAMOPS,pfnPollOne}
- */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_PollOne(void *pvThis, uint32_t fEvents, RTMSINTERVAL cMillies, bool fIntr,
-                                                     uint32_t *pfRetEvents)
-{
-    NOREF(pvThis);
-    return RTVfsUtilDummyPollOne(fEvents, cMillies, fIntr, pfRetEvents);
 }
 
 
@@ -7302,37 +7307,6 @@ static DECLCALLBACK(int) rtFsIsoMakerOutFile_Skip(void *pvThis, RTFOFF cb)
 {
     RTFOFF offIgnored;
     return rtFsIsoMakerOutFile_Seek(pvThis, cb, RTFILE_SEEK_CURRENT, &offIgnored);
-}
-
-
-/**
- * @interface_method_impl{RTVFSOBJSETOPS,pfnMode}
- */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_SetMode(void *pvThis, RTFMODE fMode, RTFMODE fMask)
-{
-    RT_NOREF(pvThis, fMode, fMask);
-    return VERR_WRITE_PROTECT;
-}
-
-
-/**
- * @interface_method_impl{RTVFSOBJSETOPS,pfnSetTimes}
- */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_SetTimes(void *pvThis, PCRTTIMESPEC pAccessTime, PCRTTIMESPEC pModificationTime,
-                                                      PCRTTIMESPEC pChangeTime, PCRTTIMESPEC pBirthTime)
-{
-    RT_NOREF(pvThis, pAccessTime, pModificationTime, pChangeTime, pBirthTime);
-    return VERR_WRITE_PROTECT;
-}
-
-
-/**
- * @interface_method_impl{RTVFSOBJSETOPS,pfnSetOwner}
- */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_SetOwner(void *pvThis, RTUID uid, RTGID gid)
-{
-    RT_NOREF(pvThis, uid, gid);
-    return VERR_WRITE_PROTECT;
 }
 
 
@@ -7417,9 +7391,9 @@ DECL_HIDDEN_CONST(const RTVFSFILEOPS) g_rtFsIsoMakerOutputFileOps =
         RTVFSIOSTREAMOPS_VERSION,
         RTVFSIOSTREAMOPS_FEAT_NO_SG,
         rtFsIsoMakerOutFile_Read,
-        rtFsIsoMakerOutFile_Write,
+        NULL /*Write*/,
         rtFsIsoMakerOutFile_Flush,
-        rtFsIsoMakerOutFile_PollOne,
+        NULL /*PollOne*/,
         rtFsIsoMakerOutFile_Tell,
         rtFsIsoMakerOutFile_Skip,
         NULL /*ZeroFill*/,
@@ -7430,13 +7404,15 @@ DECL_HIDDEN_CONST(const RTVFSFILEOPS) g_rtFsIsoMakerOutputFileOps =
     { /* ObjSet */
         RTVFSOBJSETOPS_VERSION,
         RT_UOFFSETOF(RTVFSFILEOPS, ObjSet) - RT_UOFFSETOF(RTVFSFILEOPS, Stream.Obj),
-        rtFsIsoMakerOutFile_SetMode,
-        rtFsIsoMakerOutFile_SetTimes,
-        rtFsIsoMakerOutFile_SetOwner,
+        NULL /*SetMode*/,
+        NULL /*SetTimes*/,
+        NULL /*SetOwner*/,
         RTVFSOBJSETOPS_VERSION
     },
     rtFsIsoMakerOutFile_Seek,
     rtFsIsoMakerOutFile_QuerySize,
+    NULL /*SetSize*/,
+    NULL /*QueryMaxSize*/,
     RTVFSFILEOPS_VERSION
 };
 

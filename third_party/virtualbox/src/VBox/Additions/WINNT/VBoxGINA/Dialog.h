@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -15,10 +15,13 @@
  * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
  */
 
-#ifndef ___H_GINADIALOG
-#define ___H_GINADIALOG
+#ifndef GA_INCLUDED_SRC_WINNT_VBoxGINA_Dialog_h
+#define GA_INCLUDED_SRC_WINNT_VBoxGINA_Dialog_h
+#ifndef RT_WITHOUT_PRAGMA_ONCE
+# pragma once
+#endif
 
 void hookDialogBoxes(PVOID pWinlogonFunctions, DWORD dwWlxVersion);
 
-#endif /* !___H_GINADIALOG */
+#endif /* !GA_INCLUDED_SRC_WINNT_VBoxGINA_Dialog_h */
 

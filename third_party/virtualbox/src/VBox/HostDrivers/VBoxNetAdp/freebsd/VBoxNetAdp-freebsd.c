@@ -56,7 +56,7 @@
 
 #define LOG_GROUP LOG_GROUP_NET_ADP_DRV
 #include <VBox/version.h>
-#include <VBox/err.h>
+#include <iprt/errcore.h>
 #include <VBox/log.h>
 #include <iprt/initterm.h>
 #include <iprt/string.h>
@@ -65,7 +65,7 @@
 #include <iprt/assert.h>
 #include <iprt/uuid.h>
 #include <iprt/alloc.h>
-#include <iprt/err.h>
+#include <iprt/errcore.h>
 
 #define VBOXNETADP_OS_SPECFIC 1
 #include "../VBoxNetAdpInternal.h"
@@ -235,7 +235,11 @@ static void VBoxNetAdpFreeBSDNetstart(struct ifnet *ifp)
     ifp->if_drv_flags |= IFF_DRV_OACTIVE;
     while (!IFQ_DRV_IS_EMPTY(&ifp->if_snd))
     {
+#if __FreeBSD_version >= 1100036
+        if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
+#else
         ifp->if_opackets++;
+#endif
         IFQ_DRV_DEQUEUE(&ifp->if_snd, m);
         BPF_MTAP(ifp, m);
         m_freem(m);

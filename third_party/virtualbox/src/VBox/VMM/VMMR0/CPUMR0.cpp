@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Oracle Corporation
+ * Copyright (C) 2006-2019 Oracle Corporation
  *
  * This file is part of VirtualBox Open Source Edition (OSE), as
  * available from http://www.virtualbox.org. This file is free software;
@@ -130,8 +130,6 @@ VMMR0_INT_DECL(int) CPUMR0ModuleTerm(void)
 
 
 /**
- *
- *
  * Check the CPUID features of this particular CPU and disable relevant features
  * for the guest which do not exist on this CPU. We have seen systems where the
  * X86_CPUID_FEATURE_ECX_MONITOR feature flag is only set on some host CPUs, see
@@ -268,12 +266,14 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVM pVM)
         }
 
         /*
-         * Copy MSR_IA32_ARCH_CAPABILITIES bits over into the host feature structure.
+         * Copy MSR_IA32_ARCH_CAPABILITIES bits over into the host and guest feature
+         * structure and as well as the guest MSR.
          */
         pVM->cpum.s.HostFeatures.fArchRdclNo             = 0;
         pVM->cpum.s.HostFeatures.fArchIbrsAll            = 0;
         pVM->cpum.s.HostFeatures.fArchRsbOverride        = 0;
         pVM->cpum.s.HostFeatures.fArchVmmNeedNotFlushL1d = 0;
+        pVM->cpum.s.HostFeatures.fArchMdsNo              = 0;
         uint32_t const cStdRange = ASMCpuId_EAX(0);
         if (   ASMIsValidStdRange(cStdRange)
             && cStdRange >= 7)
@@ -283,10 +283,20 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVM pVM)
                 && (fFeatures & X86_CPUID_FEATURE_EDX_MSR))
             {
                 uint64_t const fArchVal = ASMRdMsr(MSR_IA32_ARCH_CAPABILITIES);
-                pVM->cpum.s.HostFeatures.fArchRdclNo             = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RDCL_NO);
-                pVM->cpum.s.HostFeatures.fArchIbrsAll            = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_IBRS_ALL);
-                pVM->cpum.s.HostFeatures.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
-                pVM->cpum.s.HostFeatures.fArchVmmNeedNotFlushL1d = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_VMM_NEED_NOT_FLUSH_L1D);
+                pVM->cpum.s.GuestFeatures.fArchRdclNo
+                    = pVM->cpum.s.HostFeatures.fArchRdclNo             = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RDCL_NO);
+                pVM->cpum.s.GuestFeatures.fArchIbrsAll
+                    = pVM->cpum.s.HostFeatures.fArchIbrsAll            = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_IBRS_ALL);
+                pVM->cpum.s.GuestFeatures.fArchRsbOverride
+                    = pVM->cpum.s.HostFeatures.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
+                pVM->cpum.s.GuestFeatures.fArchVmmNeedNotFlushL1d
+                    = pVM->cpum.s.HostFeatures.fArchVmmNeedNotFlushL1d = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_VMM_NEED_NOT_FLUSH_L1D);
+                pVM->cpum.s.GuestFeatures.fArchMdsNo
+                    = pVM->cpum.s.HostFeatures.fArchMdsNo              = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_MDS_NO);
+
+                if (pVM->cpum.s.GuestFeatures.fArchCap)
+                    for (VMCPUID i = 0; i < pVM->cCpus; i++)
+                        pVM->aCpus[i].cpum.s.GuestMsrs.msr.ArchCaps = fArchVal;
             }
             else
                 pVM->cpum.s.HostFeatures.fArchCap = 0;
@@ -785,7 +795,8 @@ static DECLCALLBACK(void) cpumR0MapLocalApicCpuProber(RTCPUID idCpu, void *pvUse
     ASMCpuId(0, &uMaxLeaf, &u32EBX, &u32ECX, &u32EDX);
     if (   (   ASMIsIntelCpuEx(u32EBX, u32ECX, u32EDX)
             || ASMIsAmdCpuEx(u32EBX, u32ECX, u32EDX)
-            || ASMIsViaCentaurCpuEx(u32EBX, u32ECX, u32EDX))
+            || ASMIsViaCentaurCpuEx(u32EBX, u32ECX, u32EDX)
+            || ASMIsShanghaiCpuEx(u32EBX, u32ECX, u32EDX))
         && ASMIsValidStdRange(uMaxLeaf))
     {
         uint32_t uDummy;
